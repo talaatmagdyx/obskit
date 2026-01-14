@@ -136,8 +136,8 @@ def capture_context() -> dict[str, Any]:
         inject_trace_context(trace_headers)
         if trace_headers:
             context["trace_headers"] = trace_headers
-    except Exception:  # pragma: no cover
-        pass
+    except Exception:  # pragma: no cover  # nosec B110 - intentional: tracing is optional
+        pass  # Tracing may not be configured - this is expected
 
     return context
 

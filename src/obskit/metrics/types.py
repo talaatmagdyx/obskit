@@ -163,9 +163,8 @@ class Counter:
                 ):
                     existing = registry._names_to_collectors[name]
                     registry.unregister(existing)
-            except Exception:
-                # Ignore errors during cleanup - metric might not exist
-                pass
+            except Exception:  # nosec B110 - metric cleanup errors are non-critical
+                pass  # Ignore errors during cleanup - metric might not exist
 
             self._metric = prometheus_client.Counter(
                 name,
@@ -285,8 +284,8 @@ class Gauge:
                 ):
                     existing = registry._names_to_collectors[name]
                     registry.unregister(existing)
-            except Exception:
-                pass
+            except Exception:  # nosec B110 - metric cleanup errors are non-critical
+                pass  # Ignore errors during cleanup - metric might not exist
 
             self._metric = prometheus_client.Gauge(
                 name,
@@ -436,8 +435,8 @@ class Histogram:
                 ):
                     existing = registry._names_to_collectors[name]
                     registry.unregister(existing)
-            except Exception:
-                pass
+            except Exception:  # nosec B110 - metric cleanup errors are non-critical
+                pass  # Ignore errors during cleanup - metric might not exist
 
             self._metric = prometheus_client.Histogram(
                 name,
@@ -538,8 +537,8 @@ class Summary:
                 ):
                     existing = registry._names_to_collectors[name]
                     registry.unregister(existing)
-            except Exception:
-                pass
+            except Exception:  # nosec B110 - metric cleanup errors are non-critical
+                pass  # Ignore errors during cleanup - metric might not exist
 
             self._metric = prometheus_client.Summary(
                 name,

@@ -218,7 +218,8 @@ def start_http_server(
         settings = get_settings()
 
         actual_port = port if port is not None else settings.metrics_port
-        actual_host = host if host is not None else "0.0.0.0"
+        # nosec B104 - binding to all interfaces is intentional for container/k8s deployments
+        actual_host = host if host is not None else "0.0.0.0"  # nosec B104
 
         try:
             # Check if authentication is enabled
@@ -306,12 +307,10 @@ def stop_http_server() -> None:
                 if _http_server is not None:  # pragma: no branch
                     try:
                         _http_server.shutdown()
-                    except AttributeError:
-                        # prometheus_client WSGIServer doesn't have shutdown method
-                        pass
-                    except Exception:  # pragma: no cover
-                        # Ignore errors during shutdown
-                        pass
+                    except AttributeError:  # nosec B110 - shutdown method may not exist
+                        pass  # prometheus_client WSGIServer doesn't have shutdown method
+                    except Exception:  # pragma: no cover  # nosec B110 - shutdown errors non-critical
+                        pass  # Ignore errors during shutdown
 
                 # The prometheus_client server thread is a daemon thread
                 # We need to access the internal server to stop it
@@ -353,7 +352,7 @@ def reset_registry() -> None:
             for collector in collectors:  # pragma: no cover
                 try:
                     _registry.unregister(collector)
-                except Exception:  # pragma: no cover
+                except Exception:  # pragma: no cover  # nosec B110 - cleanup errors non-critical
                     pass  # Ignore errors during cleanup
 
         _registry = None

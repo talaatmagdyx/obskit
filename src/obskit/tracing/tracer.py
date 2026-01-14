@@ -284,8 +284,8 @@ def inject_trace_context(headers: dict[str, str] | None = None) -> dict[str, str
 
         propagator = TraceContextTextMapPropagator()
         propagator.inject(headers)  # pragma: no cover
-    except Exception:  # pragma: no cover
-        pass
+    except Exception:  # pragma: no cover  # nosec B110 - trace injection is best-effort
+        pass  # Trace context injection failure is non-critical
 
     return headers
 
@@ -423,5 +423,5 @@ def shutdown_tracing() -> None:
                 provider = trace.get_tracer_provider()
                 if hasattr(provider, "shutdown"):  # pragma: no cover
                     provider.shutdown()
-            except Exception:  # pragma: no cover
+            except Exception:  # pragma: no cover  # nosec B110 - shutdown errors non-critical
                 pass  # Ignore errors during shutdown

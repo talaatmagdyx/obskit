@@ -266,9 +266,8 @@ class ObskitDjangoMiddleware:
                 return str(match.url_name)
             if match.view_name:  # pragma: no branch
                 return str(match.view_name)
-        except Exception:
-            # URL resolution may fail for various reasons - fall back to path-based name
-            pass
+        except Exception:  # nosec B110 - URL resolution failure is expected for some paths
+            pass  # URL resolution may fail for various reasons - fall back to path-based name
 
         # Fall back to path-based name
         return request.path.replace("/", "_").strip("_") or "unknown"

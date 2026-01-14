@@ -104,8 +104,9 @@ def sample_log(
         return event_dict
 
     # Apply sampling for other log levels
+    # nosec B311 - random is used for log sampling, not security
     if (
-        settings.log_sample_rate < 1.0 and random.random() > settings.log_sample_rate
+        settings.log_sample_rate < 1.0 and random.random() > settings.log_sample_rate  # nosec B311
     ):  # pragma: no branch
         return None  # Drop this log entry  # pragma: no cover
 

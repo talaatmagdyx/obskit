@@ -263,7 +263,8 @@ def calculate_delay(
     # Add jitter if enabled
     if config.jitter:
         # Full jitter: random value between 0 and delay
-        delay = random.uniform(0, delay)
+        # nosec B311 - random is used for retry jitter timing, not security
+        delay = random.uniform(0, delay)  # nosec B311
 
     return delay
 

@@ -496,7 +496,8 @@ class REDMetrics:
             self.errors_total.labels(operation=operation, error_type=error_label).inc()
 
         # Apply sampling for success metrics - skip if not sampled
-        if self._sample_rate < 1.0 and random.random() > self._sample_rate:
+        # nosec B311 - random is used for metric sampling, not security
+        if self._sample_rate < 1.0 and random.random() > self._sample_rate:  # nosec B311
             return  # Skip this observation (errors already recorded above)
 
         # Increment request counter (when sampled)
