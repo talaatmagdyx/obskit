@@ -144,6 +144,7 @@ def django_settings():
         return settings
     except ImportError:
         pytest.skip("Django not installed")
+        return None  # Explicit return to satisfy static analysis
 
 
 # =============================================================================
@@ -162,6 +163,7 @@ def flask_app():
         return app
     except ImportError:
         pytest.skip("Flask not installed")
+        return None  # Explicit return to satisfy static analysis
 
 
 # =============================================================================

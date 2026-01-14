@@ -265,6 +265,7 @@ class TestMiddlewareIntegration:
             from obskit.middleware.fastapi import ObskitMiddleware
         except ImportError:
             pytest.skip("FastAPI not available")
+            return  # Explicit return to satisfy static analysis
 
         app = FastAPI()
         app.add_middleware(
