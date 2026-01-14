@@ -52,7 +52,7 @@ import logging
 import threading
 import time
 from collections.abc import Callable
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from queue import Empty, Queue
 from typing import Any
 
@@ -238,7 +238,7 @@ def shutdown_otlp_logging() -> None:
     with _otlp_lock:
         if _otlp_logger_provider is not None:
             try:
-                _otlp_logger_provider.shutdown()
+                _otlp_logger_provider.shutdown()  # type: ignore[no-untyped-call]
             except Exception:  # pragma: no cover
                 pass
             _otlp_logger_provider = None
@@ -330,9 +330,8 @@ class OTLPLogHandler(logging.Handler):
 
                 # Flush if batch is full or interval elapsed
                 now = time.time()
-                should_flush = (
-                    len(batch) >= self.batch_size
-                    or (batch and now - last_flush >= self.flush_interval)
+                should_flush = len(batch) >= self.batch_size or (
+                    batch and now - last_flush >= self.flush_interval
                 )
 
                 if should_flush:
@@ -377,7 +376,7 @@ class OTLPLogHandler(logging.Handler):
         try:
             # Build log entry
             log_entry: dict[str, Any] = {
-                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "timestamp": datetime.now(UTC).isoformat(),
                 "severity": record.levelname,
                 "body": self.format(record),
                 "attributes": {
@@ -447,7 +446,7 @@ class OTLPLogHandler(logging.Handler):
 
 def create_otlp_log_processor(
     endpoint: str | None = None,
-) -> Callable[[dict[str, Any]], dict[str, Any]]:
+) -> Callable[[Any, str, dict[str, Any]], dict[str, Any]]:
     """
     Create a structlog processor that adds OTLP-compatible attributes.
 

@@ -7,6 +7,3 @@ Unit tests should:
 - Use mocks for external services
 - Test single units of code in isolation
 """
-
-import pytest
-

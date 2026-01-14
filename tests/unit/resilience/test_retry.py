@@ -1,9 +1,8 @@
 """Tests for obskit.resilience.retry module."""
 
 import pytest
-from unittest.mock import AsyncMock, patch
 
-from obskit.resilience.retry import retry, retry_sync, RetryError, RetryConfig
+from obskit.resilience.retry import RetryConfig, RetryError, retry, retry_sync
 
 
 class TestRetryDecorator:
@@ -96,6 +95,7 @@ class TestRetryDecorator:
     @pytest.mark.asyncio
     async def test_preserves_function_return(self):
         """Test that return value is preserved."""
+
         @retry(max_attempts=3)
         async def returns_dict():
             return {"key": "value", "count": 42}
@@ -106,6 +106,7 @@ class TestRetryDecorator:
     @pytest.mark.asyncio
     async def test_preserves_function_name(self):
         """Test that decorated function name is preserved."""
+
         @retry(max_attempts=3)
         async def my_named_function():
             return "test"
@@ -152,6 +153,7 @@ class TestRetryConfiguration:
     async def test_delay_between_retries(self):
         """Test that delays occur between retries."""
         import time
+
         timestamps = []
 
         @retry(max_attempts=3, base_delay=0.05, jitter=False)
@@ -162,7 +164,7 @@ class TestRetryConfiguration:
             return "success"
 
         await fails_twice()
-        
+
         # Check delays exist (with some tolerance)
         if len(timestamps) >= 2:
             delay = timestamps[1] - timestamps[0]
@@ -252,9 +254,9 @@ class TestRetrySyncDecorator:
 
     def test_sync_preserves_function_name(self):
         """Test that sync decorated function name is preserved."""
+
         @retry_sync(max_attempts=3)
         def my_sync_function():
             return "test"
 
         assert my_sync_function.__name__ == "my_sync_function"
-

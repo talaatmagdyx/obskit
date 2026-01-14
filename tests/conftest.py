@@ -4,22 +4,23 @@ Pytest configuration and fixtures for obskit tests.
 This module provides shared fixtures and configuration for all tests.
 """
 
-import pytest
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
+import pytest
 
 # =============================================================================
 # Configuration Reset Fixtures
 # =============================================================================
+
 
 @pytest.fixture(autouse=True)
 def reset_obskit_state():
     """Reset obskit global state before and after each test."""
     # Reset before test
     _reset_all_state()
-    
+
     yield
-    
+
     # Reset after test
     _reset_all_state()
 
@@ -29,34 +30,39 @@ def _reset_all_state():
     # Reset configuration
     try:
         from obskit.config import reset_settings
+
         reset_settings()
     except ImportError:
         pass
-    
+
     # Reset RED metrics
     try:
         from obskit.metrics.red import reset_red_metrics
+
         reset_red_metrics()
     except ImportError:
         pass
-    
+
     # Reset tracing
     try:
         from obskit.tracing.tracer import reset_tracing
+
         reset_tracing()
     except ImportError:
         pass
-    
+
     # Reset logging factory
     try:
         from obskit.logging.factory import reset_logging_factory
+
         reset_logging_factory()
     except ImportError:
         pass
-    
+
     # Reset Prometheus registry to avoid duplicate metrics
     try:
         from prometheus_client import REGISTRY
+
         collectors = list(REGISTRY._names_to_collectors.values())
         for collector in collectors:
             try:
@@ -71,6 +77,7 @@ def _reset_all_state():
 # =============================================================================
 # Common Fixtures
 # =============================================================================
+
 
 @pytest.fixture
 def mock_redis_sync():
@@ -87,7 +94,7 @@ def mock_redis_sync():
 def mock_redis_async():
     """Provide a mock async Redis client."""
     from unittest.mock import AsyncMock
-    
+
     mock = MagicMock()
     mock.get = AsyncMock(return_value=None)
     mock.setex = AsyncMock(return_value=True)
@@ -113,24 +120,25 @@ def sample_settings():
 # Django Fixtures
 # =============================================================================
 
+
 @pytest.fixture
 def django_settings():
     """Configure Django settings for tests."""
     try:
-        import django
+        import django  # noqa: F401
         from django.conf import settings
-        
+
         if not settings.configured:
             settings.configure(
                 DEBUG=True,
                 DATABASES={},
                 INSTALLED_APPS=[],
-                ROOT_URLCONF='',
+                ROOT_URLCONF="",
                 OBSKIT={
-                    'exclude_paths': ['/health/', '/metrics/'],
-                    'track_metrics': True,
-                    'track_logging': True,
-                    'track_tracing': False,
+                    "exclude_paths": ["/health/", "/metrics/"],
+                    "track_metrics": True,
+                    "track_logging": True,
+                    "track_tracing": False,
                 },
             )
         return settings
@@ -142,13 +150,15 @@ def django_settings():
 # Flask Fixtures
 # =============================================================================
 
+
 @pytest.fixture
 def flask_app():
     """Provide a test Flask application."""
     try:
         from flask import Flask
+
         app = Flask(__name__)
-        app.config['TESTING'] = True
+        app.config["TESTING"] = True
         return app
     except ImportError:
         pytest.skip("Flask not installed")
@@ -158,10 +168,12 @@ def flask_app():
 # Async Fixtures
 # =============================================================================
 
+
 @pytest.fixture
 def event_loop():
     """Create an event loop for async tests."""
     import asyncio
+
     loop = asyncio.new_event_loop()
     yield loop
     loop.close()

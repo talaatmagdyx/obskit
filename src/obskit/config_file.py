@@ -20,16 +20,16 @@ Create a file `obskit.yaml`:
     service_name: order-service
     environment: production
     version: "1.0.0"
-    
+
     logging:
       level: INFO
       format: json
-    
+
     metrics:
       enabled: true
       port: 9090
       auth_enabled: true
-    
+
     tracing:
       enabled: true
       otlp_endpoint: http://jaeger:4317
@@ -40,7 +40,7 @@ Then load it:
 .. code-block:: python
 
     from obskit import configure_from_file
-    
+
     configure_from_file("obskit.yaml")
 
 Example - TOML Configuration
@@ -52,11 +52,11 @@ Create a file `obskit.toml`:
     service_name = "order-service"
     environment = "production"
     version = "1.0.0"
-    
+
     [logging]
     level = "INFO"
     format = "json"
-    
+
     [metrics]
     enabled = true
     port = 9090
@@ -66,7 +66,7 @@ Then load it:
 .. code-block:: python
 
     from obskit import configure_from_file
-    
+
     configure_from_file("obskit.toml")
 """
 
@@ -87,29 +87,29 @@ def configure_from_file(
 ) -> ObskitSettings:
     """
     Load obskit configuration from a file.
-    
+
     Supports YAML, TOML, and JSON formats. The format is auto-detected
     based on the file extension.
-    
+
     Parameters
     ----------
     file_path : str | Path
         Path to the configuration file.
     override_with_env : bool, default=True
         If True, environment variables (OBSKIT_*) override file values.
-    
+
     Returns
     -------
     ObskitSettings
         The configured settings instance.
-    
+
     Raises
     ------
     ConfigFileNotFoundError
         If the configuration file does not exist.
     ConfigValidationError
         If the configuration file is invalid.
-    
+
     Example
     -------
     >>> from obskit import configure_from_file
@@ -124,16 +124,16 @@ def configure_from_file(
     >>> settings = configure_from_file("obskit.json")
     """
     path = Path(file_path)
-    
+
     if not path.exists():
         raise ConfigFileNotFoundError(
             f"Configuration file not found: {file_path}",
             details={"file_path": str(file_path)},
         )
-    
+
     # Determine format from extension
     suffix = path.suffix.lower()
-    
+
     try:
         if suffix in (".yaml", ".yml"):
             config_dict = _load_yaml(path)
@@ -154,10 +154,10 @@ def configure_from_file(
             f"Failed to parse configuration file: {e}",
             details={"file_path": str(file_path), "error": str(e)},
         ) from e
-    
+
     # Flatten nested config (e.g., logging.level -> log_level)
     flat_config = _flatten_config(config_dict)
-    
+
     # If override_with_env is False, we need to set env vars from file first
     if not override_with_env:
         # Clear any OBSKIT_* env vars temporarily
@@ -169,23 +169,23 @@ def configure_from_file(
     else:
         # Normal behavior: env vars take precedence
         settings = configure(**flat_config)
-    
+
     return settings
 
 
 def _load_yaml(path: Path) -> dict[str, Any]:
     """Load configuration from YAML file."""
     try:
-        import yaml
+        import yaml  # type: ignore[import-untyped]
     except ImportError as e:
         raise ConfigValidationError(
-            "PyYAML is required to load YAML configuration files. "
-            "Install with: pip install pyyaml",
+            "PyYAML is required to load YAML configuration files. Install with: pip install pyyaml",
             details={"file_path": str(path)},
         ) from e
-    
+
     with open(path, encoding="utf-8") as f:
-        return yaml.safe_load(f) or {}
+        result = yaml.safe_load(f)
+        return dict(result) if result else {}
 
 
 def _load_toml(path: Path) -> dict[str, Any]:
@@ -201,18 +201,18 @@ def _load_toml(path: Path) -> dict[str, Any]:
                 "Install with: pip install tomli",
                 details={"file_path": str(path)},
             ) from e
-    
+
     with open(path, "rb") as f:
-        data = tomllib.load(f)
-    
+        data: dict[str, Any] = tomllib.load(f)
+
     # Check if obskit config is under [tool.obskit] (pyproject.toml style)
     if "tool" in data and "obskit" in data["tool"]:
-        return data["tool"]["obskit"]
-    
+        return dict(data["tool"]["obskit"])
+
     # Check if obskit config is under [obskit] section
     if "obskit" in data:
-        return data["obskit"]
-    
+        return dict(data["obskit"])
+
     # Otherwise, assume the whole file is obskit config
     return data
 
@@ -220,33 +220,36 @@ def _load_toml(path: Path) -> dict[str, Any]:
 def _load_json(path: Path) -> dict[str, Any]:
     """Load configuration from JSON file."""
     with open(path, encoding="utf-8") as f:
-        return json.load(f)
+        result: dict[str, Any] = json.load(f)
+        return result
 
 
 def _flatten_config(config: dict[str, Any]) -> dict[str, Any]:
     """
     Flatten nested configuration to obskit settings format.
-    
+
     Converts nested structure like:
         logging:
           level: INFO
           format: json
-    
+
     To flat structure like:
         log_level: INFO
         log_format: json
     """
     result: dict[str, Any] = {}
-    
+
     # Direct mappings (top-level keys that match settings)
     direct_keys = [
-        "service_name", "environment", "version",
+        "service_name",
+        "environment",
+        "version",
     ]
-    
+
     for key in direct_keys:
         if key in config:
             result[key] = config[key]
-    
+
     # Logging section
     if "logging" in config:
         logging_config = config["logging"]
@@ -260,7 +263,7 @@ def _flatten_config(config: dict[str, Any]) -> dict[str, Any]:
             result["log_sample_rate"] = logging_config["sample_rate"]
         if "backend" in logging_config:
             result["logging_backend"] = logging_config["backend"]
-    
+
     # Metrics section
     if "metrics" in config:
         metrics_config = config["metrics"]
@@ -286,7 +289,7 @@ def _flatten_config(config: dict[str, Any]) -> dict[str, Any]:
             result["use_histogram"] = metrics_config["use_histogram"]
         if "use_summary" in metrics_config:
             result["use_summary"] = metrics_config["use_summary"]
-    
+
     # Tracing section
     if "tracing" in config:
         tracing_config = config["tracing"]
@@ -304,13 +307,13 @@ def _flatten_config(config: dict[str, Any]) -> dict[str, Any]:
             result["trace_export_batch_size"] = tracing_config["export_batch_size"]
         if "export_timeout" in tracing_config:
             result["trace_export_timeout"] = tracing_config["export_timeout"]
-    
+
     # Health section
     if "health" in config:
         health_config = config["health"]
         if "check_timeout" in health_config:
             result["health_check_timeout"] = health_config["check_timeout"]
-    
+
     # Circuit breaker section
     if "circuit_breaker" in config:
         cb_config = config["circuit_breaker"]
@@ -320,7 +323,7 @@ def _flatten_config(config: dict[str, Any]) -> dict[str, Any]:
             result["circuit_breaker_recovery_timeout"] = cb_config["recovery_timeout"]
         if "half_open_requests" in cb_config:
             result["circuit_breaker_half_open_requests"] = cb_config["half_open_requests"]
-    
+
     # Retry section
     if "retry" in config:
         retry_config = config["retry"]
@@ -332,7 +335,7 @@ def _flatten_config(config: dict[str, Any]) -> dict[str, Any]:
             result["retry_max_delay"] = retry_config["max_delay"]
         if "exponential_base" in retry_config:
             result["retry_exponential_base"] = retry_config["exponential_base"]
-    
+
     # Rate limiting section
     if "rate_limit" in config:
         rl_config = config["rate_limit"]
@@ -340,7 +343,7 @@ def _flatten_config(config: dict[str, Any]) -> dict[str, Any]:
             result["rate_limit_requests"] = rl_config["requests"]
         if "window_seconds" in rl_config:
             result["rate_limit_window_seconds"] = rl_config["window_seconds"]
-    
+
     # Self-monitoring section
     if "self_monitoring" in config:
         sm_config = config["self_monitoring"]
@@ -348,7 +351,7 @@ def _flatten_config(config: dict[str, Any]) -> dict[str, Any]:
             result["enable_self_metrics"] = sm_config["enabled"]
         if "async_queue_size" in sm_config:
             result["async_metric_queue_size"] = sm_config["async_queue_size"]
-    
+
     return result
 
 
@@ -358,10 +361,10 @@ def _save_obskit_env_vars() -> dict[str, str]:
     for key, value in os.environ.items():
         if key.startswith("OBSKIT_"):
             saved[key] = value
-    
+
     for key in saved:
         del os.environ[key]
-    
+
     return saved
 
 

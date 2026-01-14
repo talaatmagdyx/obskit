@@ -58,7 +58,7 @@ def instrument_sqlalchemy(engine: Any, database_name: str = "database") -> None:
 
         golden = get_golden_signals()
 
-        @event.listens_for(Engine, "before_cursor_execute")  # type: ignore[misc, untyped-decorator]
+        @event.listens_for(Engine, "before_cursor_execute")
         def before_cursor_execute(
             conn: Any,
             cursor: Any,
@@ -71,7 +71,7 @@ def instrument_sqlalchemy(engine: Any, database_name: str = "database") -> None:
             context._query_start_time = __import__("time").perf_counter()
             context._query_statement = statement
 
-        @event.listens_for(Engine, "after_cursor_execute")  # type: ignore[misc, untyped-decorator]
+        @event.listens_for(Engine, "after_cursor_execute")
         def after_cursor_execute(
             conn: Any,
             cursor: Any,
@@ -100,7 +100,7 @@ def instrument_sqlalchemy(engine: Any, database_name: str = "database") -> None:
                         query=statement[:200],  # First 200 chars
                     )
 
-        @event.listens_for(Engine, "handle_error")  # type: ignore[misc, untyped-decorator]
+        @event.listens_for(Engine, "handle_error")
         def handle_error(exception_context: Any) -> None:
             """Track query errors."""
             logger.error(
@@ -111,7 +111,7 @@ def instrument_sqlalchemy(engine: Any, database_name: str = "database") -> None:
             )
 
         # Track connection pool metrics
-        @event.listens_for(Engine, "connect")  # type: ignore[misc, untyped-decorator]
+        @event.listens_for(Engine, "connect")
         def on_connect(dbapi_conn: Any, connection_record: Any) -> None:
             """Track connection creation."""
             pool = engine.pool

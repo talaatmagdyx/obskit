@@ -1,9 +1,7 @@
 """Tests for obskit.interfaces module."""
 
-import pytest
 from abc import ABC
 from contextlib import contextmanager
-from unittest.mock import MagicMock
 
 from obskit.interfaces import (
     CircuitBreakerInterface,
@@ -13,7 +11,7 @@ from obskit.interfaces import (
     TracerInterface,
 )
 from obskit.interfaces.circuit_breaker import CircuitState
-from obskit.interfaces.health_checker import HealthStatus, HealthResultInterface
+from obskit.interfaces.health_checker import HealthResultInterface, HealthStatus
 from obskit.interfaces.metrics import GoldenSignalsInterface, USEMetricsInterface
 from obskit.interfaces.tracer import SpanInterface
 
@@ -29,34 +27,35 @@ class TestCircuitBreakerInterface:
 
     def test_is_closed_property(self):
         """Test is_closed property."""
+
         class TestBreaker(CircuitBreakerInterface):
             def __init__(self, state):
                 self._state = state
-            
+
             @property
             def name(self):
                 return "test"
-            
+
             @property
             def state(self):
                 return self._state
-            
+
             @property
             def failure_count(self):
                 return 0
-            
+
             async def __aenter__(self):
                 return self
-            
+
             async def __aexit__(self, exc_type, exc_val, exc_tb):
                 return False
-            
+
             def reset(self):
                 pass
-            
+
             def get_stats(self):
                 return {}
-        
+
         breaker = TestBreaker(CircuitState.CLOSED)
         assert breaker.is_closed is True
         assert breaker.is_open is False
@@ -64,34 +63,35 @@ class TestCircuitBreakerInterface:
 
     def test_is_open_property(self):
         """Test is_open property."""
+
         class TestBreaker(CircuitBreakerInterface):
             def __init__(self, state):
                 self._state = state
-            
+
             @property
             def name(self):
                 return "test"
-            
+
             @property
             def state(self):
                 return self._state
-            
+
             @property
             def failure_count(self):
                 return 0
-            
+
             async def __aenter__(self):
                 return self
-            
+
             async def __aexit__(self, exc_type, exc_val, exc_tb):
                 return False
-            
+
             def reset(self):
                 pass
-            
+
             def get_stats(self):
                 return {}
-        
+
         breaker = TestBreaker(CircuitState.OPEN)
         assert breaker.is_closed is False
         assert breaker.is_open is True
@@ -99,34 +99,35 @@ class TestCircuitBreakerInterface:
 
     def test_is_half_open_property(self):
         """Test is_half_open property."""
+
         class TestBreaker(CircuitBreakerInterface):
             def __init__(self, state):
                 self._state = state
-            
+
             @property
             def name(self):
                 return "test"
-            
+
             @property
             def state(self):
                 return self._state
-            
+
             @property
             def failure_count(self):
                 return 0
-            
+
             async def __aenter__(self):
                 return self
-            
+
             async def __aexit__(self, exc_type, exc_val, exc_tb):
                 return False
-            
+
             def reset(self):
                 pass
-            
+
             def get_stats(self):
                 return {}
-        
+
         breaker = TestBreaker(CircuitState.HALF_OPEN)
         assert breaker.is_closed is False
         assert breaker.is_open is False
@@ -160,67 +161,69 @@ class TestLoggerInterface:
 
     def test_msg_alias(self):
         """Test msg() is an alias for info()."""
+
         class TestLogger(LoggerInterface):
             def __init__(self):
                 self.calls = []
-            
+
             def debug(self, event, **kwargs):
                 self.calls.append(("debug", event, kwargs))
-            
+
             def info(self, event, **kwargs):
                 self.calls.append(("info", event, kwargs))
-            
+
             def warning(self, event, **kwargs):
                 self.calls.append(("warning", event, kwargs))
-            
+
             def error(self, event, **kwargs):
                 self.calls.append(("error", event, kwargs))
-            
+
             def critical(self, event, **kwargs):
                 self.calls.append(("critical", event, kwargs))
-            
+
             def exception(self, event, **kwargs):
                 self.calls.append(("exception", event, kwargs))
-            
+
             def bind(self, **kwargs):
                 return self
-        
+
         logger = TestLogger()
         logger.msg("test_event", key="value")
-        
+
         assert len(logger.calls) == 1
         assert logger.calls[0] == ("info", "test_event", {"key": "value"})
 
     def test_warn_alias(self):
         """Test warn() is an alias for warning()."""
+
         class TestLogger(LoggerInterface):
             def __init__(self):
                 self.calls = []
-            
+
             def debug(self, event, **kwargs):
                 self.calls.append(("debug", event, kwargs))
-            
+
             def info(self, event, **kwargs):
                 self.calls.append(("info", event, kwargs))
-            
+
             def warning(self, event, **kwargs):
                 self.calls.append(("warning", event, kwargs))
-            
+
             def error(self, event, **kwargs):
                 self.calls.append(("error", event, kwargs))
-            
+
             def critical(self, event, **kwargs):
                 self.calls.append(("critical", event, kwargs))
-            
+
             def exception(self, event, **kwargs):
                 self.calls.append(("exception", event, kwargs))
-            
+
             def bind(self, **kwargs):
                 return self
-        
+
         logger = TestLogger()
         logger.warn("test_warning", key="value")
-        
+
         assert len(logger.calls) == 1
         assert logger.calls[0] == ("warning", "test_warning", {"key": "value"})
 
@@ -234,24 +237,27 @@ class TestMetricsInterface:
 
     def test_inc_request_method(self):
         """Test inc_request() default implementation."""
+
         class TestMetrics(MetricsInterface):
             def __init__(self):
                 self.calls = []
-            
+
             @property
             def name(self):
                 return "test"
-            
-            def observe_request(self, operation, duration_seconds, status="success", error_type=None):
+
+            def observe_request(
+                self, operation, duration_seconds, status="success", error_type=None
+            ):
                 self.calls.append((operation, duration_seconds, status, error_type))
-            
+
             @contextmanager
             def track_request(self, operation):
                 yield
-        
+
         metrics = TestMetrics()
         metrics.inc_request("test_op", "success")
-        
+
         assert len(metrics.calls) == 1
         assert metrics.calls[0] == ("test_op", 0.0, "success", None)
 
@@ -282,7 +288,7 @@ class TestInterfacesModule:
     def test_all_exports(self):
         """Test __all__ exports."""
         from obskit import interfaces
-        
+
         assert hasattr(interfaces, "CircuitBreakerInterface")
         assert hasattr(interfaces, "HealthCheckerInterface")
         assert hasattr(interfaces, "LoggerInterface")

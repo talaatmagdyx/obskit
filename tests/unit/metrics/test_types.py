@@ -1,15 +1,12 @@
 """Tests for obskit.metrics.types module."""
 
-import pytest
-from unittest.mock import MagicMock, patch
-
+from obskit.metrics.registry import reset_registry
 from obskit.metrics.types import (
     Counter,
     Gauge,
     Histogram,
     Summary,
 )
-from obskit.metrics.registry import reset_registry
 
 
 class TestCounter:
@@ -176,22 +173,21 @@ class TestSummary:
 
     def test_init_replaces_existing(self):
         """Test summary replaces existing metric with same name."""
-        import prometheus_client
-        
+
         # Create first summary
         summary1 = Summary(
             name="test_summary_replace",
             documentation="First summary",
         )
         summary1.observe(1.0)
-        
+
         # Creating second summary with same name should unregister first
         summary2 = Summary(
             name="test_summary_replace",
             documentation="Second summary",
         )
         summary2.observe(2.0)
-        
+
         # Should not raise - second summary should work
         assert summary2 is not None
 
@@ -204,5 +200,3 @@ class TestSummary:
         )
         labeled = summary.labels(method="GET")
         labeled.observe(0.5)
-
-

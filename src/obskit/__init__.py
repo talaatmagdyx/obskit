@@ -202,6 +202,8 @@ Module Contents
 ---------------
 """
 
+from typing import Any
+
 # =============================================================================
 # Version Information
 # =============================================================================
@@ -224,7 +226,6 @@ from obskit.config import configure, get_settings, validate_config
 
 # Note: These modules use lazy loading to avoid circular imports
 # They are loaded on first access via __getattr__
-
 # =============================================================================
 # Context Propagation
 # =============================================================================
@@ -632,18 +633,19 @@ __all__ = [
 # =============================================================================
 
 
-def __getattr__(name: str):
+def __getattr__(name: str) -> Any:
     """
     Lazy load modules that might cause circular imports.
-    
+
     This pattern allows us to export these symbols in __all__ while
     avoiding circular import issues at module load time.
     """
     # Configuration file loading
     if name == "configure_from_file":
         from obskit.config_file import configure_from_file
+
         return configure_from_file
-    
+
     # Structured error codes
     error_names = {
         "ObskitError",
@@ -662,8 +664,9 @@ def __getattr__(name: str):
     }
     if name in error_names:
         from obskit.core import errors
+
         return getattr(errors, name)
-    
+
     # Deprecation utilities
     deprecation_names = {
         "deprecated",
@@ -674,8 +677,9 @@ def __getattr__(name: str):
     }
     if name in deprecation_names:
         from obskit.core import deprecation
+
         return getattr(deprecation, name)
-    
+
     # Batch context propagation
     batch_context_names = {
         "capture_context",
@@ -688,6 +692,7 @@ def __getattr__(name: str):
     }
     if name in batch_context_names:
         from obskit.core import batch_context
+
         return getattr(batch_context, name)
-    
+
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")

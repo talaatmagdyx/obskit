@@ -27,7 +27,7 @@ class TestRedisCheck:
             delattr(mock_client, "__aenter__")
 
         # Use a real executor
-        with ThreadPoolExecutor(max_workers=1) as executor:
+        with ThreadPoolExecutor(max_workers=1):
             # Patch get_event_loop to use a real loop with the executor
             check = create_redis_check(mock_client, timeout=1.0)
             result = await check()
@@ -79,7 +79,6 @@ class TestRedisCheck:
     @pytest.mark.asyncio
     async def test_redis_check_timeout(self) -> None:
         """Test Redis check with timeout."""
-        import asyncio
 
         from obskit.health.checks import create_redis_check
 

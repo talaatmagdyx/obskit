@@ -11,9 +11,7 @@ Run with: pytest tests/integration/ -v --integration
 from __future__ import annotations
 
 import asyncio
-import time
-from typing import Any
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import MagicMock
 
 import pytest
 
@@ -365,7 +363,7 @@ class TestAsyncRecordingIntegration:
         async_metrics = AsyncREDMetrics(base)
 
         # Record metrics asynchronously
-        for i in range(10):
+        for _i in range(10):
             await async_metrics.observe_request(
                 operation="async_op",
                 duration_seconds=0.01,
