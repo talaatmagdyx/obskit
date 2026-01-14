@@ -66,7 +66,6 @@ import time
 from collections import defaultdict
 from typing import Any
 
-from obskit.config import get_settings
 from obskit.logging import get_logger
 
 logger = get_logger("obskit.metrics.openmetrics")
@@ -77,13 +76,6 @@ OPENMETRICS_CONTENT_TYPE = "application/openmetrics-text; version=1.0.0; charset
 # Check for prometheus_client
 try:
     from prometheus_client import REGISTRY
-    from prometheus_client.core import (
-        CounterMetricFamily,
-        GaugeMetricFamily,
-        HistogramMetricFamily,
-        Metric,
-    )
-    from prometheus_client.exposition import generate_latest
 
     PROMETHEUS_AVAILABLE = True
 except ImportError:  # pragma: no cover
@@ -171,11 +163,7 @@ def _format_labels(labels: dict[str, str]) -> str:
     parts = []
     for key, value in sorted(labels.items()):
         # Escape special characters in label values
-        escaped_value = (
-            value.replace("\\", "\\\\")
-            .replace('"', '\\"')
-            .replace("\n", "\\n")
-        )
+        escaped_value = value.replace("\\", "\\\\").replace('"', '\\"').replace("\n", "\\n")
         parts.append(f'{key}="{escaped_value}"')
 
     return "{" + ",".join(parts) + "}"
@@ -225,9 +213,7 @@ class OpenMetricsExemplar:
 
     def to_string(self) -> str:
         """Convert exemplar to OpenMetrics format string."""
-        label_str = ",".join(
-            f'{k}="{v}"' for k, v in sorted(self.labels.items())
-        )
+        label_str = ",".join(f'{k}="{v}"' for k, v in sorted(self.labels.items()))
         return f" # {{{label_str}}} {self.value} {self.timestamp}"
 
 
@@ -257,8 +243,7 @@ class OpenMetricsRegistry:
     def __init__(self, prometheus_registry: Any | None = None) -> None:
         if not PROMETHEUS_AVAILABLE:  # pragma: no cover
             raise ImportError(
-                "prometheus_client is required. "
-                "Install with: pip install prometheus-client"
+                "prometheus_client is required. Install with: pip install prometheus-client"
             )
 
         self._prometheus_registry = prometheus_registry or REGISTRY
@@ -333,12 +318,12 @@ class OpenMetricsRegistry:
             output_lines.append(f"# TYPE {metric.name} {_get_openmetrics_type(metric)}")
 
             for sample in metric.samples:
-                labels = _format_labels(sample.labels)
+                labels_str = _format_labels(sample.labels)
                 value = _format_value(sample.value)
-                line = f"{sample.name}{labels} {value}"
+                line = f"{sample.name}{labels_str} {value}"
 
                 # Add exemplar if available
-                key = f"{sample.name}{labels}"
+                key = f"{sample.name}{labels_str}"
                 if key in self._exemplars and self._exemplars[key]:
                     exemplar = self._exemplars[key][-1]
                     line += exemplar.to_string()

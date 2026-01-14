@@ -1,20 +1,19 @@
 """Tests for obskit.tracing.tracer module."""
 
 import pytest
-from unittest.mock import MagicMock, patch
 
 from obskit.tracing.tracer import (
+    OPENTELEMETRY_AVAILABLE,
     configure_tracing,
+    extract_trace_context,
     get_tracer,
+    inject_trace_context,
+    is_tracing_available,
     reset_tracing,
     shutdown_tracing,
-    trace_span,
-    trace_operation,
     trace_context,
-    inject_trace_context,
-    extract_trace_context,
-    is_tracing_available,
-    OPENTELEMETRY_AVAILABLE,
+    trace_operation,
+    trace_span,
 )
 
 
@@ -202,6 +201,7 @@ class TestTraceOperation:
 
     def test_trace_operation_decorator(self):
         """Test trace_operation decorator."""
+
         @trace_operation()
         def my_function():
             return "result"
@@ -211,6 +211,7 @@ class TestTraceOperation:
 
     def test_trace_operation_with_component(self):
         """Test trace_operation with component."""
+
         @trace_operation(component="TestComponent")
         def my_function():
             return "result"
@@ -220,6 +221,7 @@ class TestTraceOperation:
 
     def test_trace_operation_with_operation_name(self):
         """Test trace_operation with operation name."""
+
         @trace_operation(operation="custom_op")
         def my_function():
             return "result"
@@ -229,6 +231,7 @@ class TestTraceOperation:
 
     def test_trace_operation_preserves_name(self):
         """Test that decorator preserves function name."""
+
         @trace_operation()
         def named_function():
             pass
@@ -237,6 +240,7 @@ class TestTraceOperation:
 
     def test_trace_operation_with_args(self):
         """Test trace_operation with function arguments."""
+
         @trace_operation()
         def add(a, b):
             return a + b
@@ -246,6 +250,7 @@ class TestTraceOperation:
 
     def test_trace_operation_with_kwargs(self):
         """Test trace_operation with function kwargs."""
+
         @trace_operation()
         def greet(name, greeting="Hello"):
             return f"{greeting}, {name}"
@@ -280,7 +285,7 @@ class TestInjectExtractContext:
     def test_extract_trace_context(self):
         """Test extracting trace context from headers."""
         headers = {}
-        ctx = extract_trace_context(headers)
+        extract_trace_context(headers)
         # Should return a context (possibly empty)
 
     def test_extract_trace_context_none_headers(self):
@@ -292,7 +297,7 @@ class TestInjectExtractContext:
         """Test round-trip of inject/extract."""
         headers = {}
         inject_trace_context(headers)
-        ctx = extract_trace_context(headers)
+        extract_trace_context(headers)
         # Context should be extractable
 
 
@@ -311,7 +316,7 @@ class TestTraceContext:
     def test_trace_context_basic(self):
         """Test trace_context context manager."""
         headers = {}
-        with trace_context(headers) as ctx:
+        with trace_context(headers):
             pass
 
     def test_trace_context_none_headers(self):
@@ -323,8 +328,8 @@ class TestTraceContext:
         """Test trace_context with previously injected headers."""
         headers = {}
         inject_trace_context(headers)
-        
-        with trace_context(headers) as ctx:
+
+        with trace_context(headers):
             # Should have context
             pass
 
@@ -342,4 +347,3 @@ class TestIsTracingAvailable:
         result = is_tracing_available()
         # Since we have opentelemetry installed, should be True
         assert result == OPENTELEMETRY_AVAILABLE
-

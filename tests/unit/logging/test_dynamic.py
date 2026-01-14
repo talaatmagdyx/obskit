@@ -1,13 +1,11 @@
 """Tests for obskit.logging.dynamic module."""
 
 import logging
-import pytest
-from unittest.mock import MagicMock, patch
 
 from obskit.logging.dynamic import (
-    set_log_level,
     get_log_level,
     register_logger,
+    set_log_level,
 )
 
 
@@ -75,4 +73,3 @@ class TestRegisterLogger:
         logger2 = logging.getLogger("module2")
         register_logger("module1", logger1)
         register_logger("module2", logger2)
-

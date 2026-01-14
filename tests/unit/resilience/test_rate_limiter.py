@@ -4,8 +4,8 @@ import pytest
 
 from obskit.resilience.rate_limiter import (
     RateLimiter,
-    TokenBucketRateLimiter,
     RateLimitExceeded,
+    TokenBucketRateLimiter,
 )
 
 
@@ -29,7 +29,7 @@ class TestRateLimiter:
     async def test_acquire_multiple(self):
         """Test multiple acquisitions within limit."""
         limiter = RateLimiter(requests=5, window_seconds=60.0)
-        
+
         for _ in range(5):
             acquired = await limiter.acquire()
             assert acquired is True
@@ -38,10 +38,10 @@ class TestRateLimiter:
     async def test_acquire_exceeds_limit(self):
         """Test acquisition when limit is exceeded."""
         limiter = RateLimiter(requests=2, window_seconds=60.0)
-        
+
         await limiter.acquire()
         await limiter.acquire()
-        
+
         # Third request should fail or return False
         result = await limiter.acquire()
         # Depending on implementation, may return False or raise
@@ -51,7 +51,7 @@ class TestRateLimiter:
     async def test_context_manager_success(self):
         """Test async context manager."""
         limiter = RateLimiter(requests=10, window_seconds=60.0)
-        
+
         async with limiter:
             pass  # Should succeed
 
@@ -75,13 +75,13 @@ class TestRateLimiter:
     async def test_context_manager_raises_when_exceeded(self):
         """Test async context manager raises when rate exceeded."""
         limiter = RateLimiter(requests=2, window_seconds=60.0)
-        
+
         # Fill up the limit
         async with limiter:
             pass
         async with limiter:
             pass
-        
+
         # Third should raise
         with pytest.raises(RateLimitExceeded):
             async with limiter:
@@ -91,15 +91,16 @@ class TestRateLimiter:
     async def test_cleanup_old_requests(self):
         """Test that old requests are cleaned up."""
         import time
+
         limiter = RateLimiter(requests=2, window_seconds=0.05)  # Very short window
-        
+
         # Make requests
         await limiter.acquire()
         await limiter.acquire()
-        
+
         # Wait for window to expire
         time.sleep(0.1)
-        
+
         # Should be able to make request again after cleanup
         result = await limiter.acquire()
         assert result is True
@@ -143,7 +144,7 @@ class TestTokenBucketRateLimiter:
             bucket_size=100,
             refill_rate=10.0,
         )
-        
+
         async with limiter:
             pass  # Should succeed
 
@@ -164,7 +165,7 @@ class TestTokenBucketRateLimiter:
             refill_rate=0.001,  # Very slow refill
             initial_tokens=2,
         )
-        
+
         # Request more tokens than available
         result = await limiter.acquire(tokens=10)
         assert result is False
@@ -177,7 +178,7 @@ class TestTokenBucketRateLimiter:
             refill_rate=0.001,
             initial_tokens=0,
         )
-        
+
         with pytest.raises(RateLimitExceeded):
             async with limiter:
                 pass
@@ -207,4 +208,3 @@ class TestRateLimitExceeded:
         message = str(exc)
         assert "100" in message
         assert "60" in message or "retry" in message.lower()
-

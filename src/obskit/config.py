@@ -603,16 +603,6 @@ class ObskitSettings(BaseSettings):
         ),
     )
 
-    trace_export_queue_size: int = Field(
-        default=2048,
-        ge=1,
-        description=(
-            "Maximum queue size for trace exports. "
-            "When queue is full, new spans are dropped. "
-            "Larger values use more memory but handle bursts better."
-        ),
-    )
-
     # =========================================================================
     # Self-Monitoring Configuration
     # Configure obskit's internal metrics and monitoring
@@ -901,7 +891,13 @@ def validate_config() -> tuple[bool, list[str]]:
             )
 
     # Validate log level
-    if settings.log_level not in ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]:  # pragma: no cover
+    if settings.log_level not in [
+        "DEBUG",
+        "INFO",
+        "WARNING",
+        "ERROR",
+        "CRITICAL",
+    ]:  # pragma: no cover
         errors.append(f"log_level '{settings.log_level}' is not a valid log level")
 
     # Validate trace sample rate

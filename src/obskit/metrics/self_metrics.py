@@ -66,7 +66,7 @@ if TYPE_CHECKING:
 # Self-Metrics Singleton
 # =============================================================================
 
-_self_metrics: "ObskitSelfMetrics | None" = None
+_self_metrics: ObskitSelfMetrics | None = None
 _self_metrics_lock = threading.Lock()
 
 
@@ -179,9 +179,9 @@ class ObskitSelfMetrics:
 
         if PROMETHEUS_AVAILABLE:
             if self._queue_depth is not None:
-                queue_depth = int(self._queue_depth._value.get())  # type: ignore[union-attr]
+                queue_depth = int(self._queue_depth._value.get())
             if self._queue_capacity is not None:
-                queue_capacity = int(self._queue_capacity._value.get())  # type: ignore[union-attr]
+                queue_capacity = int(self._queue_capacity._value.get())
             # Note: Counters don't expose total easily, use 0 as placeholder
             # Real values are available via Prometheus scrape
 

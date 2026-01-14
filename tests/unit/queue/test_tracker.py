@@ -1,8 +1,8 @@
 """Tests for obskit.queue.tracker module."""
 
-import pytest
-from unittest.mock import MagicMock
 import uuid
+
+import pytest
 
 from obskit.queue.tracker import QueueTracker, track_message_processing
 
@@ -18,14 +18,14 @@ class TestQueueTracker:
     def test_track_message_processing_context(self):
         """Test track_message_processing context manager."""
         tracker = QueueTracker(queue_name=f"test_{uuid.uuid4().hex[:8]}")
-        
+
         with tracker.track_message_processing(operation="process"):
             pass  # Simulated processing
 
     def test_track_message_with_error(self):
         """Test tracking with error."""
         tracker = QueueTracker(queue_name=f"test_{uuid.uuid4().hex[:8]}")
-        
+
         with pytest.raises(ValueError):
             with tracker.track_message_processing(operation="process"):
                 raise ValueError("Processing failed")
@@ -49,4 +49,3 @@ class TestTrackMessageProcessingFunction:
         with pytest.raises(ValueError):
             with track_message_processing(operation="consume", queue_name="test"):
                 raise ValueError("Error")
-

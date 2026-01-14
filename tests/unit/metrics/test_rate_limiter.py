@@ -5,8 +5,6 @@ from __future__ import annotations
 import time
 from unittest.mock import MagicMock, patch
 
-import pytest
-
 
 class TestRateLimiter:
     """Tests for RateLimiter class."""
@@ -85,7 +83,7 @@ class TestGetRateLimiter:
     def test_returns_limiter_when_enabled(self) -> None:
         """Test returns limiter when enabled."""
         from obskit.config import configure, reset_settings
-        from obskit.metrics.auth import _get_rate_limiter, _metrics_rate_limiter
+        from obskit.metrics.auth import _get_rate_limiter
 
         # Reset global state
         reset_settings()
@@ -118,7 +116,7 @@ class TestAuthenticatedMetricsHandlerRateLimiting:
         """Test request is rate limited."""
         from io import BytesIO
 
-        from obskit.config import configure, reset_settings
+        from obskit.config import reset_settings
         from obskit.metrics.auth import AuthenticatedMetricsHandler, RateLimiter
 
         reset_settings()

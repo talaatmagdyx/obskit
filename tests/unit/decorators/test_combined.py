@@ -1,13 +1,12 @@
 """Tests for obskit.decorators.combined module."""
 
 import pytest
-from unittest.mock import MagicMock, patch, AsyncMock
 
 from obskit.decorators.combined import (
+    track_metrics_only,
+    track_operation,
     with_observability,
     with_observability_sync,
-    track_operation,
-    track_metrics_only,
 )
 
 
@@ -17,6 +16,7 @@ class TestWithObservability:
     @pytest.mark.asyncio
     async def test_success(self):
         """Test decorator with successful function."""
+
         @with_observability(operation="test_op")
         async def successful_function():
             return "success"
@@ -27,6 +27,7 @@ class TestWithObservability:
     @pytest.mark.asyncio
     async def test_failure(self):
         """Test decorator with failing function."""
+
         @with_observability(operation="failing_op")
         async def failing_function():
             raise ValueError("Test error")
@@ -37,6 +38,7 @@ class TestWithObservability:
     @pytest.mark.asyncio
     async def test_preserves_return_value(self):
         """Test that decorator preserves return value."""
+
         @with_observability(operation="return_test")
         async def returns_dict():
             return {"key": "value", "count": 42}
@@ -47,6 +49,7 @@ class TestWithObservability:
     @pytest.mark.asyncio
     async def test_preserves_function_name(self):
         """Test that decorator preserves function name."""
+
         @with_observability(operation="named")
         async def my_named_function():
             return True
@@ -59,6 +62,7 @@ class TestWithObservabilitySync:
 
     def test_success(self):
         """Test sync decorator with successful function."""
+
         @with_observability_sync(operation="sync_test")
         def successful_function():
             return "sync_success"
@@ -68,6 +72,7 @@ class TestWithObservabilitySync:
 
     def test_failure(self):
         """Test sync decorator with failing function."""
+
         @with_observability_sync(operation="sync_fail")
         def failing_function():
             raise ValueError("Sync error")
@@ -77,6 +82,7 @@ class TestWithObservabilitySync:
 
     def test_preserves_return_value(self):
         """Test that sync decorator preserves return value."""
+
         @with_observability_sync(operation="sync_return")
         def returns_list():
             return [1, 2, 3]
@@ -91,6 +97,7 @@ class TestTrackOperation:
     @pytest.mark.asyncio
     async def test_async_tracking(self):
         """Test async operation tracking."""
+
         @track_operation("tracked_async")
         async def tracked_function():
             return "tracked"
@@ -101,6 +108,7 @@ class TestTrackOperation:
     @pytest.mark.asyncio
     async def test_sync_tracking(self):
         """Test sync operation tracking - decorator returns async."""
+
         @track_operation("tracked_sync")
         async def tracked_function():
             return "sync_tracked"
@@ -115,6 +123,7 @@ class TestTrackMetricsOnly:
     @pytest.mark.asyncio
     async def test_async_metrics(self):
         """Test async metrics-only tracking."""
+
         @track_metrics_only(operation="metrics_async")
         async def metered_function():
             return "metered"
@@ -125,10 +134,10 @@ class TestTrackMetricsOnly:
     @pytest.mark.asyncio
     async def test_sync_metrics(self):
         """Test sync metrics-only tracking - decorator returns async."""
+
         @track_metrics_only(operation="metrics_sync")
         async def metered_function():
             return "sync_metered"
 
         result = await metered_function()
         assert result == "sync_metered"
-

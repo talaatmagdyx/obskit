@@ -1,8 +1,5 @@
 """Tests for obskit.logging.adapters.loguru_adapter module."""
 
-import pytest
-from unittest.mock import MagicMock, patch
-
 from obskit.logging.adapters.loguru_adapter import LoguruAdapter
 
 
@@ -102,4 +99,3 @@ class TestLoguruAdapter:
         self._configure_adapter(adapter)
         logger = adapter.get_logger("test")
         logger.info("Message with context", user_id=123, request_id="abc-123")
-

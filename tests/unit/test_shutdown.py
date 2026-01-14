@@ -1,17 +1,16 @@
 """Tests for obskit.shutdown module."""
 
-import pytest
-from unittest.mock import MagicMock, patch
 import importlib
+from unittest.mock import patch
 
 # Import the module directly to access its internal state
 _shutdown_mod = importlib.import_module("obskit.shutdown")
 from obskit.shutdown import (
-    register_shutdown_hook,
-    unregister_shutdown_hook,
-    shutdown,
     _shutdown_hooks,
     _shutdown_hooks_lock,
+    register_shutdown_hook,
+    shutdown,
+    unregister_shutdown_hook,
 )
 
 
@@ -30,16 +29,18 @@ class TestRegisterShutdownHook:
 
     def test_register_hook(self):
         """Test registering a shutdown hook."""
+
         def my_hook():
             pass
 
         register_shutdown_hook(my_hook)
-        
+
         with _shutdown_hooks_lock:
             assert my_hook in _shutdown_hooks
 
     def test_register_multiple_hooks(self):
         """Test registering multiple hooks."""
+
         def hook1():
             pass
 
@@ -48,7 +49,7 @@ class TestRegisterShutdownHook:
 
         register_shutdown_hook(hook1)
         register_shutdown_hook(hook2)
-        
+
         with _shutdown_hooks_lock:
             assert len(_shutdown_hooks) >= 2
             assert hook1 in _shutdown_hooks
@@ -70,17 +71,19 @@ class TestUnregisterShutdownHook:
 
     def test_unregister_hook(self):
         """Test unregistering a hook."""
+
         def my_hook():
             pass
 
         register_shutdown_hook(my_hook)
         unregister_shutdown_hook(my_hook)
-        
+
         with _shutdown_hooks_lock:
             assert my_hook not in _shutdown_hooks
 
     def test_unregister_nonexistent_hook(self):
         """Test unregistering a hook that wasn't registered."""
+
         def my_hook():
             pass
 
@@ -186,12 +189,12 @@ class TestSignalHandler:
     def test_signal_handler_calls_shutdown(self):
         """Test that signal handler calls shutdown."""
         self._reset_shutdown_state()
-        
+
         # Mock sys.exit to prevent actual exit
-        with patch.object(_shutdown_mod, 'shutdown') as mock_shutdown:
-            with patch('sys.exit') as mock_exit:
+        with patch.object(_shutdown_mod, "shutdown") as mock_shutdown:
+            with patch("sys.exit") as mock_exit:
                 _shutdown_mod._signal_handler(15, None)  # SIGTERM
-                
+
                 mock_shutdown.assert_called_once()
                 mock_exit.assert_called_once_with(0)
 
@@ -205,20 +208,21 @@ class TestSetupSignalHandlers:
         # Just verify it doesn't raise
         _shutdown_mod._setup_signal_handlers()
 
-    @patch.dict('sys.modules', {}, clear=False)
-    @patch('signal.signal')
-    @patch('atexit.register')
+    @patch.dict("sys.modules", {}, clear=False)
+    @patch("signal.signal")
+    @patch("atexit.register")
     def test_setup_registers_handlers(self, mock_atexit, mock_signal):
         """Test that handlers are registered when not in pytest."""
         # Temporarily hide pytest from sys.modules to test the registration path
         import sys
+
         original_modules = dict(sys.modules)
-        
+
         # Remove pytest from modules temporarily
-        modules_to_remove = [k for k in sys.modules.keys() if 'pytest' in k.lower()]
+        modules_to_remove = [k for k in sys.modules.keys() if "pytest" in k.lower()]
         for mod in modules_to_remove:
             del sys.modules[mod]
-        
+
         try:
             # Now call setup - it should attempt to register handlers
             _shutdown_mod._setup_signal_handlers()
@@ -248,26 +252,26 @@ class TestShutdownWithComponents:
             _shutdown_hooks.clear()
         self._reset_shutdown_state()
 
-    @patch('obskit.metrics.registry.stop_http_server')
-    @patch('obskit.tracing.tracer.shutdown_tracing')
+    @patch("obskit.metrics.registry.stop_http_server")
+    @patch("obskit.tracing.tracer.shutdown_tracing")
     def test_shutdown_stops_components(self, mock_shutdown_tracing, mock_stop_http):
         """Test shutdown stops metrics server and tracing."""
         self._reset_shutdown_state()
-        
+
         shutdown()
-        
+
         mock_stop_http.assert_called_once()
         mock_shutdown_tracing.assert_called_once()
 
-    @patch('obskit.metrics.registry.stop_http_server')
-    @patch('obskit.tracing.tracer.shutdown_tracing')
+    @patch("obskit.metrics.registry.stop_http_server")
+    @patch("obskit.tracing.tracer.shutdown_tracing")
     def test_shutdown_handles_component_errors(self, mock_shutdown_tracing, mock_stop_http):
         """Test shutdown handles errors from components."""
         self._reset_shutdown_state()
-        
+
         mock_stop_http.side_effect = RuntimeError("Server not running")
         mock_shutdown_tracing.side_effect = RuntimeError("Tracing not initialized")
-        
+
         # Should not raise despite component errors
         shutdown()
 
@@ -275,7 +279,7 @@ class TestShutdownWithComponents:
         """Test shutdown logs when already in progress."""
         # First shutdown
         shutdown()
-        
+
         # Second shutdown should be a no-op
         # We can't easily verify logging, but it shouldn't raise
         shutdown()
@@ -304,19 +308,18 @@ class TestShutdownEdgeCases:
     def test_shutdown_with_no_hooks(self):
         """Test shutdown with no registered hooks."""
         self._reset_shutdown_state()
-        
+
         # Should complete without error
         shutdown()
 
     def test_hook_name_in_log(self):
         """Test that hook name is logged."""
         self._reset_shutdown_state()
-        
+
         def named_hook():
             pass
-        
+
         register_shutdown_hook(named_hook)
-        
+
         # Should log the hook name during execution
         shutdown()
-

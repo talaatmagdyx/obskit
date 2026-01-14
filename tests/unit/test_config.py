@@ -1,8 +1,5 @@
 """Tests for obskit.config module."""
 
-import pytest
-from unittest.mock import patch
-
 from obskit.config import (
     ObskitSettings,
     configure,
@@ -291,4 +288,3 @@ class TestValidateConfig:
         is_valid, errors = validate_config()
         assert is_valid
         assert len(errors) == 0
-

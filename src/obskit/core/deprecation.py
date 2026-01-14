@@ -22,7 +22,8 @@ from __future__ import annotations
 
 import functools
 import warnings
-from typing import Any, Callable, ParamSpec, TypeVar
+from collections.abc import Callable
+from typing import Any, ParamSpec, TypeVar
 
 P = ParamSpec("P")
 T = TypeVar("T")
@@ -31,10 +32,11 @@ T = TypeVar("T")
 class ObskitDeprecationWarning(DeprecationWarning):
     """
     Custom deprecation warning for obskit.
-    
+
     This warning is always shown by default (not filtered like standard
     DeprecationWarning) to ensure users are aware of upcoming changes.
     """
+
     pass
 
 
@@ -50,7 +52,7 @@ def deprecated(
 ) -> Callable[[Callable[P, T]], Callable[P, T]]:
     """
     Decorator to mark a function or class as deprecated.
-    
+
     Parameters
     ----------
     deprecated_in : str
@@ -61,12 +63,12 @@ def deprecated(
         Name of the alternative function/class to use.
     reason : str, optional
         Additional explanation for the deprecation.
-    
+
     Returns
     -------
     Callable
         Decorator function.
-    
+
     Example
     -------
     >>> @deprecated("1.2.0", "2.0.0", alternative="new_function")
@@ -76,35 +78,36 @@ def deprecated(
     >>>
     >>> old_function()  # Raises ObskitDeprecationWarning
     """
+
     def decorator(func: Callable[P, T]) -> Callable[P, T]:
         message_parts = [
             f"{func.__qualname__} is deprecated since version {deprecated_in}",
             f"and will be removed in version {removed_in}.",
         ]
-        
+
         if alternative:
             message_parts.append(f"Use {alternative} instead.")
-        
+
         if reason:
             message_parts.append(f"Reason: {reason}")
-        
+
         message = " ".join(message_parts)
-        
+
         @functools.wraps(func)
         def wrapper(*args: P.args, **kwargs: P.kwargs) -> T:
             warnings.warn(message, ObskitDeprecationWarning, stacklevel=2)
             return func(*args, **kwargs)
-        
+
         # Update docstring
         doc = func.__doc__ or ""
         deprecation_note = f"""
 .. deprecated:: {deprecated_in}
-   Will be removed in {removed_in}.{f' Use {alternative} instead.' if alternative else ''}
+   Will be removed in {removed_in}.{f" Use {alternative} instead." if alternative else ""}
 """
         wrapper.__doc__ = deprecation_note + doc
-        
+
         return wrapper
-    
+
     return decorator
 
 
@@ -116,7 +119,7 @@ def deprecated_parameter(
 ) -> Callable[[Callable[P, T]], Callable[P, T]]:
     """
     Decorator to mark a function parameter as deprecated.
-    
+
     Parameters
     ----------
     param_name : str
@@ -127,12 +130,12 @@ def deprecated_parameter(
         Version in which the parameter will be removed.
     alternative : str, optional
         Name of the alternative parameter to use.
-    
+
     Returns
     -------
     Callable
         Decorator function.
-    
+
     Example
     -------
     >>> @deprecated_parameter("old_name", "1.2.0", alternative="new_name")
@@ -140,6 +143,7 @@ def deprecated_parameter(
     ...     value = new_name or old_name
     ...     return value
     """
+
     def decorator(func: Callable[P, T]) -> Callable[P, T]:
         @functools.wraps(func)
         def wrapper(*args: P.args, **kwargs: P.kwargs) -> T:
@@ -147,22 +151,22 @@ def deprecated_parameter(
                 message_parts = [
                     f"Parameter '{param_name}' is deprecated since version {deprecated_in}",
                 ]
-                
+
                 if removed_in:
                     message_parts.append(f"and will be removed in version {removed_in}")
-                
+
                 if alternative:
                     message_parts.append(f". Use '{alternative}' instead.")
                 else:
                     message_parts.append(".")
-                
+
                 message = " ".join(message_parts)
                 warnings.warn(message, ObskitDeprecationWarning, stacklevel=2)
-            
+
             return func(*args, **kwargs)
-        
+
         return wrapper
-    
+
     return decorator
 
 
@@ -174,7 +178,7 @@ def deprecated_class(
 ) -> Callable[[type[T]], type[T]]:
     """
     Decorator to mark a class as deprecated.
-    
+
     Parameters
     ----------
     deprecated_in : str
@@ -185,45 +189,46 @@ def deprecated_class(
         Name of the alternative class to use.
     reason : str, optional
         Additional explanation for the deprecation.
-    
+
     Returns
     -------
     Callable
         Decorator function.
     """
+
     def decorator(cls: type[T]) -> type[T]:
         original_init = cls.__init__
-        
+
         message_parts = [
             f"{cls.__qualname__} is deprecated since version {deprecated_in}",
             f"and will be removed in version {removed_in}.",
         ]
-        
+
         if alternative:
             message_parts.append(f"Use {alternative} instead.")
-        
+
         if reason:
             message_parts.append(f"Reason: {reason}")
-        
+
         message = " ".join(message_parts)
-        
+
         @functools.wraps(original_init)
         def new_init(self: Any, *args: Any, **kwargs: Any) -> None:
             warnings.warn(message, ObskitDeprecationWarning, stacklevel=2)
             original_init(self, *args, **kwargs)
-        
+
         cls.__init__ = new_init  # type: ignore[method-assign]
-        
+
         # Update docstring
         doc = cls.__doc__ or ""
         deprecation_note = f"""
 .. deprecated:: {deprecated_in}
-   Will be removed in {removed_in}.{f' Use {alternative} instead.' if alternative else ''}
+   Will be removed in {removed_in}.{f" Use {alternative} instead." if alternative else ""}
 """
         cls.__doc__ = deprecation_note + doc
-        
+
         return cls
-    
+
     return decorator
 
 
@@ -236,9 +241,9 @@ def warn_deprecated(
 ) -> None:
     """
     Issue a deprecation warning manually.
-    
+
     Use this for deprecating behavior that can't be decorated.
-    
+
     Parameters
     ----------
     feature : str
@@ -251,7 +256,7 @@ def warn_deprecated(
         Description of the alternative approach.
     stacklevel : int, default=2
         Stack level for the warning.
-    
+
     Example
     -------
     >>> if use_old_behavior:
@@ -266,9 +271,9 @@ def warn_deprecated(
         f"{feature} is deprecated since version {deprecated_in}",
         f"and will be removed in version {removed_in}.",
     ]
-    
+
     if alternative:
         message_parts.append(alternative)
-    
+
     message = " ".join(message_parts)
     warnings.warn(message, ObskitDeprecationWarning, stacklevel=stacklevel + 1)

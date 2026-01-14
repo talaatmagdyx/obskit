@@ -450,15 +450,15 @@ def create_redis_pool_check(
 
             # Get pool stats - different attributes for different pool types
             max_connections = getattr(pool, "max_connections", None)
-            
+
             # For BlockingConnectionPool
             if max_connections is None:
                 max_connections = getattr(pool, "_max_connections", 10)
-            
+
             # Count in-use connections
             # Different pool implementations store this differently
             in_use = 0
-            
+
             # Check _in_use_connections (common in redis-py)
             if hasattr(pool, "_in_use_connections"):
                 in_use = len(pool._in_use_connections)
@@ -466,22 +466,22 @@ def create_redis_pool_check(
                 in_use = len(pool.in_use_connections)
             elif hasattr(pool, "_created_connections"):
                 in_use = pool._created_connections
-            
+
             # Calculate available
             if hasattr(pool, "_available_connections"):
                 available = len(pool._available_connections)
             else:
                 available = max_connections - in_use if max_connections else 0
-            
+
             # Calculate utilization
             if max_connections and max_connections > 0:
                 utilization = in_use / max_connections
             else:
                 utilization = 0.0
-            
+
             # Check threshold
             healthy = utilization < max_connections_threshold
-            
+
             # Also verify Redis is actually reachable
             is_async = hasattr(redis_client.ping, "__await__")
             try:
@@ -497,11 +497,11 @@ def create_redis_pool_check(
             except Exception:
                 redis_healthy = False
                 healthy = False
-            
+
             status_message = "Pool healthy" if healthy else "Pool saturation warning"
             if not redis_healthy:
                 status_message = "Redis connection failed"
-            
+
             return {
                 "healthy": healthy and redis_healthy,
                 "message": status_message,
@@ -561,26 +561,26 @@ def create_database_pool_check(
     async def check() -> bool | dict[str, Any]:
         try:
             pool = engine.pool
-            
+
             # Get pool statistics
             pool_size = pool.size()
             checked_in = pool.checkedin()
             checked_out = pool.checkedout()
             overflow = pool.overflow()
-            
+
             # Calculate metrics
             max_size = pool_size + pool._max_overflow
             current_usage = checked_out
             utilization = current_usage / max_size if max_size > 0 else 0.0
-            
+
             # Check overflow usage
             if pool._max_overflow > 0:
                 overflow_usage = overflow / pool._max_overflow
             else:
                 overflow_usage = 0.0
-            
+
             healthy = overflow_usage < max_overflow_threshold
-            
+
             return {
                 "healthy": healthy,
                 "message": "Database pool healthy" if healthy else "Pool overflow warning",

@@ -1,11 +1,10 @@
 """Tests for obskit.health.checker module."""
 
 import pytest
-from unittest.mock import MagicMock, AsyncMock
 
 from obskit.health.checker import (
-    HealthChecker,
     CheckResult,
+    HealthChecker,
     HealthResult,
     HealthStatus,
     create_health_response,
@@ -90,10 +89,10 @@ class TestHealthChecker:
     async def test_check_liveness_no_checks(self):
         """Test liveness check with no checks registered."""
         checker = HealthChecker()
-        
+
         # No liveness checks registered
         result = await checker.check_liveness()
-        
+
         # Should still be healthy (process is running)
         assert result.status == HealthStatus.HEALTHY
         assert result.healthy is True
@@ -263,7 +262,7 @@ class TestHealthResult:
             },
         )
         d = result.to_dict()
-        
+
         assert d["status"] == "healthy"
         assert d["healthy"] is True
         assert "checks" in d
@@ -275,7 +274,7 @@ class TestHealthResult:
     def test_to_json(self):
         """Test to_json method."""
         import json
-        
+
         result = HealthResult(
             healthy=True,
             status=HealthStatus.HEALTHY,
@@ -284,7 +283,7 @@ class TestHealthResult:
             },
         )
         json_str = result.to_json()
-        
+
         # Should be valid JSON
         parsed = json.loads(json_str)
         assert parsed["status"] == "healthy"
@@ -374,7 +373,7 @@ class TestHealthCheckerAdvanced:
     async def test_check_timeout(self):
         """Test health check that times out."""
         import asyncio
-        
+
         checker = HealthChecker()
 
         @checker.add_readiness_check("slow", timeout=0.01)  # Very short timeout
@@ -428,7 +427,7 @@ class TestHealthCheckerAdvanced:
     async def test_empty_checks(self):
         """Test checker with no checks registered."""
         checker = HealthChecker()
-        
+
         result = await checker.check_readiness()
         # Should be healthy if no checks
         assert result.status == HealthStatus.HEALTHY
@@ -445,7 +444,7 @@ class TestHealthCheckerAdvanced:
 
         # This may or may not work depending on implementation
         try:
-            result = await checker.check_readiness()
+            await checker.check_readiness()
         except Exception:
             # If sync functions aren't supported, that's okay
             pass
@@ -496,9 +495,9 @@ class TestHealthResponse:
             status=HealthStatus.HEALTHY,
             checks={"db": CheckResult(name="db", healthy=True, duration_ms=5.0)},
         )
-        
+
         response = create_health_response(result)
-        
+
         assert response["status_code"] == 200
         assert response["body"]["status"] == "healthy"
 
@@ -509,9 +508,9 @@ class TestHealthResponse:
             status=HealthStatus.UNHEALTHY,
             checks={"db": CheckResult(name="db", healthy=False, duration_ms=5.0)},
         )
-        
+
         response = create_health_response(result)
-        
+
         assert response["status_code"] == 503
         assert response["body"]["status"] == "unhealthy"
 
@@ -550,4 +549,3 @@ class TestGlobalHealthChecker:
         """Test reset is safe when no checker exists."""
         reset_health_checker()  # First reset
         reset_health_checker()  # Second reset (should not raise)
-

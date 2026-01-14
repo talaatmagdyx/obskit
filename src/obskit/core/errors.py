@@ -37,10 +37,10 @@ from typing import Any
 class ObskitError(Exception):
     """
     Base exception for all obskit errors.
-    
+
     All obskit exceptions inherit from this class and include
     a structured error code for easier alerting and debugging.
-    
+
     Attributes
     ----------
     code : str
@@ -49,7 +49,7 @@ class ObskitError(Exception):
         Human-readable error message.
     details : dict
         Additional context about the error.
-    
+
     Example
     -------
     >>> try:
@@ -58,9 +58,9 @@ class ObskitError(Exception):
     ...     print(f"Code: {e.code}")
     ...     print(f"Message: {e.message}")
     """
-    
+
     code: str = "OBSKIT_UNKNOWN"
-    
+
     def __init__(
         self,
         message: str,
@@ -72,11 +72,11 @@ class ObskitError(Exception):
             self.code = code
         self.details = details or {}
         super().__init__(message)
-    
+
     def to_dict(self) -> dict[str, Any]:
         """
         Convert error to dictionary for JSON serialization.
-        
+
         Returns
         -------
         dict
@@ -93,21 +93,22 @@ class ObskitError(Exception):
 # Configuration Errors
 # =============================================================================
 
+
 class ConfigurationError(ObskitError):
     """Configuration validation or loading error."""
-    
+
     code: str = "OBSKIT_CONFIG_ERROR"
 
 
 class ConfigFileNotFoundError(ConfigurationError):
     """Configuration file not found."""
-    
+
     code: str = "OBSKIT_CONFIG_FILE_NOT_FOUND"
 
 
 class ConfigValidationError(ConfigurationError):
     """Configuration validation failed."""
-    
+
     code: str = "OBSKIT_CONFIG_VALIDATION_ERROR"
 
 
@@ -115,11 +116,12 @@ class ConfigValidationError(ConfigurationError):
 # Circuit Breaker Errors
 # =============================================================================
 
+
 class CircuitBreakerError(ObskitError):
     """Base exception for circuit breaker errors."""
-    
+
     code: str = "OBSKIT_CIRCUIT_ERROR"
-    
+
     def __init__(
         self,
         message: str,
@@ -136,7 +138,7 @@ class CircuitBreakerError(ObskitError):
 class CircuitOpenError(CircuitBreakerError):
     """
     Raised when a call is attempted on an open circuit.
-    
+
     Attributes
     ----------
     breaker_name : str
@@ -144,19 +146,16 @@ class CircuitOpenError(CircuitBreakerError):
     time_until_retry : float
         Seconds until the circuit may allow a test request.
     """
-    
+
     code: str = "OBSKIT_CIRCUIT_OPEN"
-    
+
     def __init__(
         self,
         breaker_name: str,
         time_until_retry: float,
     ) -> None:
         self.time_until_retry = time_until_retry
-        message = (
-            f"Circuit '{breaker_name}' is open. "
-            f"Retry in {time_until_retry:.1f} seconds."
-        )
+        message = f"Circuit '{breaker_name}' is open. Retry in {time_until_retry:.1f} seconds."
         super().__init__(
             message,
             breaker_name=breaker_name,
@@ -166,7 +165,7 @@ class CircuitOpenError(CircuitBreakerError):
 
 class CircuitHalfOpenError(CircuitBreakerError):
     """Raised when half-open circuit exceeds allowed test requests."""
-    
+
     code: str = "OBSKIT_CIRCUIT_HALF_OPEN"
 
 
@@ -174,10 +173,11 @@ class CircuitHalfOpenError(CircuitBreakerError):
 # Retry Errors
 # =============================================================================
 
+
 class RetryError(ObskitError):
     """
     Raised when all retry attempts are exhausted.
-    
+
     Attributes
     ----------
     attempts : int
@@ -185,9 +185,9 @@ class RetryError(ObskitError):
     last_exception : Exception | None
         The last exception that caused the retry.
     """
-    
+
     code: str = "OBSKIT_RETRY_EXHAUSTED"
-    
+
     def __init__(
         self,
         message: str,
@@ -196,7 +196,7 @@ class RetryError(ObskitError):
     ) -> None:
         self.attempts = attempts
         self.last_exception = last_exception
-        details = {"attempts": attempts}
+        details: dict[str, Any] = {"attempts": attempts}
         if last_exception:
             details["last_error"] = str(last_exception)
             details["last_error_type"] = type(last_exception).__name__
@@ -207,16 +207,17 @@ class RetryError(ObskitError):
 # Rate Limiting Errors
 # =============================================================================
 
+
 class RateLimitError(ObskitError):
     """Base exception for rate limiting errors."""
-    
+
     code: str = "OBSKIT_RATE_LIMIT_ERROR"
 
 
 class RateLimitExceeded(RateLimitError):
     """
     Raised when rate limit is exceeded.
-    
+
     Attributes
     ----------
     limit : int
@@ -226,9 +227,9 @@ class RateLimitExceeded(RateLimitError):
     retry_after : float | None
         Seconds until the rate limit resets.
     """
-    
+
     code: str = "OBSKIT_RATE_LIMIT_EXCEEDED"
-    
+
     def __init__(
         self,
         message: str = "Rate limit exceeded",
@@ -252,21 +253,22 @@ class RateLimitExceeded(RateLimitError):
 # Health Check Errors
 # =============================================================================
 
+
 class HealthCheckError(ObskitError):
     """Base exception for health check errors."""
-    
+
     code: str = "OBSKIT_HEALTH_ERROR"
 
 
 class HealthCheckTimeoutError(HealthCheckError):
     """Health check timed out."""
-    
+
     code: str = "OBSKIT_HEALTH_TIMEOUT"
 
 
 class HealthCheckFailedError(HealthCheckError):
     """Health check failed."""
-    
+
     code: str = "OBSKIT_HEALTH_FAILED"
 
 
@@ -274,21 +276,22 @@ class HealthCheckFailedError(HealthCheckError):
 # Metrics Errors
 # =============================================================================
 
+
 class MetricsError(ObskitError):
     """Base exception for metrics errors."""
-    
+
     code: str = "OBSKIT_METRICS_ERROR"
 
 
 class MetricsQueueFullError(MetricsError):
     """Metrics queue is full, metrics are being dropped."""
-    
+
     code: str = "OBSKIT_METRICS_QUEUE_FULL"
 
 
 class MetricsExportError(MetricsError):
     """Failed to export metrics."""
-    
+
     code: str = "OBSKIT_METRICS_EXPORT_ERROR"
 
 
@@ -296,21 +299,22 @@ class MetricsExportError(MetricsError):
 # Tracing Errors
 # =============================================================================
 
+
 class TracingError(ObskitError):
     """Base exception for tracing errors."""
-    
+
     code: str = "OBSKIT_TRACE_ERROR"
 
 
 class TracingExportError(TracingError):
     """Failed to export traces."""
-    
+
     code: str = "OBSKIT_TRACE_EXPORT_ERROR"
 
 
 class TracingNotConfiguredError(TracingError):
     """Tracing is not configured."""
-    
+
     code: str = "OBSKIT_TRACE_NOT_CONFIGURED"
 
 
@@ -318,21 +322,22 @@ class TracingNotConfiguredError(TracingError):
 # SLO Errors
 # =============================================================================
 
+
 class SLOError(ObskitError):
     """Base exception for SLO errors."""
-    
+
     code: str = "OBSKIT_SLO_ERROR"
 
 
 class SLONotFoundError(SLOError):
     """SLO with the given name was not found."""
-    
+
     code: str = "OBSKIT_SLO_NOT_FOUND"
 
 
 class SLOBudgetExhaustedError(SLOError):
     """SLO error budget has been exhausted."""
-    
+
     code: str = "OBSKIT_SLO_BUDGET_EXHAUSTED"
 
 
@@ -369,12 +374,12 @@ ERROR_CODES: dict[str, type[ObskitError]] = {
 def get_error_class(code: str) -> type[ObskitError]:
     """
     Get the error class for a given error code.
-    
+
     Parameters
     ----------
     code : str
         The error code.
-    
+
     Returns
     -------
     type[ObskitError]

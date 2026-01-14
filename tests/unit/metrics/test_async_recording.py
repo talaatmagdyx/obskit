@@ -1,8 +1,9 @@
 """Tests for obskit.metrics.async_recording module."""
 
-import pytest
 import asyncio
 from unittest.mock import MagicMock, patch
+
+import pytest
 
 from obskit.metrics.async_recording import (
     AsyncREDMetrics,
@@ -15,6 +16,7 @@ from obskit.metrics.async_recording import (
 def reset_module_state():
     """Reset module global state."""
     import obskit.metrics.async_recording as module
+
     if module._metric_worker_task and not module._metric_worker_task.done():
         module._metric_worker_task.cancel()
     module._metric_queue = None
@@ -35,37 +37,37 @@ class TestAsyncREDMetrics:
     def test_init(self):
         """Test AsyncREDMetrics initialization."""
         mock_base = MagicMock()
-        
+
         metrics = AsyncREDMetrics(mock_base)
-        
+
         assert metrics._base is mock_base
         assert metrics._queue_size == 10000
 
     def test_init_custom_queue_size(self):
         """Test initialization with custom queue size."""
         mock_base = MagicMock()
-        
+
         metrics = AsyncREDMetrics(mock_base, queue_size=5000)
-        
+
         assert metrics._queue_size == 5000
 
     @pytest.mark.asyncio
     async def test_observe_request_queues_metric(self):
         """Test observe_request adds metric to queue."""
         import obskit.metrics.async_recording as module
-        
+
         mock_base = MagicMock()
         metrics = AsyncREDMetrics(mock_base)
-        
+
         await metrics.observe_request(
             operation="test_op",
             duration_seconds=0.05,
             status="success",
         )
-        
+
         # Give worker time to process
         await asyncio.sleep(0.2)
-        
+
         # Either queued or processed
         assert module._metric_queue is not None
 
@@ -74,19 +76,19 @@ class TestAsyncREDMetrics:
         """Test observe_request metric is eventually processed."""
         mock_base = MagicMock()
         metrics = AsyncREDMetrics(mock_base)
-        
+
         await metrics.observe_request(
             operation="test_op",
             duration_seconds=0.05,
             status="success",
         )
-        
+
         # Give worker time to process
         await asyncio.sleep(0.3)
-        
+
         # Shutdown to process remaining
         await shutdown_async_recording()
-        
+
         # The metric should have been processed
         mock_base.observe_request.assert_called()
 
@@ -95,14 +97,14 @@ class TestAsyncREDMetrics:
         """Test observe_request with error_type."""
         mock_base = MagicMock()
         metrics = AsyncREDMetrics(mock_base)
-        
+
         await metrics.observe_request(
             operation="test_op",
             duration_seconds=0.05,
             status="failure",
             error_type="ValueError",
         )
-        
+
         await asyncio.sleep(0.2)
         await shutdown_async_recording()
 
@@ -122,9 +124,9 @@ class TestEnsureWorkerStarted:
     async def test_creates_queue(self):
         """Test function creates queue."""
         import obskit.metrics.async_recording as module
-        
+
         await _ensure_worker_started()
-        
+
         assert module._metric_queue is not None
         assert module._metric_queue.maxsize == 10000
 
@@ -132,9 +134,9 @@ class TestEnsureWorkerStarted:
     async def test_creates_worker_task(self):
         """Test function creates worker task."""
         import obskit.metrics.async_recording as module
-        
+
         await _ensure_worker_started()
-        
+
         assert module._metric_worker_task is not None
         assert not module._metric_worker_task.done()
 
@@ -142,13 +144,13 @@ class TestEnsureWorkerStarted:
     async def test_idempotent(self):
         """Test calling multiple times is safe."""
         import obskit.metrics.async_recording as module
-        
+
         await _ensure_worker_started()
         first_queue = module._metric_queue
         first_task = module._metric_worker_task
-        
+
         await _ensure_worker_started()
-        
+
         assert module._metric_queue is first_queue
         assert module._metric_worker_task is first_task
 
@@ -168,68 +170,72 @@ class TestMetricWorker:
     async def test_worker_processes_metric(self):
         """Test worker processes queued metrics."""
         import obskit.metrics.async_recording as module
-        
+
         await _ensure_worker_started()
-        
+
         mock_metrics = MagicMock()
-        
-        await module._metric_queue.put({
-            "metrics": mock_metrics,
-            "method": "observe_request",
-            "args": ("test_op", 0.05),
-            "kwargs": {"status": "success"},
-        })
-        
+
+        await module._metric_queue.put(
+            {
+                "metrics": mock_metrics,
+                "method": "observe_request",
+                "args": ("test_op", 0.05),
+                "kwargs": {"status": "success"},
+            }
+        )
+
         # Give worker time to process
         await asyncio.sleep(0.2)
-        
-        mock_metrics.observe_request.assert_called_once_with(
-            "test_op", 0.05, status="success"
-        )
+
+        mock_metrics.observe_request.assert_called_once_with("test_op", 0.05, status="success")
 
     @pytest.mark.asyncio
     async def test_worker_handles_invalid_method(self):
         """Test worker handles invalid method gracefully."""
         import obskit.metrics.async_recording as module
-        
+
         await _ensure_worker_started()
-        
+
         mock_metrics = MagicMock()
         mock_metrics.nonexistent_method = None
         del mock_metrics.nonexistent_method
-        
-        await module._metric_queue.put({
-            "metrics": mock_metrics,
-            "method": "nonexistent_method",
-            "args": (),
-            "kwargs": {},
-        })
-        
+
+        await module._metric_queue.put(
+            {
+                "metrics": mock_metrics,
+                "method": "nonexistent_method",
+                "args": (),
+                "kwargs": {},
+            }
+        )
+
         # Give worker time to process
         await asyncio.sleep(0.2)
-        
+
         # Should not raise, just log warning
 
     @pytest.mark.asyncio
     async def test_worker_handles_method_exception(self):
         """Test worker handles exception in method call."""
         import obskit.metrics.async_recording as module
-        
+
         await _ensure_worker_started()
-        
+
         mock_metrics = MagicMock()
         mock_metrics.observe_request.side_effect = ValueError("Test error")
-        
-        await module._metric_queue.put({
-            "metrics": mock_metrics,
-            "method": "observe_request",
-            "args": ("test_op", 0.05),
-            "kwargs": {},
-        })
-        
+
+        await module._metric_queue.put(
+            {
+                "metrics": mock_metrics,
+                "method": "observe_request",
+                "args": ("test_op", 0.05),
+                "kwargs": {},
+            }
+        )
+
         # Give worker time to process
         await asyncio.sleep(0.2)
-        
+
         # Should not raise, just log error
 
 
@@ -244,13 +250,13 @@ class TestShutdownAsyncRecording:
     async def test_shutdown_cancels_worker(self):
         """Test shutdown cancels worker task."""
         import obskit.metrics.async_recording as module
-        
+
         await _ensure_worker_started()
-        
+
         assert module._metric_worker_task is not None
-        
+
         await shutdown_async_recording()
-        
+
         assert module._metric_worker_task is None
         assert module._metric_queue is None
 
@@ -258,22 +264,24 @@ class TestShutdownAsyncRecording:
     async def test_shutdown_processes_remaining(self):
         """Test shutdown processes remaining queue items."""
         import obskit.metrics.async_recording as module
-        
+
         await _ensure_worker_started()
-        
+
         mock_metrics = MagicMock()
-        
+
         # Add item directly to queue
-        await module._metric_queue.put({
-            "metrics": mock_metrics,
-            "method": "observe_request",
-            "args": ("test_op", 0.05),
-            "kwargs": {},
-        })
-        
+        await module._metric_queue.put(
+            {
+                "metrics": mock_metrics,
+                "method": "observe_request",
+                "args": ("test_op", 0.05),
+                "kwargs": {},
+            }
+        )
+
         # Shutdown immediately
         await shutdown_async_recording()
-        
+
         # Item should have been processed during shutdown
         mock_metrics.observe_request.assert_called()
 
@@ -281,13 +289,13 @@ class TestShutdownAsyncRecording:
     async def test_shutdown_when_not_started(self):
         """Test shutdown when not started is safe."""
         import obskit.metrics.async_recording as module
-        
+
         module._metric_queue = None
         module._metric_worker_task = None
-        
+
         # Should not raise
         await shutdown_async_recording()
-        
+
         assert module._metric_queue is None
         assert module._metric_worker_task is None
 
@@ -307,9 +315,9 @@ class TestWorkerEdgeCases:
     async def test_worker_returns_when_queue_none(self):
         """Test _metric_worker returns immediately when queue is None."""
         import obskit.metrics.async_recording as module
-        
+
         module._metric_queue = None
-        
+
         # This should return immediately without error
         await _metric_worker()
 
@@ -317,20 +325,20 @@ class TestWorkerEdgeCases:
     async def test_observe_request_fallback_sync(self):
         """Test observe_request falls back to sync when queue unavailable."""
         import obskit.metrics.async_recording as module
-        
+
         mock_base = MagicMock()
         metrics = AsyncREDMetrics(mock_base)
-        
+
         # Patch _ensure_worker_started to do nothing but leave queue None
-        with patch.object(module, '_ensure_worker_started', return_value=None):
+        with patch.object(module, "_ensure_worker_started", return_value=None):
             module._metric_queue = None
-            
+
             await metrics.observe_request(
                 operation="test_op",
                 duration_seconds=0.05,
                 status="success",
             )
-        
+
         # Should have called base directly
         mock_base.observe_request.assert_called_once()
 
@@ -338,26 +346,26 @@ class TestWorkerEdgeCases:
     async def test_observe_request_queue_full_timeout(self):
         """Test observe_request handles queue full/timeout."""
         import obskit.metrics.async_recording as module
-        
+
         mock_base = MagicMock()
         metrics = AsyncREDMetrics(mock_base, queue_size=1)
-        
+
         await _ensure_worker_started()
-        
+
         # Create a tiny queue
         module._metric_queue = asyncio.Queue(maxsize=1)
-        
+
         # Fill the queue
         await module._metric_queue.put({"metrics": MagicMock(), "method": "test"})
-        
+
         # This should timeout as queue is full
-        with patch('obskit.metrics.async_recording.logger') as mock_logger:
+        with patch("obskit.metrics.async_recording.logger"):
             await metrics.observe_request(
                 operation="test_op",
                 duration_seconds=0.05,
                 status="success",
             )
-            
+
             # Should have logged warning
             # Note: TimeoutError may or may not trigger depending on timing
 
@@ -365,15 +373,15 @@ class TestWorkerEdgeCases:
     async def test_worker_timeout_continue(self):
         """Test worker continues on timeout when waiting for queue."""
         import obskit.metrics.async_recording as module
-        
+
         await _ensure_worker_started()
-        
+
         # The worker should continue waiting after timeout
         # Give it a couple seconds to hit the timeout
         await asyncio.sleep(1.5)
-        
+
         # Worker should still be running
         assert module._metric_worker_task is not None
         assert not module._metric_worker_task.done()
-        
+
         await shutdown_async_recording()
