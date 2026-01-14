@@ -1,0 +1,47 @@
+# Simplified Dockerfile - Installs obskit dependencies manually
+# This avoids editable install issues
+FROM python:3.11-slim
+
+WORKDIR /app
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Python dependencies including obskit dependencies
+RUN pip install --no-cache-dir \
+    fastapi==0.104.1 \
+    uvicorn[standard]==0.24.0 \
+    pydantic>=2.0.0 \
+    structlog>=24.1.0 \
+    pydantic-settings>=2.0.0 \
+    prometheus-client>=0.19.0 \
+    opentelemetry-api>=1.20.0 \
+    opentelemetry-sdk>=1.20.0 \
+    opentelemetry-exporter-otlp>=1.20.0
+
+# Copy obskit source and add to Python path
+# Build context should be set to the repo root (monitoring/)
+COPY obskit/src/obskit /app/obskit
+
+# Add obskit to Python path
+ENV PYTHONPATH=/app:$PYTHONPATH
+
+# Copy application code
+COPY obskit/helm/example/test-service.py .
+COPY obskit/helm/example/requirements.txt .
+
+# Create non-root user
+RUN useradd -m -u 1000 appuser && \
+    chown -R appuser:appuser /app
+
+USER appuser
+
+EXPOSE 8080 9090
+
+HEALTHCHECK --interval=30s --timeout=3s --start-period=40s --retries=3 \
+    CMD curl -f http://localhost:8080/health || exit 1
+
+CMD ["python", "test-service.py"]
+

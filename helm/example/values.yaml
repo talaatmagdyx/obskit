@@ -1,0 +1,183 @@
+# Complete Example: Order Service Deployment
+# ===========================================
+# This is a real-world example of deploying a service with obskit using Helm
+
+replicaCount: 5
+
+image:
+  repository: my-registry.example.com/order-service
+  pullPolicy: IfNotPresent
+  tag: "v1.2.3"
+
+imagePullSecrets:
+  - name: registry-secret
+
+nameOverride: ""
+fullnameOverride: ""
+
+serviceAccount:
+  create: true
+  annotations:
+    eks.amazonaws.com/role-arn: arn:aws:iam::123456789012:role/order-service-role
+  name: ""
+
+podAnnotations:
+  prometheus.io/scrape: "true"
+  prometheus.io/port: "9090"
+  prometheus.io/path: "/metrics"
+
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 1000
+  fsGroup: 2000
+
+securityContext:
+  capabilities:
+    drop:
+    - ALL
+  readOnlyRootFilesystem: true
+  allowPrivilegeEscalation: false
+
+service:
+  type: ClusterIP
+  port: 80
+  targetPort: 8080
+  metricsPort: 9090
+  metricsPath: /metrics
+
+ingress:
+  enabled: true
+  className: "nginx"
+  annotations:
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    nginx.ingress.kubernetes.io/rate-limit: "100"
+  hosts:
+    - host: orders.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+  tls:
+    - secretName: order-service-tls
+      hosts:
+        - orders.example.com
+
+resources:
+  limits:
+    cpu: 1000m
+    memory: 1Gi
+  requests:
+    cpu: 200m
+    memory: 512Mi
+
+autoscaling:
+  enabled: true
+  minReplicas: 3
+  maxReplicas: 20
+  targetCPUUtilizationPercentage: 70
+  targetMemoryUtilizationPercentage: 80
+
+# obskit Configuration - Production Settings
+obskit:
+  serviceName: "order-service"
+  environment: "production"
+  version: "v1.2.3"
+  
+  # Logging Configuration
+  logLevel: "INFO"
+  logFormat: "json"
+  logSampleRate: 0.01  # Sample 1% of logs (high-volume service)
+  
+  # Metrics Configuration
+  metricsEnabled: true
+  metricsPort: 9090
+  metricsSampleRate: 0.1  # Sample 10% of metrics
+  metricsAuthEnabled: true
+  metricsAuthToken: ""  # Will be set from secret
+  
+  # Tracing Configuration
+  tracingEnabled: true
+  otlpEndpoint: "https://jaeger-collector.monitoring.svc.cluster.local:4317"
+  traceSampleRate: 0.1  # Sample 10% of traces
+  otlpInsecure: false  # Use TLS in production
+  
+  # Health Check Configuration
+  healthCheckTimeout: 5.0
+
+# Prometheus ServiceMonitor
+serviceMonitor:
+  enabled: true
+  interval: 30s
+  scrapeTimeout: 10s
+  path: /metrics
+  labels:
+    app: order-service
+    team: platform
+
+# Secrets - In production, use external secret management
+secrets:
+  metricsAuthToken: "prod-metrics-token-abc123xyz"  # Use secret management in production
+  databaseUrl: ""  # Set via external secrets
+  apiKeys: ""  # Set via external secrets
+
+# Node Selection
+nodeSelector:
+  workload-type: application
+
+# Tolerations
+tolerations:
+  - key: "workload-type"
+    operator: "Equal"
+    value: "application"
+    effect: "NoSchedule"
+
+# Affinity Rules
+affinity:
+  podAntiAffinity:
+    preferredDuringSchedulingIgnoredDuringExecution:
+      - weight: 100
+        podAffinityTerm:
+          labelSelector:
+            matchExpressions:
+              - key: app.kubernetes.io/name
+                operator: In
+                values:
+                  - obskit-service
+          topologyKey: kubernetes.io/hostname
+
+# Health Check Probes
+livenessProbe:
+  httpGet:
+    path: /live
+    port: http
+  initialDelaySeconds: 30
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 3
+  successThreshold: 1
+
+readinessProbe:
+  httpGet:
+    path: /ready
+    port: http
+  initialDelaySeconds: 10
+  periodSeconds: 5
+  timeoutSeconds: 3
+  failureThreshold: 3
+  successThreshold: 1
+
+# Additional Environment Variables
+extraEnv:
+  - name: DATABASE_URL
+    valueFrom:
+      secretKeyRef:
+        name: order-service-secrets
+        key: databaseUrl
+  - name: REDIS_URL
+    value: "redis://redis-service:6379"
+  - name: ENABLE_FEATURE_X
+    value: "true"
+
+# Volume Mounts (if needed)
+volumes: []
+volumeMounts: []
+

@@ -1,0 +1,61 @@
+[run]
+source = src/obskit
+omit =
+    */tests/*
+    */test_*.py
+    */__pycache__/*
+    */site-packages/*
+
+branch = True
+parallel = True
+concurrency = thread
+data_file = .coverage
+
+[report]
+exclude_lines =
+    pragma: no cover
+    
+    # Debug and representation
+    def __repr__
+    if self.debug
+    
+    # Assertions and not implemented
+    raise AssertionError
+    raise NotImplementedError
+    raise ImportError
+    
+    # Type checking and main guard
+    if 0:
+    if __name__ == .__main__.:
+    if TYPE_CHECKING:
+    
+    # Abstract methods
+    @abstractmethod
+    
+    # Import availability checks (these are import-time guards)
+    .*_AVAILABLE = False
+    except ImportError
+    
+    # Defensive exception handling that can't be easily tested
+    except Exception:$
+    except Exception as e:$
+    
+    # Pass statements in exception handlers
+    pass$
+
+exclude_also =
+    # Exclude module-level availability flag assignments
+    ^[A-Z_]+_AVAILABLE = False$
+
+# Don't fail on missing files
+ignore_errors = True
+
+precision = 2
+show_missing = True
+skip_empty = True
+
+# Minimum coverage threshold
+fail_under = 80
+
+[html]
+directory = htmlcov

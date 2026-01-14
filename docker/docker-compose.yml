@@ -1,0 +1,78 @@
+version: "3.8"
+
+services:
+  # Prometheus for metrics collection
+  prometheus:
+    image: prom/prometheus:v2.47.0
+    container_name: obskit-prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+      - "--web.enable-lifecycle"
+    networks:
+      - obskit
+
+  # Grafana for dashboards
+  grafana:
+    image: grafana/grafana:10.2.0
+    container_name: obskit-grafana
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ../dashboards:/etc/grafana/provisioning/dashboards:ro
+      - ./grafana-datasources.yml:/etc/grafana/provisioning/datasources/datasources.yml:ro
+    networks:
+      - obskit
+    depends_on:
+      - prometheus
+
+  # Jaeger for distributed tracing
+  jaeger:
+    image: jaegertracing/all-in-one:1.51
+    container_name: obskit-jaeger
+    ports:
+      - "16686:16686"  # Jaeger UI
+      - "4317:4317"    # OTLP gRPC
+      - "4318:4318"    # OTLP HTTP
+    environment:
+      - COLLECTOR_OTLP_ENABLED=true
+    networks:
+      - obskit
+
+  # Example service using obskit
+  example-service:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.example
+    container_name: obskit-example
+    ports:
+      - "8000:8000"
+    environment:
+      - OBSKIT_SERVICE_NAME=example-service
+      - OBSKIT_ENVIRONMENT=development
+      - OBSKIT_LOG_LEVEL=INFO
+      - OBSKIT_LOG_FORMAT=json
+      - OBSKIT_OTLP_ENDPOINT=http://jaeger:4317
+      - OBSKIT_METRICS_PORT=9091
+    networks:
+      - obskit
+    depends_on:
+      - prometheus
+      - jaeger
+
+networks:
+  obskit:
+    driver: bridge
+
+volumes:
+  prometheus_data:
+  grafana_data:

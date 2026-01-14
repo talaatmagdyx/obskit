@@ -1,0 +1,173 @@
+# Full Observability Stack for obskit Examples
+# =============================================
+#
+# This Docker Compose file sets up a complete observability stack:
+# - Example FastAPI service with obskit
+# - Prometheus for metrics
+# - Grafana for dashboards
+# - Jaeger for distributed tracing
+# - Redis for distributed circuit breaker
+#
+# Usage:
+#   docker-compose -f examples/docker-compose.observability.yml up -d
+#
+# Access:
+#   - Example Service: http://localhost:8000
+#   - Prometheus:      http://localhost:9090
+#   - Grafana:         http://localhost:3000 (admin/admin)
+#   - Jaeger UI:       http://localhost:16686
+#
+# Cleanup:
+#   docker-compose -f examples/docker-compose.observability.yml down -v
+
+version: '3.8'
+
+services:
+  # ==========================================================================
+  # Example Application
+  # ==========================================================================
+  app:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"   # Application
+      - "9091:9091"   # Metrics endpoint
+    environment:
+      - SERVICE_NAME=example-service
+      - ENVIRONMENT=development
+      - LOG_LEVEL=INFO
+      - LOG_FORMAT=json
+      - OTLP_ENDPOINT=http://jaeger:4317
+      - REDIS_URL=redis://redis:6379/0
+      - METRICS_PORT=9091
+    depends_on:
+      - redis
+      - jaeger
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    networks:
+      - obskit-network
+
+  # ==========================================================================
+  # Prometheus - Metrics Collection
+  # ==========================================================================
+  prometheus:
+    image: prom/prometheus:v2.48.0
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./prometheus/alerts.yml:/etc/prometheus/alerts.yml:ro
+      - prometheus-data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--web.enable-lifecycle'
+      - '--web.enable-admin-api'
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:9090/-/healthy"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    networks:
+      - obskit-network
+
+  # ==========================================================================
+  # Grafana - Dashboards & Visualization
+  # ==========================================================================
+  grafana:
+    image: grafana/grafana:10.2.2
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_INSTALL_PLUGINS=grafana-clock-panel,grafana-simple-json-datasource
+    volumes:
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - grafana-data:/var/lib/grafana
+    depends_on:
+      - prometheus
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://localhost:3000/api/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    networks:
+      - obskit-network
+
+  # ==========================================================================
+  # Jaeger - Distributed Tracing
+  # ==========================================================================
+  jaeger:
+    image: jaegertracing/all-in-one:1.52
+    ports:
+      - "16686:16686"  # Jaeger UI
+      - "4317:4317"    # OTLP gRPC
+      - "4318:4318"    # OTLP HTTP
+      - "14268:14268"  # Accept jaeger.thrift
+    environment:
+      - COLLECTOR_OTLP_ENABLED=true
+      - LOG_LEVEL=info
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:16686/"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    networks:
+      - obskit-network
+
+  # ==========================================================================
+  # Redis - Distributed Circuit Breaker State
+  # ==========================================================================
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    networks:
+      - obskit-network
+
+  # ==========================================================================
+  # Redis Commander - Redis UI (optional)
+  # ==========================================================================
+  redis-commander:
+    image: rediscommander/redis-commander:latest
+    ports:
+      - "8081:8081"
+    environment:
+      - REDIS_HOSTS=local:redis:6379
+    depends_on:
+      - redis
+    profiles:
+      - debug
+    networks:
+      - obskit-network
+
+# ==========================================================================
+# Networks & Volumes
+# ==========================================================================
+networks:
+  obskit-network:
+    driver: bridge
+
+volumes:
+  prometheus-data:
+  grafana-data:
+  redis-data:
+
