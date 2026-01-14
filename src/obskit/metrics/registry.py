@@ -246,9 +246,11 @@ def start_http_server(
             else:
                 # Use default Prometheus handler (no auth)
                 # _start_http_server returns (WSGIServer, Thread), we only need the thread
-                _server, _http_server_thread = _start_http_server(actual_port, addr=actual_host)
-                # Store server reference for potential future cleanup (currently unused)
-                _http_server = _server
+                server_result = _start_http_server(actual_port, addr=actual_host)
+                if server_result is not None:
+                    _server, _http_server_thread = server_result
+                    # Store server reference for potential future cleanup (currently unused)
+                    _http_server = _server
 
             _http_server_started = True
 
@@ -309,7 +311,9 @@ def stop_http_server() -> None:
                         _http_server.shutdown()
                     except AttributeError:  # nosec B110 - shutdown method may not exist
                         pass  # prometheus_client WSGIServer doesn't have shutdown method
-                    except Exception:  # pragma: no cover  # nosec B110 - shutdown errors non-critical
+                    except (
+                        Exception
+                    ):  # pragma: no cover  # nosec B110 - shutdown errors non-critical
                         pass  # Ignore errors during shutdown
 
                 # The prometheus_client server thread is a daemon thread

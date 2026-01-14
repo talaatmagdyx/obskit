@@ -194,7 +194,7 @@ def _load_toml(path: Path) -> dict[str, Any]:
         import tomllib
     except ImportError:
         try:
-            import tomli as tomllib  # type: ignore[import-not-found, no-redef]
+            import tomli as tomllib  # type: ignore[no-redef]
         except ImportError as e:
             raise ConfigValidationError(
                 "tomli is required to load TOML configuration files on Python < 3.11. "

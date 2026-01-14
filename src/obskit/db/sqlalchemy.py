@@ -114,7 +114,7 @@ def instrument_sqlalchemy(engine: Any, database_name: str = "database") -> None:
         @event.listens_for(Engine, "connect")
         def on_connect(dbapi_conn: Any, connection_record: Any) -> None:
             """Track connection creation."""
-            pool = engine.pool
+            pool: Any = engine.pool
             golden.set_saturation(
                 resource=f"{database_name}.connections",
                 value=pool.checkedout() / pool.size() if pool.size() > 0 else 0.0,

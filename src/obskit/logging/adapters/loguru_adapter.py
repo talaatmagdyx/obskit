@@ -23,11 +23,13 @@ from obskit.logging.adapters.base import LoggerAdapter
 # Check if loguru is available
 try:
     from loguru import logger as loguru_logger
+    from loguru import Logger
 
     LOGURU_AVAILABLE = True
 except ImportError:  # pragma: no cover
     LOGURU_AVAILABLE = False
-    loguru_logger = None
+    loguru_logger = None  # type: ignore[assignment]
+    Logger = None  # type: ignore[assignment, misc]
 
 
 class LoguruAdapter(LoggerAdapter):
@@ -149,7 +151,7 @@ class LoguruAdapter(LoggerAdapter):
             # Patch to use JSON serializer
             loguru_logger.add(
                 sys.stdout,
-                format=json_serializer,
+                format=json_serializer,  # type: ignore[arg-type]
                 level=log_level.upper(),
                 colorize=False,
             )
