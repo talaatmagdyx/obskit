@@ -1,8 +1,8 @@
 """Tests for obskit.metrics.golden module."""
 
-import pytest
 import uuid
-from unittest.mock import MagicMock, patch
+
+import pytest
 
 from obskit.metrics.golden import (
     GoldenSignals,
@@ -63,7 +63,7 @@ class TestGoldenSignals:
         """Test observing multiple requests."""
         name = f"golden_{uuid.uuid4().hex[:8]}"
         signals = GoldenSignals(name=name)
-        
+
         for i in range(10):
             signals.observe_request(
                 operation="get_user",
@@ -144,13 +144,13 @@ class TestGoldenSignals:
         """Test progress gauges are created only once."""
         name = f"golden_{uuid.uuid4().hex[:8]}"
         signals = GoldenSignals(name=name)
-        
+
         signals.set_progress("op1", 50.0)
         gauges_first = signals._progress_gauges
-        
+
         signals.set_progress("op2", 75.0)
         gauges_second = signals._progress_gauges
-        
+
         # Same gauge objects should be reused
         assert gauges_first is gauges_second
 
@@ -158,7 +158,7 @@ class TestGoldenSignals:
         """Test track_request via RED metrics."""
         name = f"golden_{uuid.uuid4().hex[:8]}"
         signals = GoldenSignals(name=name)
-        
+
         # Use track_request from underlying RED metrics
         with signals.red.track_request("get_user"):
             pass  # Success
@@ -167,7 +167,7 @@ class TestGoldenSignals:
         """Test track_request handles errors."""
         name = f"golden_{uuid.uuid4().hex[:8]}"
         signals = GoldenSignals(name=name)
-        
+
         with pytest.raises(ValueError):
             with signals.red.track_request("get_user"):
                 raise ValueError("test error")
@@ -212,9 +212,8 @@ class TestResetGoldenSignals:
 
     def test_reset_allows_new_instance(self):
         """Test reset allows creating new instance."""
-        signals1 = get_golden_signals()
+        get_golden_signals()
         reset_golden_signals()
-        signals2 = get_golden_signals()
+        get_golden_signals()
         # After reset, get creates new instance
         # (may be same object due to caching, but state is reset)
-

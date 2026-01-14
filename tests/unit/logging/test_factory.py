@@ -1,14 +1,15 @@
 """Tests for obskit.logging.factory module."""
 
+from unittest.mock import MagicMock
+
 import pytest
-from unittest.mock import MagicMock, patch
 
 from obskit.logging.factory import (
-    get_available_backends,
     configure_logging_backend,
+    get_available_backends,
     get_logger_from_factory,
-    reset_logging_factory,
     register_backend,
+    reset_logging_factory,
 )
 
 
@@ -97,20 +98,20 @@ class TestRegisterBackend:
     def test_register_custom_backend(self):
         """Test registering a custom backend."""
         from obskit.logging.adapters.base import LoggerAdapter
-        
+
         class MockBackend(LoggerAdapter):
             @classmethod
             def is_available(cls) -> bool:
                 return True
-            
+
             def get_logger(self, name: str):
                 return MagicMock()
-            
+
             def configure(self, **kwargs):
                 pass
-        
+
         register_backend("mock_custom", MockBackend)
-        
+
         # Backend should now be available
         backends = get_available_backends()
         assert "mock_custom" in backends
@@ -130,18 +131,17 @@ class TestAutoConfiguration:
     def test_get_logger_auto_configures(self):
         """Test get_logger_from_factory auto-configures when not configured."""
         reset_logging_factory()
-        
+
         # Don't manually configure, let it auto-configure
         logger = get_logger_from_factory("test.auto")
-        
+
         assert logger is not None
 
     def test_configure_auto_backend(self):
         """Test configure with auto backend selection."""
         reset_logging_factory()
-        
+
         configure_logging_backend(backend="auto")
-        
+
         logger = get_logger_from_factory("test.auto")
         assert logger is not None
-

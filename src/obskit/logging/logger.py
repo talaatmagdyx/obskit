@@ -104,7 +104,9 @@ def sample_log(
         return event_dict
 
     # Apply sampling for other log levels
-    if settings.log_sample_rate < 1.0 and random.random() > settings.log_sample_rate:  # pragma: no branch
+    if (
+        settings.log_sample_rate < 1.0 and random.random() > settings.log_sample_rate
+    ):  # pragma: no branch
         return None  # Drop this log entry  # pragma: no cover
 
     return event_dict
@@ -269,7 +271,9 @@ def configure_logging() -> None:
         # Handle exception info
         structlog.processors.format_exc_info,
         # Add timestamp if enabled
-        *([structlog.processors.TimeStamper(fmt="iso")] if settings.log_include_timestamp else []),  # pragma: no branch
+        *(
+            [structlog.processors.TimeStamper(fmt="iso")] if settings.log_include_timestamp else []
+        ),  # pragma: no branch
         # Stack info for exceptions
         structlog.processors.StackInfoRenderer(),
         # Unicode handling

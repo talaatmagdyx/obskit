@@ -1,17 +1,17 @@
 """Tests for obskit.resilience.circuit_breaker module."""
 
-import pytest
 import time
-from unittest.mock import MagicMock, patch
+
+import pytest
 
 from obskit.resilience.circuit_breaker import (
     CircuitBreaker,
-    CircuitState,
     CircuitOpenError,
-    get_circuit_breaker,
-    reset_all_circuit_breakers,
+    CircuitState,
     _circuit_breakers,
     _circuit_breakers_lock,
+    get_circuit_breaker,
+    reset_all_circuit_breakers,
 )
 
 
@@ -61,9 +61,9 @@ class TestCircuitBreaker:
         # Force to open state by setting internal state
         breaker._state = CircuitState.OPEN
         breaker._failure_count = 5
-        
+
         breaker.reset()
-        
+
         assert breaker.state == CircuitState.CLOSED
         assert breaker.failure_count == 0
 
@@ -95,50 +95,50 @@ class TestAsyncCircuitBreaker:
     async def test_async_context_manager_success(self):
         """Test async context manager on success."""
         breaker = CircuitBreaker(name="async-test")
-        
+
         async with breaker:
             pass  # Success
-        
+
         assert breaker.state == CircuitState.CLOSED
 
     @pytest.mark.asyncio
     async def test_async_context_manager_failure(self):
         """Test async context manager on failure."""
         breaker = CircuitBreaker(name="async-test", failure_threshold=1)
-        
+
         with pytest.raises(ValueError):
             async with breaker:
                 raise ValueError("Async error")
-        
+
         assert breaker.state == CircuitState.OPEN
 
     @pytest.mark.asyncio
     async def test_async_opens_after_threshold(self):
         """Test circuit opens after failure threshold."""
         breaker = CircuitBreaker(name="async-test", failure_threshold=2)
-        
+
         # First failure
         with pytest.raises(ValueError):
             async with breaker:
                 raise ValueError("Error 1")
-        
+
         # Second failure - should open
         with pytest.raises(ValueError):
             async with breaker:
                 raise ValueError("Error 2")
-        
+
         assert breaker.state == CircuitState.OPEN
 
     @pytest.mark.asyncio
     async def test_async_raises_when_open(self):
         """Test async raises when circuit is open."""
         breaker = CircuitBreaker(name="async-raise-test", failure_threshold=1)
-        
+
         # Open the circuit
         with pytest.raises(ValueError):
             async with breaker:
                 raise ValueError("Open circuit")
-        
+
         # Should raise CircuitOpenError
         with pytest.raises(CircuitOpenError):
             async with breaker:
@@ -153,27 +153,27 @@ class TestAsyncCircuitBreaker:
             recovery_timeout=0.01,  # Very short timeout
             half_open_requests=2,
         )
-        
+
         # Open the circuit
         with pytest.raises(ValueError):
             async with breaker:
                 raise ValueError("Open circuit")
-        
+
         assert breaker.state == CircuitState.OPEN
-        
+
         # Wait for recovery timeout
         time.sleep(0.02)
-        
+
         # First success in half-open
         async with breaker:
             pass
-        
+
         assert breaker.state == CircuitState.HALF_OPEN
-        
+
         # Second success should close circuit
         async with breaker:
             pass
-        
+
         assert breaker.state == CircuitState.CLOSED
 
     @pytest.mark.asyncio
@@ -185,26 +185,26 @@ class TestAsyncCircuitBreaker:
             recovery_timeout=0.01,
             half_open_requests=3,
         )
-        
+
         # Open the circuit
         with pytest.raises(ValueError):
             async with breaker:
                 raise ValueError("Open circuit")
-        
+
         # Wait for recovery timeout
         time.sleep(0.02)
-        
+
         # Trigger half-open with a success
         async with breaker:
             pass
-        
+
         assert breaker.state == CircuitState.HALF_OPEN
-        
+
         # Failure in half-open should reopen
         with pytest.raises(ValueError):
             async with breaker:
                 raise ValueError("Reopen")
-        
+
         assert breaker.state == CircuitState.OPEN
 
     @pytest.mark.asyncio
@@ -215,49 +215,49 @@ class TestAsyncCircuitBreaker:
             failure_threshold=2,
             excluded_exceptions=(ValueError,),
         )
-        
+
         # ValueError should not count as failure
         with pytest.raises(ValueError):
             async with breaker:
                 raise ValueError("Excluded")
-        
+
         assert breaker.failure_count == 0
         assert breaker.state == CircuitState.CLOSED
-        
+
         # RuntimeError should count
         with pytest.raises(RuntimeError):
             async with breaker:
                 raise RuntimeError("Counted")
-        
+
         assert breaker.failure_count == 1
 
     @pytest.mark.asyncio
     async def test_success_resets_failure_count(self):
         """Test that success resets failure count in closed state."""
         breaker = CircuitBreaker(name="reset-test", failure_threshold=3)
-        
+
         # Record a failure
         with pytest.raises(ValueError):
             async with breaker:
                 raise ValueError("Failure")
-        
+
         assert breaker.failure_count == 1
-        
+
         # Success should reset
         async with breaker:
             pass
-        
+
         assert breaker.failure_count == 0
 
     @pytest.mark.asyncio
     async def test_decorator_pattern(self):
         """Test using circuit breaker as decorator."""
         breaker = CircuitBreaker(name="decorator-test")
-        
+
         @breaker
         async def decorated_func():
             return "success"
-        
+
         result = await decorated_func()
         assert result == "success"
 
@@ -265,14 +265,14 @@ class TestAsyncCircuitBreaker:
     async def test_decorator_pattern_with_failure(self):
         """Test decorator pattern with failure."""
         breaker = CircuitBreaker(name="decorator-fail-test", failure_threshold=1)
-        
+
         @breaker
         async def failing_func():
             raise ValueError("Decorated failure")
-        
+
         with pytest.raises(ValueError):
             await failing_func()
-        
+
         assert breaker.state == CircuitState.OPEN
 
 
@@ -313,13 +313,13 @@ class TestCircuitBreakerRegistry:
         """Test reset_all_circuit_breakers."""
         breaker1 = get_circuit_breaker("breaker1", failure_threshold=1)
         breaker2 = get_circuit_breaker("breaker2", failure_threshold=1)
-        
+
         # Force open state
         breaker1._state = CircuitState.OPEN
         breaker2._state = CircuitState.OPEN
-        
+
         reset_all_circuit_breakers()
-        
+
         assert breaker1.state == CircuitState.CLOSED
         assert breaker2.state == CircuitState.CLOSED
 
@@ -333,10 +333,9 @@ class TestCircuitBreakerTimeUntilRetry:
             name="time-test",
             failure_threshold=5,
         )
-        
+
         # No failures - _last_failure_time is None
         assert breaker._last_failure_time is None
-        
+
         result = breaker._get_time_until_retry()
         assert result == 0.0
-

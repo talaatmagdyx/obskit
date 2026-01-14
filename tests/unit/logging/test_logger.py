@@ -1,15 +1,12 @@
 """Tests for obskit.logging.logger module."""
 
-import pytest
-from unittest.mock import patch, MagicMock
-
 from obskit.logging.logger import (
-    get_logger,
     configure_logging,
-    reset_logging,
+    get_logger,
+    log_error,
     log_operation,
     log_performance,
-    log_error,
+    reset_logging,
 )
 
 
@@ -27,14 +24,14 @@ class TestGetLogger:
     def test_returns_logger(self):
         """Test that get_logger returns a logger."""
         logger = get_logger("test")
-        
+
         assert logger is not None
 
     def test_returns_logger_for_same_name(self):
         """Test that same name returns a logger."""
         logger1 = get_logger("test")
         logger2 = get_logger("test")
-        
+
         # Both should be valid loggers
         assert logger1 is not None
         assert logger2 is not None
@@ -43,7 +40,7 @@ class TestGetLogger:
         """Test that different names return different loggers."""
         logger1 = get_logger("test1")
         logger2 = get_logger("test2")
-        
+
         assert logger1 is not logger2
 
 
@@ -61,7 +58,7 @@ class TestConfigureLogging:
     def test_configure_with_defaults(self):
         """Test configure_logging with defaults."""
         configure_logging()
-        
+
         # Should not raise
         logger = get_logger("test")
         assert logger is not None
@@ -70,14 +67,14 @@ class TestConfigureLogging:
         """Test configure_logging can be called multiple times."""
         configure_logging()
         configure_logging()  # Should not raise
-        
+
         logger = get_logger("test")
         assert logger is not None
 
     def test_configure_sets_flag(self):
         """Test configure_logging sets the configured flag."""
         import obskit.logging.logger as logger_module
-        
+
         assert logger_module._logging_configured is False
         configure_logging()
         assert logger_module._logging_configured is True
@@ -88,12 +85,12 @@ class TestResetLogging:
 
     def test_reset_clears_state(self):
         """Test that reset clears state."""
-        logger1 = get_logger("test")
-        
+        get_logger("test")
+
         reset_logging()
-        
+
         logger2 = get_logger("test")
-        
+
         # After reset, may get different logger
         assert logger2 is not None
 
@@ -113,35 +110,35 @@ class TestLoggerMethods:
     def test_info_method(self):
         """Test info method."""
         logger = get_logger("test")
-        
+
         # Should not raise
         logger.info("test_message", key="value")
 
     def test_debug_method(self):
         """Test debug method."""
         logger = get_logger("test")
-        
+
         # Should not raise
         logger.debug("test_message", key="value")
 
     def test_warning_method(self):
         """Test warning method."""
         logger = get_logger("test")
-        
+
         # Should not raise
         logger.warning("test_message", key="value")
 
     def test_error_method(self):
         """Test error method."""
         logger = get_logger("test")
-        
+
         # Should not raise
         logger.error("test_message", key="value")
 
     def test_log_with_kwargs(self):
         """Test logging with keyword arguments."""
         logger = get_logger("test")
-        
+
         # Should not raise
         logger.info(
             "test_event",

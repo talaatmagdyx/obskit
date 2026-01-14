@@ -1,15 +1,16 @@
 """Tests for obskit.core.context module."""
 
 import asyncio
+
 import pytest
 
 from obskit.core.context import (
+    async_correlation_context,
+    correlation_context,
+    ensure_correlation_id,
+    generate_correlation_id,
     get_correlation_id,
     set_correlation_id,
-    correlation_context,
-    async_correlation_context,
-    generate_correlation_id,
-    ensure_correlation_id,
 )
 
 
@@ -37,6 +38,7 @@ class TestSetCorrelationId:
         finally:
             # Reset using the context var directly
             from obskit.core.context import _correlation_id
+
             _correlation_id.reset(token)
 
     def test_set_correlation_id_to_none(self):
@@ -47,6 +49,7 @@ class TestSetCorrelationId:
                 assert get_correlation_id() is None
             finally:
                 from obskit.core.context import _correlation_id
+
                 _correlation_id.reset(token)
 
 
@@ -76,10 +79,10 @@ class TestCorrelationContext:
         """Test nested correlation contexts."""
         with correlation_context("outer"):
             assert get_correlation_id() == "outer"
-            
+
             with correlation_context("inner"):
                 assert get_correlation_id() == "inner"
-            
+
             # Back to outer
             assert get_correlation_id() == "outer"
 
@@ -90,7 +93,7 @@ class TestCorrelationContext:
                 raise ValueError("Test error")
         except ValueError:
             pass
-        
+
         assert get_correlation_id() is None
 
     def test_context_yields_id(self):
@@ -135,10 +138,10 @@ class TestAsyncCorrelationContext:
         """Test nested async contexts."""
         async with async_correlation_context("async-outer"):
             assert get_correlation_id() == "async-outer"
-            
+
             async with async_correlation_context("async-inner"):
                 assert get_correlation_id() == "async-inner"
-            
+
             assert get_correlation_id() == "async-outer"
 
 
@@ -190,4 +193,3 @@ class TestEnsureCorrelationId:
             cid1 = ensure_correlation_id()
             cid2 = ensure_correlation_id()
             assert cid1 == cid2 == "stable-id"
-

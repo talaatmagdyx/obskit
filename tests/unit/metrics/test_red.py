@@ -1,8 +1,8 @@
 """Tests for obskit.metrics.red module."""
 
-import pytest
-from unittest.mock import MagicMock, patch
 import uuid
+
+import pytest
 
 from obskit.metrics.red import REDMetrics, get_red_metrics, reset_red_metrics
 
@@ -28,7 +28,7 @@ class TestREDMetrics:
         """Test observing successful request."""
         name = f"test_{uuid.uuid4().hex[:8]}"
         metrics = REDMetrics(name=name)
-        
+
         metrics.observe_request(
             operation="test_op",
             duration_seconds=0.1,
@@ -39,7 +39,7 @@ class TestREDMetrics:
         """Test observing failed request."""
         name = f"test_{uuid.uuid4().hex[:8]}"
         metrics = REDMetrics(name=name)
-        
+
         metrics.observe_request(
             operation="test_op",
             duration_seconds=0.5,
@@ -51,7 +51,7 @@ class TestREDMetrics:
         """Test track_request context manager."""
         name = f"test_{uuid.uuid4().hex[:8]}"
         metrics = REDMetrics(name=name)
-        
+
         with metrics.track_request("test_operation"):
             pass  # Simulated work
 
@@ -59,7 +59,7 @@ class TestREDMetrics:
         """Test track_request records errors."""
         name = f"test_{uuid.uuid4().hex[:8]}"
         metrics = REDMetrics(name=name)
-        
+
         with pytest.raises(ValueError):
             with metrics.track_request("failing_operation"):
                 raise ValueError("Test error")
@@ -94,13 +94,13 @@ class TestResetREDMetrics:
     def test_reset_clears_metrics(self):
         """Test that reset clears the metrics instance."""
         # Get initial instance
-        metrics1 = get_red_metrics()
-        
+        get_red_metrics()
+
         # Reset
         reset_red_metrics()
-        
+
         # Get new instance - should be different
-        metrics2 = get_red_metrics()
+        get_red_metrics()
         # After reset, should get a new instance
 
 
@@ -119,21 +119,21 @@ class TestREDMetricsAdvanced:
         """Test initialization with histogram disabled."""
         name = f"test_{uuid.uuid4().hex[:8]}"
         metrics = REDMetrics(name=name, use_histogram=False)
-        
+
         assert metrics.duration_histogram is None
 
     def test_init_with_summary(self):
         """Test initialization with summary enabled."""
         name = f"test_{uuid.uuid4().hex[:8]}"
         metrics = REDMetrics(name=name, use_summary=True)
-        
+
         assert metrics.duration_summary is not None
 
     def test_init_with_both_histogram_and_summary(self):
         """Test initialization with both histogram and summary."""
         name = f"test_{uuid.uuid4().hex[:8]}"
         metrics = REDMetrics(name=name, use_histogram=True, use_summary=True)
-        
+
         assert metrics.duration_histogram is not None
         assert metrics.duration_summary is not None
 
@@ -141,7 +141,7 @@ class TestREDMetricsAdvanced:
         """Test observe_request records to summary when enabled."""
         name = f"test_{uuid.uuid4().hex[:8]}"
         metrics = REDMetrics(name=name, use_summary=True)
-        
+
         metrics.observe_request(
             operation="test_op",
             duration_seconds=0.1,
@@ -152,7 +152,7 @@ class TestREDMetricsAdvanced:
         """Test observe_error method."""
         name = f"test_{uuid.uuid4().hex[:8]}"
         metrics = REDMetrics(name=name)
-        
+
         metrics.observe_error(
             operation="test_op",
             error_type="ConnectionError",
@@ -163,7 +163,7 @@ class TestREDMetricsAdvanced:
         name = f"test_{uuid.uuid4().hex[:8]}"
         # Use 0% sample rate - all non-error observations should be skipped
         metrics = REDMetrics(name=name, sample_rate=0.0)
-        
+
         # This should not raise and should skip the observation
         metrics.observe_request(
             operation="test_op",
@@ -175,11 +175,10 @@ class TestREDMetricsAdvanced:
         """Test failure status without explicit error_type uses UnknownError."""
         name = f"test_{uuid.uuid4().hex[:8]}"
         metrics = REDMetrics(name=name)
-        
+
         metrics.observe_request(
             operation="test_op",
             duration_seconds=0.5,
             status="failure",
             # No error_type provided
         )
-

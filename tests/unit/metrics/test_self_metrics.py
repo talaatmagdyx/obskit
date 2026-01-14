@@ -2,9 +2,7 @@
 
 from __future__ import annotations
 
-from unittest.mock import MagicMock, patch
-
-import pytest
+from unittest.mock import patch
 
 
 class TestObskitSelfMetrics:
@@ -154,7 +152,6 @@ class TestSelfMetricsFunctions:
     def test_reset_self_metrics(self) -> None:
         """Test reset_self_metrics clears singleton."""
         from obskit.metrics.self_metrics import (
-            _self_metrics,
             reset_self_metrics,
         )
 

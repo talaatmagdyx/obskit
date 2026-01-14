@@ -79,7 +79,7 @@ try:
     HTTPX_AVAILABLE = True
 except ImportError:  # pragma: no cover
     HTTPX_AVAILABLE = False
-    httpx = None  # type: ignore[assignment, misc]
+    httpx = None  # type: ignore[assignment]
 
 # Fallback to aiohttp if httpx not available
 try:

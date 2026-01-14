@@ -87,9 +87,9 @@ try:
 except ImportError:  # pragma: no cover
     PROMETHEUS_AVAILABLE = False
     if TYPE_CHECKING:
-        from typing import Any as CollectorRegistry  # type: ignore[misc, assignment]
+        from typing import Any as CollectorRegistry  # type: ignore[assignment]
     else:
-        CollectorRegistry = None  # type: ignore[misc, assignment]
+        CollectorRegistry = None  # type: ignore[assignment]
 
 
 class Counter:
@@ -157,13 +157,16 @@ class Counter:
             if registry is None:
                 registry = prometheus_client.REGISTRY
             try:
-                if hasattr(registry, '_names_to_collectors') and name in registry._names_to_collectors:
+                if (
+                    hasattr(registry, "_names_to_collectors")
+                    and name in registry._names_to_collectors
+                ):
                     existing = registry._names_to_collectors[name]
                     registry.unregister(existing)
             except Exception:
                 # Ignore errors during cleanup - metric might not exist
                 pass
-            
+
             self._metric = prometheus_client.Counter(
                 name,
                 documentation,
@@ -276,12 +279,15 @@ class Gauge:
             if registry is None:
                 registry = prometheus_client.REGISTRY
             try:
-                if hasattr(registry, '_names_to_collectors') and name in registry._names_to_collectors:
+                if (
+                    hasattr(registry, "_names_to_collectors")
+                    and name in registry._names_to_collectors
+                ):
                     existing = registry._names_to_collectors[name]
                     registry.unregister(existing)
             except Exception:
                 pass
-            
+
             self._metric = prometheus_client.Gauge(
                 name,
                 documentation,
@@ -424,12 +430,15 @@ class Histogram:
             if registry is None:
                 registry = prometheus_client.REGISTRY
             try:
-                if hasattr(registry, '_names_to_collectors') and name in registry._names_to_collectors:
+                if (
+                    hasattr(registry, "_names_to_collectors")
+                    and name in registry._names_to_collectors
+                ):
                     existing = registry._names_to_collectors[name]
                     registry.unregister(existing)
             except Exception:
                 pass
-            
+
             self._metric = prometheus_client.Histogram(
                 name,
                 documentation,
@@ -523,12 +532,15 @@ class Summary:
             if registry is None:
                 registry = prometheus_client.REGISTRY
             try:
-                if hasattr(registry, '_names_to_collectors') and name in registry._names_to_collectors:
+                if (
+                    hasattr(registry, "_names_to_collectors")
+                    and name in registry._names_to_collectors
+                ):
                     existing = registry._names_to_collectors[name]
                     registry.unregister(existing)
             except Exception:
                 pass
-            
+
             self._metric = prometheus_client.Summary(
                 name,
                 documentation,

@@ -92,6 +92,8 @@ obskit.logging : Structured logging with automatic correlation ID injection
 obskit.tracing : Distributed tracing with correlation ID support
 """
 
+from typing import Any
+
 from obskit.core.context import (
     async_correlation_context,
     correlation_context,
@@ -128,7 +130,7 @@ __all__ = [
 ]
 
 
-def __getattr__(name: str):
+def __getattr__(name: str) -> Any:
     """Lazy loading for modules that might cause circular imports."""
     if name in (
         "batch_job_context",
@@ -140,8 +142,9 @@ def __getattr__(name: str):
         "restore_context",
     ):
         from obskit.core import batch_context
+
         return getattr(batch_context, name)
-    
+
     if name in (
         "deprecated",
         "deprecated_class",
@@ -150,8 +153,9 @@ def __getattr__(name: str):
         "ObskitDeprecationWarning",
     ):
         from obskit.core import deprecation
+
         return getattr(deprecation, name)
-    
+
     if name in (
         "ObskitError",
         "ConfigurationError",
@@ -168,6 +172,7 @@ def __getattr__(name: str):
         "SLOError",
     ):
         from obskit.core import errors
+
         return getattr(errors, name)
-    
+
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")

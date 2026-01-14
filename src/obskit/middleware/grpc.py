@@ -53,7 +53,7 @@ from __future__ import annotations
 
 import time
 from collections.abc import Awaitable, Callable
-from typing import Any, TypeVar
+from typing import Any, Literal, TypeVar
 
 from obskit.config import get_settings
 from obskit.core.context import get_correlation_id, set_correlation_id
@@ -73,8 +73,8 @@ try:
     GRPC_AVAILABLE = True
 except ImportError:  # pragma: no cover
     GRPC_AVAILABLE = False
-    grpc = None  # type: ignore[assignment]
-    aio = None  # type: ignore[assignment]
+    grpc = None
+    aio = None
 
 # Metadata key for correlation ID
 CORRELATION_ID_KEY = "x-correlation-id"
@@ -95,7 +95,7 @@ def _grpc_status_to_status(code: Any) -> str:
     """Convert gRPC status code to success/failure."""
     if not GRPC_AVAILABLE:  # pragma: no cover
         return "unknown"
-    
+
     if code == grpc.StatusCode.OK:
         return "success"
     return "failure"
@@ -105,10 +105,10 @@ def _extract_correlation_id(metadata: Any) -> str | None:
     """Extract correlation ID from gRPC metadata."""
     if metadata is None:
         return None
-    
+
     for key, value in metadata:
         if key.lower() == CORRELATION_ID_KEY:
-            return value
+            return str(value) if value is not None else None
     return None
 
 
@@ -152,9 +152,7 @@ class ObskitServerInterceptor:
         excluded_methods: list[str] | None = None,
     ) -> None:
         if not GRPC_AVAILABLE:  # pragma: no cover
-            raise ImportError(
-                "gRPC is not installed. Install with: pip install grpcio"
-            )
+            raise ImportError("gRPC is not installed. Install with: pip install grpcio")
 
         settings = get_settings()
         self.service_name = service_name or settings.service_name
@@ -181,22 +179,20 @@ class ObskitServerInterceptor:
         This method wraps the actual RPC handler with observability.
         """
         method = handler_call_details.method
-        
+
         if not self._should_observe(method):
             return await continuation(handler_call_details)
 
         operation = _extract_method_name(method)
-        
+
         # Extract correlation ID from metadata
-        correlation_id = _extract_correlation_id(
-            handler_call_details.invocation_metadata
-        )
+        correlation_id = _extract_correlation_id(handler_call_details.invocation_metadata)
         if correlation_id:
             set_correlation_id(correlation_id)
 
         start_time = time.perf_counter()
-        status = "success"
-        error_type = None
+        status: Literal["success", "failure"] = "success"
+        error_type: str | None = None
 
         if self.track_logging:
             logger.debug(
@@ -283,9 +279,7 @@ class ObskitClientInterceptor:
         propagate_correlation_id: bool = True,
     ) -> None:
         if not GRPC_AVAILABLE:  # pragma: no cover
-            raise ImportError(
-                "gRPC is not installed. Install with: pip install grpcio"
-            )
+            raise ImportError("gRPC is not installed. Install with: pip install grpcio")
 
         self.track_metrics = track_metrics
         self.track_logging = track_logging
@@ -329,9 +323,7 @@ class ObskitClientInterceptor:
         request: Any,
     ) -> Any:
         """Intercept unary-unary RPC call."""
-        return await self._intercept_call(
-            continuation, client_call_details, request
-        )
+        return await self._intercept_call(continuation, client_call_details, request)
 
     async def intercept_unary_stream(
         self,
@@ -340,9 +332,7 @@ class ObskitClientInterceptor:
         request: Any,
     ) -> Any:
         """Intercept unary-stream RPC call."""
-        return await self._intercept_call(
-            continuation, client_call_details, request
-        )
+        return await self._intercept_call(continuation, client_call_details, request)
 
     async def intercept_stream_unary(
         self,
@@ -351,9 +341,7 @@ class ObskitClientInterceptor:
         request_iterator: Any,
     ) -> Any:
         """Intercept stream-unary RPC call."""
-        return await self._intercept_call(
-            continuation, client_call_details, request_iterator
-        )
+        return await self._intercept_call(continuation, client_call_details, request_iterator)
 
     async def intercept_stream_stream(
         self,
@@ -362,9 +350,7 @@ class ObskitClientInterceptor:
         request_iterator: Any,
     ) -> Any:
         """Intercept stream-stream RPC call."""
-        return await self._intercept_call(
-            continuation, client_call_details, request_iterator
-        )
+        return await self._intercept_call(continuation, client_call_details, request_iterator)
 
     async def _intercept_call(
         self,
@@ -378,7 +364,7 @@ class ObskitClientInterceptor:
 
         # Inject metadata
         new_metadata = self._inject_metadata(client_call_details.metadata)
-        
+
         # Create new call details with injected metadata
         new_details = aio.ClientCallDetails(
             method=client_call_details.method,
@@ -389,8 +375,8 @@ class ObskitClientInterceptor:
         )
 
         start_time = time.perf_counter()
-        status = "success"
-        error_type = None
+        status: Literal["success", "failure"] = "success"
+        error_type: str | None = None
 
         if self.track_logging:
             logger.debug(

@@ -70,19 +70,22 @@ from __future__ import annotations
 import asyncio
 import functools
 import uuid
-from collections.abc import Awaitable, Callable, Generator
+from collections.abc import AsyncGenerator, Awaitable, Callable, Generator
 from concurrent.futures import Executor
 from contextlib import asynccontextmanager, contextmanager
 from contextvars import ContextVar, copy_context
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any, ParamSpec, TypeVar
 
 from obskit.core.context import get_correlation_id, set_correlation_id
 
+
 # Use lazy import to avoid circular dependency
-def _get_logger():
+def _get_logger() -> Any:
     from obskit.logging import get_logger
+
     return get_logger("obskit.core.batch_context")
+
 
 P = ParamSpec("P")
 T = TypeVar("T")
@@ -117,7 +120,7 @@ def capture_context() -> dict[str, Any]:
     """
     context: dict[str, Any] = {
         "correlation_id": get_correlation_id(),
-        "captured_at": datetime.now(timezone.utc).isoformat(),
+        "captured_at": datetime.now(UTC).isoformat(),
     }
 
     # Capture batch job context if present
@@ -186,7 +189,7 @@ async def batch_job_context(
     job_name: str,
     job_id: str | None = None,
     metadata: dict[str, Any] | None = None,
-) -> Generator[dict[str, Any], None, None]:
+) -> AsyncGenerator[dict[str, Any], None]:
     """
     Create a new context for a batch job.
 
@@ -225,7 +228,7 @@ async def batch_job_context(
     job_ctx: dict[str, Any] = {
         "job_name": job_name,
         "job_id": job_id,
-        "started_at": datetime.now(timezone.utc).isoformat(),
+        "started_at": datetime.now(UTC).isoformat(),
         "correlation_id": correlation_id,
         **(metadata or {}),
     }
@@ -245,13 +248,12 @@ async def batch_job_context(
 
     try:
         yield job_ctx
-        
+
         # Log completion
         duration = (
-            datetime.now(timezone.utc)
-            - datetime.fromisoformat(job_ctx["started_at"])
+            datetime.now(UTC) - datetime.fromisoformat(job_ctx["started_at"])
         ).total_seconds()
-        
+
         _get_logger().info(
             "batch_job_completed",
             job_name=job_name,
@@ -263,10 +265,9 @@ async def batch_job_context(
     except Exception as e:
         # Log failure
         duration = (
-            datetime.now(timezone.utc)
-            - datetime.fromisoformat(job_ctx["started_at"])
+            datetime.now(UTC) - datetime.fromisoformat(job_ctx["started_at"])
         ).total_seconds()
-        
+
         _get_logger().error(
             "batch_job_failed",
             job_name=job_name,
@@ -339,7 +340,7 @@ def propagate_to_executor(
 
             # Submit to executor with copied context
             future = executor.submit(context.run, run_with_context)
-            return future.result()  # type: ignore[return-value]
+            return future.result()
 
         return wrapper
 
