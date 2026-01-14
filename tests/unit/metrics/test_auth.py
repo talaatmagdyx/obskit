@@ -35,8 +35,10 @@ class TestAuthenticatedMetricsHandler:
 
         def original_send_response(code):
             return setattr(handler, "_response_code", code)
+
         def original_send_header(k, v):
             return handler._response_headers.append((k, v))
+
         def original_end_headers():
             return None
 

@@ -88,7 +88,7 @@ try:
     AIOHTTP_AVAILABLE = True
 except ImportError:  # pragma: no cover
     AIOHTTP_AVAILABLE = False
-    aiohttp = None
+    aiohttp = None  # type: ignore[assignment]
 
 
 class AlertmanagerWebhook:
@@ -410,9 +410,9 @@ class AlertmanagerWebhook:
                         self._alerts_endpoint,
                         headers=self.headers,
                         timeout=aiohttp.ClientTimeout(total=self.timeout),
-                    ) as response:
-                        response.raise_for_status()
-                        result = await response.json()
+                    ) as aio_response:
+                        aio_response.raise_for_status()
+                        result = await aio_response.json()
                         return result
 
         except Exception as e:
@@ -445,9 +445,9 @@ class AlertmanagerWebhook:
                     async with session.get(
                         health_url,
                         timeout=aiohttp.ClientTimeout(total=self.timeout),
-                    ) as response:
+                    ) as aio_response:
                         # aiohttp response has .status attribute
-                        status: int = getattr(response, "status", 0)
+                        status: int = getattr(aio_response, "status", 0)
                         return bool(status == 200)
 
         except Exception as e:
@@ -484,11 +484,11 @@ class AlertmanagerWebhook:
                         json=alerts,
                         headers={"Content-Type": "application/json", **self.headers},
                         timeout=aiohttp.ClientTimeout(total=self.timeout),
-                    ) as response:
-                        response.raise_for_status()
+                    ) as aio_response:
+                        aio_response.raise_for_status()
 
                         # aiohttp response has .status attribute
-                        status_code: int = getattr(response, "status", 0)
+                        status_code: int = getattr(aio_response, "status", 0)
                         logger.info(
                             "alertmanager_alerts_posted",
                             count=len(alerts),
