@@ -1,0 +1,51 @@
+# Alternative Dockerfile for local development
+# This installs obskit from the local source
+FROM python:3.11-slim
+
+WORKDIR /app
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Python dependencies
+RUN pip install --no-cache-dir \
+    fastapi==0.104.1 \
+    uvicorn[standard]==0.24.0 \
+    pydantic>=2.0.0
+
+# Copy obskit package files needed for installation
+# Build context should be set to the repo root (monitoring/)
+COPY obskit/src/obskit /tmp/obskit/src/obskit
+COPY obskit/pyproject.toml /tmp/obskit/pyproject.toml
+COPY obskit/README.md /tmp/obskit/README.md
+COPY obskit/LICENSE /tmp/obskit/LICENSE
+WORKDIR /tmp/obskit
+
+# Upgrade pip and build tools first
+RUN pip install --upgrade pip setuptools wheel hatchling
+
+# Install obskit in editable mode
+RUN pip install --no-cache-dir -e ".[all]"
+
+# Return to app directory
+WORKDIR /app
+
+# Copy application code
+COPY obskit/helm/example/test-service.py .
+COPY obskit/helm/example/requirements.txt .
+
+# Create non-root user
+RUN useradd -m -u 1000 appuser && \
+    chown -R appuser:appuser /app
+
+USER appuser
+
+EXPOSE 8080 9090
+
+HEALTHCHECK --interval=30s --timeout=3s --start-period=40s --retries=3 \
+    CMD curl -f http://localhost:8080/health || exit 1
+
+CMD ["python", "test-service.py"]
+

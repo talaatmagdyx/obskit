@@ -1,0 +1,39 @@
+# =============================================================================
+# Prometheus Configuration for obskit Development
+# =============================================================================
+
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+# Alertmanager configuration
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets: []
+
+# Load rules once and periodically evaluate them
+rule_files: []
+
+# Scrape configurations
+scrape_configs:
+  # Prometheus self-monitoring
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+
+  # Your application metrics
+  - job_name: 'app'
+    static_configs:
+      - targets: ['host.docker.internal:9090']
+    metrics_path: /metrics
+    scrape_interval: 5s
+
+  # Example service discovery for multiple instances
+  # - job_name: 'app-services'
+  #   dns_sd_configs:
+  #     - names:
+  #         - 'tasks.app'
+  #       type: 'A'
+  #       port: 9090
+

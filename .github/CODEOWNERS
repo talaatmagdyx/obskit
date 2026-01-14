@@ -1,0 +1,15 @@
+# Default owners for everything in the repo
+*       @talaatmagdyx
+
+# Documentation
+/docs/  @talaatmagdyx
+
+# Source code
+/src/   @talaatmagdyx
+
+# CI/CD
+/.github/   @talaatmagdyx
+
+# Tests
+/tests/ @talaatmagdyx
+

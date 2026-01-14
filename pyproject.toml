@@ -1,0 +1,251 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "obskit"
+version = "1.0.0"
+description = "Production-ready observability toolkit for Python microservices with RED/Golden/USE metrics, tracing, logging, and resilience patterns"
+readme = "README.md"
+license = "MIT"
+requires-python = ">=3.11"
+authors = [
+    { name = "Talaat Magdy", email = "talaatmagdy75@gmail.com" },
+]
+maintainers = [
+    { name = "Talaat Magdy", email = "talaatmagdy75@gmail.com" },
+]
+keywords = [
+    "observability",
+    "metrics",
+    "tracing",
+    "logging",
+    "prometheus",
+    "opentelemetry",
+    "RED-method",
+    "golden-signals",
+    "USE-method",
+    "SLO",
+    "microservices",
+    "monitoring",
+    "circuit-breaker",
+    "resilience",
+    "health-check",
+    "distributed-tracing",
+    "structured-logging",
+]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Intended Audience :: Developers",
+    "Intended Audience :: System Administrators",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: System :: Monitoring",
+    "Topic :: System :: Logging",
+    "Topic :: System :: Distributed Computing",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Framework :: FastAPI",
+    "Framework :: Flask",
+    "Framework :: Django",
+    "Typing :: Typed",
+    "Environment :: Web Environment",
+    "Natural Language :: English",
+]
+dependencies = [
+    "structlog>=24.1.0,<26.0.0",
+    "pydantic-settings>=2.0.0,<3.0.0",
+]
+
+[project.optional-dependencies]
+# Core metrics with Prometheus
+metrics = [
+    "prometheus-client>=0.19.0,<1.0.0",
+]
+
+# Distributed tracing with OpenTelemetry
+tracing = [
+    "opentelemetry-api>=1.20.0,<2.0.0",
+    "opentelemetry-sdk>=1.20.0,<2.0.0",
+    "opentelemetry-exporter-otlp>=1.20.0,<2.0.0",
+]
+
+# OTLP metrics export (separate from tracing)
+otlp-metrics = [
+    "opentelemetry-api>=1.20.0,<2.0.0",
+    "opentelemetry-sdk>=1.20.0,<2.0.0",
+    "opentelemetry-exporter-otlp-proto-grpc>=1.20.0,<2.0.0",
+]
+
+# Alternative logging backend
+loguru = [
+    "loguru>=0.7.0,<1.0.0",
+]
+
+# FastAPI middleware support
+fastapi = [
+    "fastapi>=0.100.0,<1.0.0",
+    "starlette>=0.27.0,<1.0.0",
+]
+
+# Flask middleware support
+flask = [
+    "flask>=2.0.0,<4.0.0",
+    "werkzeug>=2.0.0,<4.0.0",
+]
+
+# Django middleware support
+django = [
+    "django>=4.0.0,<6.0.0",
+]
+
+# Redis support (sync and async)
+redis = [
+    "redis>=5.0.0,<6.0.0",
+]
+
+# Async Redis with hiredis for better performance
+redis-async = [
+    "redis[hiredis]>=5.0.0,<6.0.0",
+]
+
+# Prometheus Pushgateway support (already in metrics)
+pushgateway = [
+    "prometheus-client>=0.19.0,<1.0.0",
+]
+
+# HTTP clients for Alertmanager integration
+alertmanager = [
+    "httpx>=0.25.0,<1.0.0",
+]
+
+# Security scanning
+security = [
+    "safety>=2.3.0,<4.0.0",
+    "pip-audit>=2.6.0,<3.0.0",
+]
+
+# All production dependencies
+all = [
+    "obskit[tracing,metrics,fastapi,redis]",
+]
+
+# Full installation with all optional features
+full = [
+    "obskit[tracing,metrics,otlp-metrics,loguru,fastapi,flask,django,redis-async,alertmanager]",
+]
+
+# Development dependencies
+dev = [
+    "pytest>=8.0.0,<9.0.0",
+    "pytest-asyncio>=0.23.0,<1.0.0",
+    "pytest-cov>=4.1.0,<6.0.0",
+    "pytest-xdist>=3.5.0,<4.0.0",
+    "pytest-benchmark>=4.0.0,<5.0.0",
+    "pytest-timeout>=2.2.0,<3.0.0",
+    "mypy>=1.8.0,<2.0.0",
+    "ruff>=0.3.0,<1.0.0",
+    "pre-commit>=3.6.0,<4.0.0",
+    "bandit[toml]>=1.7.0,<2.0.0",
+    "asciinema>=2.4.0,<3.0.0",
+    "safety>=2.3.0,<4.0.0",
+    "pip-audit>=2.6.0,<3.0.0",
+]
+
+# Integration testing with testcontainers
+test-integration = [
+    "testcontainers[redis]>=4.0.0,<5.0.0",
+    "httpx>=0.25.0,<1.0.0",
+]
+
+# Documentation dependencies
+docs = [
+    "sphinx>=7.2.0",
+    "furo>=2024.1.0",
+    "sphinx-autodoc-typehints>=2.0.0",
+    "sphinx-copybutton>=0.5.0",
+    "sphinxcontrib-mermaid>=0.9.0",
+    "myst-parser>=3.0.0",
+    "sphinx-autobuild>=2024.0.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/talaatmagdyx/obskit"
+Documentation = "https://github.com/talaatmagdyx/obskit#readme"
+Repository = "https://github.com/talaatmagdyx/obskit.git"
+Issues = "https://github.com/talaatmagdyx/obskit/issues"
+Changelog = "https://github.com/talaatmagdyx/obskit/blob/main/CHANGELOG.md"
+
+[tool.hatch.build.targets.sdist]
+include = [
+    "/src",
+    "/dashboards",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/obskit"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+addopts = "-v --cov=src/obskit --cov-report=term-missing"
+
+[tool.coverage.run]
+source = ["src/obskit"]
+branch = true
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "if TYPE_CHECKING:",
+    "raise NotImplementedError",
+    "@abstractmethod",
+    "if __name__ == .__main__.:",
+]
+partial_branches = [
+    "pragma: no branch",
+    "if not PROMETHEUS_AVAILABLE",
+    "if not OPENTELEMETRY_AVAILABLE",
+]
+fail_under = 100
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
+warn_return_any = true
+warn_unused_configs = true
+ignore_missing_imports = true
+
+[tool.ruff]
+target-version = "py311"
+line-length = 100
+
+[tool.ruff.lint]
+select = [
+    "E",   # pycodestyle errors
+    "W",   # pycodestyle warnings
+    "F",   # pyflakes
+    "I",   # isort
+    "B",   # flake8-bugbear
+    "C4",  # flake8-comprehensions
+    "UP",  # pyupgrade
+]
+ignore = [
+    "E501",  # line too long (handled by formatter)
+    "B008",  # do not perform function calls in argument defaults
+    "E402",  # module level import not at top (needed for conditional imports)
+]
+
+[tool.ruff.lint.isort]
+known-first-party = ["obskit"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["ARG", "SIM"]  # Allow unused args and simplify in tests
+"__init__.py" = ["F401"]    # Allow unused imports in __init__.py
+
+[tool.bandit]
+exclude_dirs = ["tests", "benchmarks"]
+skips = ["B101"]  # Allow assert in tests

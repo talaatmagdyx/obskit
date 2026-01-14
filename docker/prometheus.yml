@@ -1,0 +1,20 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  # Prometheus self-monitoring
+  - job_name: "prometheus"
+    static_configs:
+      - targets: ["localhost:9090"]
+
+  # Example service metrics
+  - job_name: "example-service"
+    static_configs:
+      - targets: ["example-service:9091"]
+    metrics_path: /metrics
+
+  # Add your services here
+  # - job_name: "my-service"
+  #   static_configs:
+  #     - targets: ["my-service:9090"]
