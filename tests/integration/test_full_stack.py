@@ -57,7 +57,7 @@ class TestMetricsIntegration:
         if registry is None:
             pytest.skip("prometheus_client not available")
 
-        golden = GoldenSignals("golden_test", registry=registry)
+        golden = GoldenSignals("golden_test")
 
         # Record metrics
         golden.observe_request("api_call", duration_seconds=0.05)
@@ -81,7 +81,7 @@ class TestMetricsIntegration:
         if registry is None:
             pytest.skip("prometheus_client not available")
 
-        use = USEMetrics("use_test", registry=registry)
+        use = USEMetrics("use_test")
 
         use.set_utilization("cpu", 0.65)
         use.set_saturation("cpu", 3)
@@ -359,7 +359,7 @@ class TestAsyncRecordingIntegration:
         if registry is None:
             pytest.skip("prometheus_client not available")
 
-        base = REDMetrics("async_test", registry=registry)
+        base = REDMetrics("async_test")
         async_metrics = AsyncREDMetrics(base)
 
         # Record metrics asynchronously

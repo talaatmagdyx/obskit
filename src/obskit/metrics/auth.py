@@ -28,16 +28,14 @@ from __future__ import annotations
 
 import threading
 import time
+from http.server import BaseHTTPRequestHandler
 from typing import Any
 
 from obskit.logging import get_logger
 
 logger = get_logger("obskit.metrics.auth")
 
-try:
-    from http.server import BaseHTTPRequestHandler
-except ImportError:  # pragma: no cover
-    BaseHTTPRequestHandler = None  # type: ignore[assignment, misc]
+HTTP_SERVER_AVAILABLE = True
 
 
 class RateLimiter:

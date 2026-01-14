@@ -22,8 +22,8 @@ from obskit.logging.adapters.base import LoggerAdapter
 
 # Check if loguru is available
 try:
-    from loguru import logger as loguru_logger
     from loguru import Logger
+    from loguru import logger as loguru_logger
 
     LOGURU_AVAILABLE = True
 except ImportError:  # pragma: no cover

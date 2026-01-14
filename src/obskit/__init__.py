@@ -236,6 +236,19 @@ from obskit.core import (
 )
 
 # =============================================================================
+# Batch Context Propagation
+# =============================================================================
+from obskit.core.batch_context import (
+    batch_job_context,
+    capture_context,
+    create_task_with_context,
+    get_batch_job_context,
+    propagate_to_executor,
+    propagate_to_task,
+    restore_context,
+)
+
+# =============================================================================
 # Database Instrumentation
 # =============================================================================
 from obskit.db import DatabaseTracker, instrument_sqlalchemy, track_query
@@ -679,20 +692,5 @@ def __getattr__(name: str) -> Any:
         from obskit.core import deprecation
 
         return getattr(deprecation, name)
-
-    # Batch context propagation
-    batch_context_names = {
-        "capture_context",
-        "restore_context",
-        "batch_job_context",
-        "get_batch_job_context",
-        "propagate_to_executor",
-        "propagate_to_task",
-        "create_task_with_context",
-    }
-    if name in batch_context_names:
-        from obskit.core import batch_context
-
-        return getattr(batch_context, name)
 
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
