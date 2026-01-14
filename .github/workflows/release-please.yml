@@ -1,5 +1,5 @@
 # Release Please - Automated releases and changelogs
-# https://github.com/google-github-actions/release-please-action
+# https://github.com/googleapis/release-please-action
 #
 # This workflow:
 # 1. Creates/updates a Release PR with changelog
@@ -28,29 +28,16 @@ jobs:
       version: ${{ steps.release.outputs.version }}
 
     steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
       - name: Release Please
         id: release
-        uses: google-github-actions/release-please-action@v4
+        uses: googleapis/release-please-action@v4
         with:
-          release-type: python
-          package-name: obskit
-          # Changelog sections
-          changelog-types: |
-            [
-              {"type": "feat", "section": "🚀 Features", "hidden": false},
-              {"type": "fix", "section": "🐛 Bug Fixes", "hidden": false},
-              {"type": "perf", "section": "⚡ Performance", "hidden": false},
-              {"type": "docs", "section": "📚 Documentation", "hidden": false},
-              {"type": "refactor", "section": "♻️ Refactoring", "hidden": false},
-              {"type": "test", "section": "✅ Tests", "hidden": false},
-              {"type": "build", "section": "📦 Build", "hidden": false},
-              {"type": "ci", "section": "🔧 CI/CD", "hidden": false},
-              {"type": "chore", "section": "🧹 Chores", "hidden": true}
-            ]
-          # Extra files to update version in
-          extra-files: |
-            pyproject.toml
-            src/obskit/_version.py
+          token: ${{ secrets.GITHUB_TOKEN }}
+          config-file: release-please-config.json
+          manifest-file: .release-please-manifest.json
 
   # Trigger PyPI release when a new release is created
   publish:
