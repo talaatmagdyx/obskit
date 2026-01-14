@@ -178,8 +178,8 @@ def create_redis_cluster_check(
                         "cluster_state": info.get("cluster_state", "unknown"),
                         "cluster_slots_assigned": info.get("cluster_slots_assigned", 0),
                     }
-            except Exception:  # pragma: no cover
-                pass
+            except Exception:  # pragma: no cover  # nosec B110 - intentional: cluster info is optional
+                pass  # Cluster info retrieval may fail - non-critical
 
             if result:
                 return {

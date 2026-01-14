@@ -311,8 +311,8 @@ class ObskitClientInterceptor:
                 inject_trace_context(headers)
                 for key, value in headers.items():
                     result.append((key.lower(), value))
-            except Exception:  # pragma: no cover
-                pass
+            except Exception:  # pragma: no cover  # nosec B110 - tracing injection is best-effort
+                pass  # Trace context injection failure is non-critical
 
         return result
 
