@@ -1,0 +1,158 @@
+# Prometheus Alerting Rules for obskit
+# =====================================
+
+groups:
+  # ==========================================================================
+  # SLO Alerts - Error Budget Based
+  # ==========================================================================
+  - name: slo.alerts
+    rules:
+      # Fast burn alert - consuming error budget rapidly
+      - alert: SLOErrorBudgetBurningFast
+        expr: |
+          (
+            sum(rate(http_requests_total{status=~"5.."}[5m]))
+            /
+            sum(rate(http_requests_total[5m]))
+          ) > 0.01 * 14.4
+        for: 2m
+        labels:
+          severity: critical
+          category: slo
+        annotations:
+          summary: "SLO error budget burning fast"
+          description: "Error rate is {{ $value | humanizePercentage }}, burning at 14.4x normal rate"
+
+      # Slow burn alert - will exhaust budget within window
+      - alert: SLOErrorBudgetBurningSlow
+        expr: |
+          (
+            sum(rate(http_requests_total{status=~"5.."}[1h]))
+            /
+            sum(rate(http_requests_total[1h]))
+          ) > 0.01 * 3
+        for: 30m
+        labels:
+          severity: warning
+          category: slo
+        annotations:
+          summary: "SLO error budget burning slowly"
+          description: "Error rate is {{ $value | humanizePercentage }}"
+
+  # ==========================================================================
+  # RED Method Alerts
+  # ==========================================================================
+  - name: red.alerts
+    rules:
+      # High error rate
+      - alert: HighErrorRate
+        expr: |
+          sum(rate(http_requests_total{status=~"5.."}[5m])) by (service)
+          /
+          sum(rate(http_requests_total[5m])) by (service)
+          > 0.05
+        for: 5m
+        labels:
+          severity: warning
+          category: red
+        annotations:
+          summary: "High error rate on {{ $labels.service }}"
+          description: "Error rate is {{ $value | humanizePercentage }}"
+
+      # High latency P99
+      - alert: HighLatencyP99
+        expr: |
+          histogram_quantile(0.99,
+            sum(rate(http_request_duration_seconds_bucket[5m])) by (le, service)
+          ) > 1
+        for: 5m
+        labels:
+          severity: warning
+          category: red
+        annotations:
+          summary: "High P99 latency on {{ $labels.service }}"
+          description: "P99 latency is {{ $value | humanizeDuration }}"
+
+      # Low request rate (potential service issue)
+      - alert: LowRequestRate
+        expr: |
+          sum(rate(http_requests_total[5m])) by (service) < 0.1
+        for: 15m
+        labels:
+          severity: info
+          category: red
+        annotations:
+          summary: "Low request rate on {{ $labels.service }}"
+          description: "Request rate is {{ $value }} req/s"
+
+  # ==========================================================================
+  # Resilience Pattern Alerts
+  # ==========================================================================
+  - name: resilience.alerts
+    rules:
+      # Circuit breaker open
+      - alert: CircuitBreakerOpen
+        expr: circuit_breaker_state == 1
+        for: 1m
+        labels:
+          severity: warning
+          category: resilience
+        annotations:
+          summary: "Circuit breaker {{ $labels.name }} is open"
+          description: "Circuit breaker has been open for more than 1 minute"
+
+      # High retry rate
+      - alert: HighRetryRate
+        expr: |
+          sum(rate(retry_attempts_total[5m])) by (operation)
+          /
+          sum(rate(operation_total[5m])) by (operation)
+          > 0.3
+        for: 5m
+        labels:
+          severity: warning
+          category: resilience
+        annotations:
+          summary: "High retry rate for {{ $labels.operation }}"
+          description: "{{ $value | humanizePercentage }} of operations are being retried"
+
+      # Rate limiter rejections
+      - alert: RateLimiterRejections
+        expr: |
+          sum(rate(rate_limiter_rejected_total[5m])) by (limiter) > 10
+        for: 5m
+        labels:
+          severity: warning
+          category: resilience
+        annotations:
+          summary: "Rate limiter {{ $labels.limiter }} rejecting requests"
+          description: "{{ $value }} requests/second being rejected"
+
+  # ==========================================================================
+  # Infrastructure Alerts
+  # ==========================================================================
+  - name: infrastructure.alerts
+    rules:
+      # Service down
+      - alert: ServiceDown
+        expr: up == 0
+        for: 1m
+        labels:
+          severity: critical
+          category: infrastructure
+        annotations:
+          summary: "Service {{ $labels.job }} is down"
+          description: "Service has been unreachable for more than 1 minute"
+
+      # High memory usage
+      - alert: HighMemoryUsage
+        expr: |
+          process_resident_memory_bytes / 1024 / 1024 > 500
+        for: 5m
+        labels:
+          severity: warning
+          category: infrastructure
+        annotations:
+          summary: "High memory usage on {{ $labels.job }}"
+          description: "Memory usage is {{ $value | humanize }}MB"
+

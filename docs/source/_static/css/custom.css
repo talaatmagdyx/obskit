@@ -1,0 +1,51 @@
+/* =============================================================================
+   obskit Documentation Custom Styles
+   ============================================================================= */
+
+/* Code blocks */
+.highlight pre {
+    border-radius: 6px;
+}
+
+/* Mermaid diagrams */
+.mermaid {
+    text-align: center;
+    margin: 1.5rem 0;
+}
+
+/* Admonitions */
+.admonition {
+    border-radius: 6px;
+}
+
+/* API documentation */
+.sig-name {
+    font-weight: 600;
+}
+
+/* Tables */
+table.docutils {
+    border-collapse: collapse;
+    width: 100%;
+}
+
+table.docutils th,
+table.docutils td {
+    padding: 0.5rem;
+    border: 1px solid var(--color-table-border);
+}
+
+/* Grid cards */
+.sd-card {
+    border-radius: 8px;
+}
+
+/* Copy button */
+.copybtn {
+    opacity: 0.3;
+}
+
+.copybtn:hover {
+    opacity: 1;
+}
+

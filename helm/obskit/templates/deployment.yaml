@@ -1,0 +1,125 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "obskit-service.fullname" . }}
+  labels:
+    {{- include "obskit-service.labels" . | nindent 4 }}
+spec:
+  {{- if not .Values.autoscaling.enabled }}
+  replicas: {{ .Values.replicaCount }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "obskit-service.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      annotations:
+        {{- with .Values.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      labels:
+        {{- include "obskit-service.selectorLabels" . | nindent 8 }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "obskit-service.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      containers:
+      - name: {{ .Chart.Name }}
+        securityContext:
+          {{- toYaml .Values.securityContext | nindent 12 }}
+        image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        ports:
+        - name: http
+          containerPort: {{ .Values.service.targetPort }}
+          protocol: TCP
+        - name: metrics
+          containerPort: {{ .Values.service.metricsPort }}
+          protocol: TCP
+        env:
+        # Service identification
+        - name: OBSKIT_SERVICE_NAME
+          value: {{ .Values.obskit.serviceName | quote }}
+        - name: OBSKIT_ENVIRONMENT
+          value: {{ .Values.obskit.environment | quote }}
+        - name: OBSKIT_VERSION
+          value: {{ .Values.obskit.version | quote }}
+        
+        # Logging configuration
+        - name: OBSKIT_LOG_LEVEL
+          value: {{ .Values.obskit.logLevel | quote }}
+        - name: OBSKIT_LOG_FORMAT
+          value: {{ .Values.obskit.logFormat | quote }}
+        - name: OBSKIT_LOG_SAMPLE_RATE
+          value: {{ .Values.obskit.logSampleRate | quote }}
+        
+        # Metrics configuration
+        - name: OBSKIT_METRICS_ENABLED
+          value: {{ .Values.obskit.metricsEnabled | toString }}
+        - name: OBSKIT_METRICS_PORT
+          value: {{ .Values.obskit.metricsPort | quote }}
+        - name: OBSKIT_METRICS_SAMPLE_RATE
+          value: {{ .Values.obskit.metricsSampleRate | quote }}
+        - name: OBSKIT_METRICS_AUTH_ENABLED
+          value: {{ .Values.obskit.metricsAuthEnabled | toString }}
+        {{- if .Values.obskit.metricsAuthEnabled }}
+        - name: OBSKIT_METRICS_AUTH_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "obskit-service.fullname" . }}-secrets
+              key: metricsAuthToken
+        {{- end }}
+        
+        # Tracing configuration
+        - name: OBSKIT_TRACING_ENABLED
+          value: {{ .Values.obskit.tracingEnabled | toString }}
+        - name: OBSKIT_OTLP_ENDPOINT
+          value: {{ .Values.obskit.otlpEndpoint | quote }}
+        - name: OBSKIT_TRACE_SAMPLE_RATE
+          value: {{ .Values.obskit.traceSampleRate | quote }}
+        - name: OBSKIT_OTLP_INSECURE
+          value: {{ .Values.obskit.otlpInsecure | toString }}
+        {{- if .Values.extraEnv }}
+        {{- range .Values.extraEnv }}
+        - name: {{ .name }}
+          {{- if .value }}
+          value: {{ .value | quote }}
+          {{- end }}
+          {{- if .valueFrom }}
+          valueFrom:
+            {{- toYaml .valueFrom | nindent 12 }}
+          {{- end }}
+        {{- end }}
+        {{- end }}
+        
+        livenessProbe:
+          {{- toYaml .Values.livenessProbe | nindent 10 }}
+        readinessProbe:
+          {{- toYaml .Values.readinessProbe | nindent 10 }}
+        resources:
+          {{- toYaml .Values.resources | nindent 10 }}
+        {{- if .Values.volumeMounts }}
+        volumeMounts:
+          {{- toYaml .Values.volumeMounts | nindent 10 }}
+        {{- end }}
+      {{- if .Values.volumes }}
+      volumes:
+        {{- toYaml .Values.volumes | nindent 8 }}
+      {{- end }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+

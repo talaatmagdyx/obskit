@@ -1,0 +1,69 @@
+{{- if .Values.grafana.dashboard.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "obskit.fullname" . }}-grafana-dashboard
+  namespace: {{ .Values.grafana.dashboard.namespace | default .Release.Namespace }}
+  labels:
+    {{- include "obskit.labels" . | nindent 4 }}
+    app.kubernetes.io/component: grafana-dashboard
+  annotations:
+    grafana.com/dashboard: "1"
+data:
+  {{- (.Files.Glob "dashboards/*.json").AsConfig | nindent 2 }}
+---
+{{- if .Values.grafana.dashboard.operator }}
+apiVersion: grafana.integreatly.org/v1alpha1
+kind: GrafanaDashboard
+metadata:
+  name: {{ include "obskit.fullname" . }}-red-dashboard
+  namespace: {{ .Values.grafana.dashboard.namespace | default .Release.Namespace }}
+  labels:
+    {{- include "obskit.labels" . | nindent 4 }}
+spec:
+  json: |
+    {
+      "title": "{{ .Values.obskit.serviceName }} - RED Method",
+      "tags": ["obskit", "red-method"],
+      "timezone": "browser",
+      "refresh": "30s",
+      "panels": [
+        {
+          "title": "Request Rate",
+          "type": "graph",
+          "targets": [
+            {
+              "expr": "sum(rate({{ .Values.obskit.serviceName }}_requests_total[5m])) by (operation, status)",
+              "legendFormat": "{{operation}} - {{status}}"
+            }
+          ]
+        },
+        {
+          "title": "Error Rate",
+          "type": "graph",
+          "targets": [
+            {
+              "expr": "sum(rate({{ .Values.obskit.serviceName }}_errors_total[5m])) by (operation, error_type)",
+              "legendFormat": "{{operation}} - {{error_type}}"
+            }
+          ]
+        },
+        {
+          "title": "Request Duration (p95, p99)",
+          "type": "graph",
+          "targets": [
+            {
+              "expr": "histogram_quantile(0.95, sum(rate({{ .Values.obskit.serviceName }}_request_duration_seconds_bucket[5m])) by (operation, le))",
+              "legendFormat": "{{operation}} - p95"
+            },
+            {
+              "expr": "histogram_quantile(0.99, sum(rate({{ .Values.obskit.serviceName }}_request_duration_seconds_bucket[5m])) by (operation, le))",
+              "legendFormat": "{{operation}} - p99"
+            }
+          ]
+        }
+      ]
+    }
+{{- end }}
+{{- end }}
+

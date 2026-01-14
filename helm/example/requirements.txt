@@ -1,0 +1,9 @@
+# Requirements for example service
+# Note: obskit[all] is commented out because it's not published to PyPI yet
+# For local development, install from source (see Dockerfile.local)
+# For production after publishing: uncomment the line below
+fastapi==0.104.1
+uvicorn[standard]==0.24.0
+# obskit[all]>=0.1.0  # Uncomment when published to PyPI
+pydantic>=2.0.0
+
