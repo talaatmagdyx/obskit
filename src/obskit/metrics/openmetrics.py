@@ -171,11 +171,13 @@ def _format_labels(labels: dict[str, str]) -> str:
 
 def _format_value(value: float) -> str:
     """Format value for OpenMetrics output."""
+    import math
+
     if value == float("inf"):
         return "+Inf"
     elif value == float("-inf"):
         return "-Inf"
-    elif value != value:  # NaN check
+    elif math.isnan(value):
         return "NaN"
     else:
         # Use scientific notation for very large/small values

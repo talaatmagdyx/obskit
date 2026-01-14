@@ -353,12 +353,8 @@ class OTLPLogHandler(logging.Handler):
 
         # This is a simplified implementation
         # In production, you'd use the actual OTLP exporter
-        try:
-            # For now, just log that we'd export
-            # Real implementation would serialize and send to OTLP
-            pass  # nosec B110 - placeholder for actual export implementation
-        except Exception:  # pragma: no cover  # nosec B110 - export errors handled gracefully
-            pass  # Export failures are logged elsewhere
+        # For now, just a placeholder - real implementation would serialize and send to OTLP
+        _ = batch  # Acknowledge batch parameter for future implementation
 
     def emit(self, record: logging.LogRecord) -> None:
         """
