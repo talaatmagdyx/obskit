@@ -153,6 +153,9 @@ dev = [
     "asciinema>=2.4.0,<3.0.0",
     "safety>=2.3.0,<4.0.0",
     "pip-audit>=2.6.0,<3.0.0",
+    # Type stubs for mypy
+    "types-PyYAML>=6.0.0",
+    "types-redis>=4.6.0",
 ]
 
 # Integration testing with testcontainers
