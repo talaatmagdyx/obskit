@@ -5,6 +5,27 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 0.1.0 (2026-01-14)
+
+
+### Bug Fixes
+
+* resolve CI issues and add security policy ([4ebf623](https://github.com/talaatmagdyx/obskit/commit/4ebf6232ee27d15b7dd8b684458dea1908d22bbe))
+
+
+### Dependencies
+
+* update pre-commit requirement ([f45b521](https://github.com/talaatmagdyx/obskit/commit/f45b521409fe63bb85b6083a1c3a9044bdf404d7))
+* update pytest requirement from &lt;9.0.0,&gt;=8.0.0 to >=8.0.0,<10.0.0 ([59fcd1d](https://github.com/talaatmagdyx/obskit/commit/59fcd1d4222933beb6712c6d73c9695f7b924a06))
+* update pytest-benchmark requirement ([ffabef0](https://github.com/talaatmagdyx/obskit/commit/ffabef0003b9216360937742398b8371a1e96cec))
+* update pytest-cov requirement ([a36bfcb](https://github.com/talaatmagdyx/obskit/commit/a36bfcb643781424a7cc8dbe6684e58a9d450b7f))
+* update redis requirement from &lt;6.0.0,&gt;=5.0.0 to >=5.0.0,<8.0.0 ([34984b3](https://github.com/talaatmagdyx/obskit/commit/34984b39a98b08f02d7a6bee232b475e689faaab))
+
+
+### Documentation
+
+* improve documentation and prepare for PyPI publishing ([08ef729](https://github.com/talaatmagdyx/obskit/commit/08ef72925abefb01f17e10b16d414e60db86f09f))
+
 ## [1.0.0] - 2026-01-13
 
 ### 🎉 Production Stable Release
