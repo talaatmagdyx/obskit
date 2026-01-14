@@ -48,9 +48,8 @@ def _update_self_metrics() -> None:
 
         if _metric_queue is not None:
             update_queue_metrics(_metric_queue.qsize(), _queue_capacity)
-    except Exception:  # pragma: no cover
-        # Don't fail if self-metrics unavailable
-        pass
+    except Exception:  # pragma: no cover  # nosec B110 - self-metrics are optional
+        pass  # Don't fail if self-metrics unavailable
 
 
 async def _metric_worker() -> None:
@@ -101,8 +100,8 @@ async def _metric_worker() -> None:
                     from obskit.metrics.self_metrics import record_error
 
                     record_error("async_recording", type(e).__name__)
-                except Exception:  # pragma: no cover
-                    pass
+                except Exception:  # pragma: no cover  # nosec B110 - error recording is best-effort
+                    pass  # Self-metrics recording failure is non-critical
 
             _metric_queue.task_done()
 
@@ -225,8 +224,8 @@ class AsyncREDMetrics:
                 from obskit.metrics.self_metrics import record_dropped_metric
 
                 record_dropped_metric(operation, "queue_full")
-            except Exception:
-                pass
+            except Exception:  # nosec B110 - dropped metric recording is best-effort
+                pass  # Self-metrics recording failure is non-critical
         except Exception as e:
             logger.error(
                 "async_metric_queue_failed",
@@ -238,8 +237,8 @@ class AsyncREDMetrics:
                 from obskit.metrics.self_metrics import record_error
 
                 record_error("async_recording", type(e).__name__)
-            except Exception:  # pragma: no cover
-                pass
+            except Exception:  # pragma: no cover  # nosec B110 - error recording is best-effort
+                pass  # Self-metrics recording failure is non-critical
             # Fallback to synchronous
             self._base.observe_request(operation, duration_seconds, status, error_type)
 
@@ -272,9 +271,8 @@ async def shutdown_async_recording() -> None:
                 method = getattr(metrics_instance, str(method_name), None)
                 if method is not None and callable(method):  # pragma: no branch
                     method(*args, **kwargs)
-            except Exception:
-                # Ignore errors during shutdown cleanup - already logging errors above
-                pass
+            except Exception:  # nosec B110 - shutdown cleanup errors are non-critical
+                pass  # Ignore errors during shutdown cleanup - already logging errors above
 
     _metric_worker_task = None
     _metric_queue = None

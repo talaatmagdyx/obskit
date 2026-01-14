@@ -239,8 +239,8 @@ def shutdown_otlp_logging() -> None:
         if _otlp_logger_provider is not None:
             try:
                 _otlp_logger_provider.shutdown()  # type: ignore[no-untyped-call]
-            except Exception:  # pragma: no cover
-                pass
+            except Exception:  # pragma: no cover  # nosec B110 - shutdown errors are non-critical
+                pass  # Shutdown may fail if already stopped
             _otlp_logger_provider = None
             _otlp_configured = False
 
@@ -339,9 +339,8 @@ class OTLPLogHandler(logging.Handler):
                     batch = []
                     last_flush = now
 
-            except Exception:  # pragma: no cover
-                # Don't crash the flush thread
-                pass
+            except Exception:  # pragma: no cover  # nosec B110 - background thread must not crash
+                pass  # Don't crash the flush thread
 
         # Final flush on shutdown
         if batch:
@@ -357,9 +356,9 @@ class OTLPLogHandler(logging.Handler):
         try:
             # For now, just log that we'd export
             # Real implementation would serialize and send to OTLP
-            pass
-        except Exception:  # pragma: no cover
-            pass
+            pass  # nosec B110 - placeholder for actual export implementation
+        except Exception:  # pragma: no cover  # nosec B110 - export errors handled gracefully
+            pass  # Export failures are logged elsewhere
 
     def emit(self, record: logging.LogRecord) -> None:
         """
@@ -429,9 +428,8 @@ class OTLPLogHandler(logging.Handler):
             # Queue for async export
             try:
                 self._queue.put_nowait(log_entry)
-            except Exception:  # pragma: no cover
-                # Queue full, drop log
-                pass
+            except Exception:  # pragma: no cover  # nosec B110 - queue full is expected under load
+                pass  # Queue full, drop log - expected behavior under high load
 
         except Exception:  # pragma: no cover
             self.handleError(record)

@@ -101,9 +101,8 @@ def _is_async_redis_client(client: Any) -> bool:
         try:
             if isinstance(client, aioredis.Redis):
                 return True
-        except Exception:
-            # isinstance() may fail if aioredis types are not available - ignore and continue
-            pass
+        except Exception:  # nosec B110 - type check failure is expected when aioredis unavailable
+            pass  # isinstance() may fail if aioredis types are not available
 
     # Check for common async Redis client patterns
     # - Has coroutine methods (get returns coroutine when called)
@@ -118,9 +117,8 @@ def _is_async_redis_client(client: Any) -> bool:
             # Clean up the coroutine
             result.close()
             return True
-    except Exception:
-        # Client.get() may raise for various reasons (connection, type issues) - ignore and continue
-        pass
+    except Exception:  # nosec B110 - type detection failure is expected for some clients
+        pass  # Client.get() may raise for various reasons (connection, type issues)
 
     return False
 
