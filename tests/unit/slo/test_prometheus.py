@@ -136,8 +136,7 @@ class TestUpdateSloMetrics:
     @patch("obskit.metrics.registry.get_registry")
     def test_update_initializes_if_needed(self, mock_get_registry, mock_gauge):
         """Test update_slo_metrics initializes metrics if not done."""
-        import obskit.slo.prometheus as module
-        from obskit.slo.prometheus import update_slo_metrics
+        import obskit.slo.prometheus as slo_prometheus_module
 
         mock_registry = MagicMock()
         mock_get_registry.return_value = mock_registry
@@ -145,11 +144,11 @@ class TestUpdateSloMetrics:
         mock_tracker = MagicMock()
         mock_tracker.get_all_status.return_value = {}
 
-        assert module._slo_metrics is None
+        assert slo_prometheus_module._slo_metrics is None
 
-        update_slo_metrics(mock_tracker)
+        slo_prometheus_module.update_slo_metrics(mock_tracker)
 
-        assert module._slo_metrics is not None
+        assert slo_prometheus_module._slo_metrics is not None
 
     @patch("obskit.slo.prometheus.PROMETHEUS_AVAILABLE", True)
     @patch("obskit.slo.prometheus.Gauge")

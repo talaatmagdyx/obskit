@@ -326,7 +326,7 @@ class OTLPLogHandler(logging.Handler):
                     log_record = self._queue.get(timeout=0.1)
                     batch.append(log_record)
                 except Empty:
-                    pass
+                    pass  # Expected when queue is empty - continue to check flush conditions
 
                 # Flush if batch is full or interval elapsed
                 now = time.time()
