@@ -86,10 +86,7 @@ try:
         from prometheus_client import CollectorRegistry
 except ImportError:  # pragma: no cover
     PROMETHEUS_AVAILABLE = False
-    if TYPE_CHECKING:
-        from typing import Any as CollectorRegistry  # type: ignore[assignment]
-    else:
-        CollectorRegistry = None  # type: ignore[assignment]
+    CollectorRegistry = None  # type: ignore[assignment]
 
 
 class Counter:
