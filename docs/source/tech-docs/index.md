@@ -19,7 +19,6 @@ Production deployment guides and technical references for obskit.
 ## Production Readiness
 
 - [Production Review](00_PRODUCTION_REVIEW.md) - Production readiness checklist
-- [Staff Engineer Review](00_STAFF_ENGINEER_REVIEW.md) - Technical review document
 
 ## Documentation Index
 
@@ -36,5 +35,4 @@ Production deployment guides and technical references for obskit.
 08_KUBERNETES_DEPLOYMENT
 09_TROUBLESHOOTING
 00_PRODUCTION_REVIEW
-00_STAFF_ENGINEER_REVIEW
 ```

@@ -18,7 +18,6 @@
 | Document | Description |
 |----------|-------------|
 | [00_PRODUCTION_REVIEW.md](00_PRODUCTION_REVIEW.md) | Production readiness review |
-| [00_STAFF_ENGINEER_REVIEW.md](00_STAFF_ENGINEER_REVIEW.md) | Staff engineer technical review |
 | [01_QUICK_START.md](01_QUICK_START.md) | Get started in 5 minutes |
 | [02_CONFIGURATION.md](02_CONFIGURATION.md) | Complete configuration reference |
 | [03_METRICS.md](03_METRICS.md) | RED, Golden Signals, USE guide |
