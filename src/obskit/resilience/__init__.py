@@ -165,6 +165,31 @@ from obskit.resilience.retry import (
     retry,
     retry_async,
 )
+from obskit.resilience.factory import (
+    CircuitBreakerPreset,
+    RateLimiterPreset,
+    get_circuit_breaker,
+    get_rate_limiter,
+)
+from obskit.resilience.combined import (
+    BackoffStrategy,
+    ResilientExecutor,
+    resilient_call,
+    resilient_call_sync,
+    with_resilience,
+)
+from obskit.resilience.adaptive import (
+    AdaptiveRetry,
+    RetryConfig as AdaptiveRetryConfig,
+    RetryState,
+    BackpressureStrategy,
+    adaptive_retry,
+    ADAPTIVE_RETRY_ATTEMPTS,
+    ADAPTIVE_RETRY_DELAY,
+    ADAPTIVE_RETRY_ERROR_RATE,
+    ADAPTIVE_RETRY_BACKPRESSURE,
+    ADAPTIVE_RETRY_CONCURRENCY,
+)
 
 __all__ = [
     # ==========================================================================
@@ -198,4 +223,32 @@ __all__ = [
     "TokenBucketRateLimiter",
     # Raised when rate limit exceeded
     "RateLimitExceeded",
+    # ==========================================================================
+    # Factory (Presets)
+    # ==========================================================================
+    "CircuitBreakerPreset",
+    "RateLimiterPreset",
+    "get_circuit_breaker",
+    "get_rate_limiter",
+    # ==========================================================================
+    # Combined Resilience (Retry + Circuit Breaker)
+    # ==========================================================================
+    "BackoffStrategy",
+    "ResilientExecutor",
+    "resilient_call",
+    "resilient_call_sync",
+    "with_resilience",
+    # ==========================================================================
+    # Adaptive Retry with Backpressure
+    # ==========================================================================
+    "AdaptiveRetry",
+    "AdaptiveRetryConfig",
+    "RetryState",
+    "BackpressureStrategy",
+    "adaptive_retry",
+    "ADAPTIVE_RETRY_ATTEMPTS",
+    "ADAPTIVE_RETRY_DELAY",
+    "ADAPTIVE_RETRY_ERROR_RATE",
+    "ADAPTIVE_RETRY_BACKPRESSURE",
+    "ADAPTIVE_RETRY_CONCURRENCY",
 ]

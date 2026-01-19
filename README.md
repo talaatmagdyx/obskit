@@ -4,7 +4,7 @@
 [![PyPI Downloads](https://img.shields.io/pypi/dm/obskit.svg)](https://pypi.org/project/obskit/)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Coverage: 100%](https://img.shields.io/badge/coverage-100%25-brightgreen.svg)](tests/)
+[![Coverage: 100%](https://img.shields.io/badge/coverage-100%25-brightgreen.svg)](https://github.com/talaatmagdyx/obskit/tree/main/tests)
 [![Code style: ruff](https://img.shields.io/badge/code%20style-ruff-000000.svg)](https://github.com/astral-sh/ruff)
 [![Type checked: mypy](https://img.shields.io/badge/type%20checked-mypy-blue.svg)](https://mypy-lang.org/)
 
@@ -143,12 +143,19 @@ start_http_server(port=9090)
 
 Full documentation is available at [obskit.readthedocs.io](https://obskit.readthedocs.io/).
 
-- **[Complete Feature Reference](docs/FEATURES.md)** - All 52+ features with code examples
-- [Getting Started](https://obskit.readthedocs.io/getting-started/)
-- [User Guide](https://obskit.readthedocs.io/user-guide/)
-- [Technical Docs](tech_docs/) - Production deployment guides
-- [API Reference](https://obskit.readthedocs.io/api/)
-- [Examples](examples/)
+| Resource | Description |
+|----------|-------------|
+| 📚 **[Complete Feature Reference](https://github.com/talaatmagdyx/obskit/blob/main/docs/FEATURES.md)** | All 52+ features with code examples |
+| 🚀 [Getting Started](https://github.com/talaatmagdyx/obskit/blob/main/tech_docs/01_QUICK_START.md) | Get started in 5 minutes |
+| ⚙️ [Configuration](https://github.com/talaatmagdyx/obskit/blob/main/tech_docs/02_CONFIGURATION.md) | Complete configuration reference |
+| 📊 [Metrics Guide](https://github.com/talaatmagdyx/obskit/blob/main/tech_docs/03_METRICS.md) | RED, Golden Signals, USE |
+| 🏥 [Health Checks](https://github.com/talaatmagdyx/obskit/blob/main/tech_docs/04_HEALTH_CHECKS.md) | Kubernetes-ready probes |
+| 🛡️ [Resilience](https://github.com/talaatmagdyx/obskit/blob/main/tech_docs/05_RESILIENCE.md) | Circuit breaker, retry, rate limiting |
+| 📈 [SLO Tracking](https://github.com/talaatmagdyx/obskit/blob/main/tech_docs/06_SLO_TRACKING.md) | Error budgets and SLO management |
+| 🔒 [Security](https://github.com/talaatmagdyx/obskit/blob/main/tech_docs/07_SECURITY.md) | Security hardening guide |
+| ☸️ [Kubernetes](https://github.com/talaatmagdyx/obskit/blob/main/tech_docs/08_KUBERNETES_DEPLOYMENT.md) | K8s deployment manifests |
+| 🔧 [Troubleshooting](https://github.com/talaatmagdyx/obskit/blob/main/tech_docs/09_TROUBLESHOOTING.md) | Common issues and solutions |
+| 💡 [Examples](https://github.com/talaatmagdyx/obskit/tree/main/examples) | Real-world usage examples |
 
 ## Why obskit?
 
@@ -328,110 +335,96 @@ cpu = USEMetrics("server_cpu")
 cpu.set_utilization("cpu", 0.65)
 ```
 
-## New Features (v1.1.0)
+## Advanced Features (v1.3.0)
 
-### Message Tracing
-
-```python
-from obskit.queue.tracing import MessageTracer, traced_message_handler
-
-tracer = MessageTracer(queue_type="rabbitmq")
-
-# Trace publishing with context propagation
-with tracer.trace_publish(queue="orders") as span:
-    channel.basic_publish(..., properties=pika.BasicProperties(
-        headers=tracer.inject_context()
-    ))
-
-# Trace consuming
-@traced_message_handler(queue="orders")
-async def handle_order(message):
-    await process_order(message)
-```
-
-### Batch Processing
+### Chaos Engineering
 
 ```python
-from obskit.batch import BatchTracker
+from obskit import ChaosEngine, get_chaos_engine, enable_chaos
 
-tracker = BatchTracker("widget_processing")
+chaos = get_chaos_engine()
 
-with tracker.track_batch(batch_size=100) as batch:
-    for item in items:
-        try:
-            process(item)
-            batch.record_success()
-        except Exception as e:
-            batch.record_failure(error=str(e))
-
-print(f"Success rate: {batch.get_result().success_rate * 100}%")
-```
-
-### Performance Budgets
-
-```python
-from obskit.budgets import PerformanceBudget
-
-budget = PerformanceBudget(
-    name="api",
-    latency_p95_ms=500,
-    error_rate_percent=1.0,
-    on_violation=lambda n, m, v: alert(f"{n}: {m}={v}")
+# Add latency injection experiment
+chaos.add_experiment(
+    name="slow_database",
+    injection_type="latency",
+    latency_ms=500,
+    probability=0.1  # 10% of requests
 )
 
-@budget.enforce
-async def api_endpoint():
-    return await process()
+# Enable chaos testing
+enable_chaos()
 ```
 
-### Business Metrics
+### Self-Healing
 
 ```python
-from obskit.business import BusinessMetrics, FunnelTracker
+from obskit import get_self_healing_engine
 
-biz = BusinessMetrics("my-service")
-biz.track_event("purchase", tenant_id="123", value=99.99)
-biz.track_revenue("subscription", amount=9.99, tenant_id="123")
+healer = get_self_healing_engine()
 
-funnel = FunnelTracker("onboarding", ["signup", "verify", "complete"])
-funnel.enter("user123")
-funnel.progress("user123", "verify")
-```
-
-### Adaptive Retry
-
-```python
-from obskit.resilience.adaptive import AdaptiveRetry, BackpressureStrategy
-
-retry = AdaptiveRetry(
-    name="external_api",
-    max_retries=3,
-    backpressure_strategy=BackpressureStrategy.ADAPTIVE
+healer.register_trigger(
+    name="high_error_rate",
+    condition=lambda: error_rate > 0.5,
+    action=restart_worker,
+    cooldown_minutes=5
 )
 
-result = await retry.execute(call_external_api)
+# Evaluate and heal automatically
+healer.evaluate()
 ```
 
-### Request Replay
+### Flame Graph Profiling
 
 ```python
-from obskit.debug.replay import RequestCapture, FileStorage
+from obskit import get_flamegraph_profiler
 
-capture = RequestCapture(
-    storage=FileStorage("/var/log/captures"),
-    capture_on_error=True,
-    capture_on_slow=True
-)
+profiler = get_flamegraph_profiler()
 
-@capture.wrap
-async def process_message(data):
-    return await do_processing(data)
+with profiler.profile("order_processing"):
+    process_orders()
 
-# Later: replay a captured request
-result = await capture.replay("capture-abc123")
+# Export visualization
+profiler.export_svg("order_processing.svg")
 ```
 
-See [docs/NEW_FEATURES.md](docs/NEW_FEATURES.md) for complete documentation.
+### Root Cause Analysis
+
+```python
+from obskit import get_root_cause_analyzer
+
+rca = get_root_cause_analyzer()
+
+result = rca.analyze(
+    incident_id="INC-12345",
+    affected_services=["payment-service", "order-service"]
+)
+
+print(f"Root cause: {result.root_cause}")
+print(f"Confidence: {result.confidence:.2%}")
+```
+
+### Graceful Degradation
+
+```python
+from obskit import get_degradation_manager, DegradationLevel
+
+degradation = get_degradation_manager()
+
+degradation.register_feature(
+    name="recommendations",
+    priority=2,
+    fallback=lambda: cached_recommendations()
+)
+
+# Set degradation level under load
+degradation.set_level(DegradationLevel.MEDIUM)
+
+if degradation.is_enabled("recommendations"):
+    result = get_recommendations()
+else:
+    result = degradation.get_fallback("recommendations")()
+```
 
 ## Development
 
@@ -456,7 +449,7 @@ cd docs && make html
 
 ## Contributing
 
-Contributions are welcome! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
+Contributions are welcome! Please see [CONTRIBUTING.md](https://github.com/talaatmagdyx/obskit/blob/main/CONTRIBUTING.md) for guidelines.
 
 ## Acknowledgements
 
@@ -467,7 +460,7 @@ obskit builds upon excellent open-source projects:
 
 ## License
 
-MIT License - see [LICENSE](LICENSE) for details.
+MIT License - see [LICENSE](https://github.com/talaatmagdyx/obskit/blob/main/LICENSE) for details.
 
 ---
 

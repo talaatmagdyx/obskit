@@ -47,6 +47,15 @@ Example - Manual Queue Tracking
 from __future__ import annotations
 
 from obskit.queue.tracker import QueueTracker, track_message_processing
+from obskit.queue.tracing import (
+    MessageTracer,
+    TracedMessagePublisher,
+    traced_message_handler,
+    get_message_tracer,
+    MESSAGE_COUNTER,
+    MESSAGE_LATENCY,
+    MESSAGE_SIZE,
+)
 
 try:
     from obskit.queue.kafka import instrument_kafka
@@ -57,9 +66,25 @@ try:
         "track_message_processing",
         "instrument_rabbitmq",
         "instrument_kafka",
+        # Tracing
+        "MessageTracer",
+        "TracedMessagePublisher",
+        "traced_message_handler",
+        "get_message_tracer",
+        "MESSAGE_COUNTER",
+        "MESSAGE_LATENCY",
+        "MESSAGE_SIZE",
     ]
 except ImportError:
     __all__ = [
         "QueueTracker",
         "track_message_processing",
+        # Tracing
+        "MessageTracer",
+        "TracedMessagePublisher",
+        "traced_message_handler",
+        "get_message_tracer",
+        "MESSAGE_COUNTER",
+        "MESSAGE_LATENCY",
+        "MESSAGE_SIZE",
     ]

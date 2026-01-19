@@ -187,6 +187,33 @@ from obskit.health.checks import (
     create_redis_check,
     create_redis_cluster_check,
 )
+from obskit.health.server import (
+    start_health_server,
+    stop_health_server,
+    register_health_endpoint,
+    get_health_server,
+    is_health_server_running,
+)
+from obskit.health.slo_check import (
+    add_slo_readiness_check,
+    get_slo_health_status,
+    SLOReadinessCheck,
+)
+from obskit.health.aggregator import (
+    DependencyHealthAggregator,
+    DependencyHealth,
+    AggregatedHealth,
+    HealthStatus,
+    DependencyType,
+    check_postgres,
+    check_redis,
+    check_rabbitmq,
+    check_http,
+    DEPENDENCY_HEALTH,
+    DEPENDENCY_LATENCY,
+    DEPENDENCY_CHECK_TOTAL,
+    OVERALL_HEALTH,
+)
 
 __all__ = [
     # ==========================================================================
@@ -228,4 +255,34 @@ __all__ = [
     "create_disk_check",
     # HTTP endpoint check
     "create_http_check",
+    # ==========================================================================
+    # HTTP Health Server
+    # ==========================================================================
+    "start_health_server",
+    "stop_health_server",
+    "register_health_endpoint",
+    "get_health_server",
+    "is_health_server_running",
+    # ==========================================================================
+    # SLO Health Checks
+    # ==========================================================================
+    "add_slo_readiness_check",
+    "get_slo_health_status",
+    "SLOReadinessCheck",
+    # ==========================================================================
+    # Dependency Health Aggregator
+    # ==========================================================================
+    "DependencyHealthAggregator",
+    "DependencyHealth",
+    "AggregatedHealth",
+    "HealthStatus",
+    "DependencyType",
+    "check_postgres",
+    "check_redis",
+    "check_rabbitmq",
+    "check_http",
+    "DEPENDENCY_HEALTH",
+    "DEPENDENCY_LATENCY",
+    "DEPENDENCY_CHECK_TOTAL",
+    "OVERALL_HEALTH",
 ]

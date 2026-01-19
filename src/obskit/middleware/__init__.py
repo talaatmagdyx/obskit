@@ -1,88 +1,59 @@
 """
-HTTP Middleware Module - Framework-Specific Observability Middleware
-=====================================================================
+Request Context Middleware
+==========================
 
-This module provides middleware for popular Python web frameworks,
-automatically adding observability (metrics, logging, tracing, correlation IDs)
-to all HTTP requests.
+Middleware for automatic context propagation in web frameworks.
 
-Supported Frameworks
---------------------
-- **FastAPI**: Full async support with ASGI middleware
-- **Flask**: WSGI middleware with extension pattern support
-- **Django**: Standard Django middleware
+Supports:
+- ASGI (FastAPI, Starlette, etc.)
+- WSGI (Flask, Django, etc.)
 
-Installation
-------------
-Each framework requires its specific optional dependency:
-
-.. code-block:: bash
-
-    # FastAPI
-    pip install obskit[fastapi]
-
-    # Flask
-    pip install obskit[flask]
-
-    # Django
-    pip install obskit[django]
-
-    # All frameworks
-    pip install obskit[all]
-
-Quick Start - FastAPI
----------------------
-.. code-block:: python
-
-    from fastapi import FastAPI
-    from obskit.middleware import ObskitMiddleware
-
-    app = FastAPI()
-    app.add_middleware(ObskitMiddleware)
-
-Quick Start - Flask
--------------------
-.. code-block:: python
-
-    from flask import Flask
-    from obskit.middleware import ObskitFlaskMiddleware
-
-    app = Flask(__name__)
-    ObskitFlaskMiddleware(app)
-
-Quick Start - Django
---------------------
-.. code-block:: python
-
-    # settings.py
-    MIDDLEWARE = [
-        'obskit.middleware.django.ObskitDjangoMiddleware',
-        # ... other middleware
-    ]
+Example
+-------
+>>> # FastAPI
+>>> from fastapi import FastAPI
+>>> from obskit.middleware import ASGIMiddleware
+>>>
+>>> app = FastAPI()
+>>> app.add_middleware(ASGIMiddleware, service_name="my-service")
+>>>
+>>> # Flask
+>>> from flask import Flask
+>>> from obskit.middleware import WSGIMiddleware
+>>>
+>>> app = Flask(__name__)
+>>> app.wsgi_app = WSGIMiddleware(app.wsgi_app, service_name="my-service")
+>>>
+>>> # Extract/inject context manually
+>>> from obskit.middleware import extract_context_from_headers, inject_context_to_headers
+>>>
+>>> context = extract_context_from_headers(request.headers)
+>>> outgoing_headers = inject_context_to_headers()
 """
 
-__all__: list[str] = []
+from obskit.middleware.base import (
+    extract_context_from_headers,
+    inject_context_to_headers,
+    BaseMiddleware,
+    ASGIMiddleware,
+    WSGIMiddleware,
+    CORRELATION_ID_HEADERS,
+    TENANT_ID_HEADERS,
+)
 
-# FastAPI Middleware
-try:
-    from obskit.middleware.fastapi import ObskitMiddleware
+# Alias for convenience
+ObskitMiddleware = ASGIMiddleware
 
-    __all__.append("ObskitMiddleware")
-except ImportError:  # pragma: no cover
-    pass
-
-# Flask Middleware
-try:
-    from obskit.middleware.flask import ObskitFlaskMiddleware, obskit_flask
-
-    __all__.extend(["ObskitFlaskMiddleware", "obskit_flask"])
-except ImportError:  # pragma: no cover
-    pass
-
-# Django Middleware
-try:
-    from obskit.middleware.django import ObskitDjangoMiddleware, get_obskit_middleware
-
-    __all__.extend(["ObskitDjangoMiddleware", "get_obskit_middleware"])
-except ImportError:  # pragma: no cover
-    pass
+__all__ = [
+    # Functions
+    "extract_context_from_headers",
+    "inject_context_to_headers",
+    # Middleware classes
+    "BaseMiddleware",
+    "ASGIMiddleware",
+    "WSGIMiddleware",
+    "ObskitMiddleware",
+    # Constants
+    "CORRELATION_ID_HEADERS",
+    "TENANT_ID_HEADERS",
+]
