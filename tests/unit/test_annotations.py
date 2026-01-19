@@ -419,5 +419,5 @@ class TestGetAnnotator:
         from obskit import annotations
         annotations._annotator = None
         
-        result = get_annotator()
+        _result = get_annotator()
         # May be None or the configured one depending on test order

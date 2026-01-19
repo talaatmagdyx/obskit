@@ -95,12 +95,11 @@ class HealthRequestHandler(BaseHTTPRequestHandler):
     def _handle_health(self):
         """Handle overall health check."""
         try:
-            checker = get_health_checker()
+            _ = get_health_checker()  # Ensure health checker is initialized
             
             # Get liveness and readiness status
             liveness_ok = True
             readiness_ok = True
-            checks = {}
             
             # Check SLO compliance
             slo_status = self._get_slo_status()

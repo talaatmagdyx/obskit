@@ -224,7 +224,7 @@ def generate_alert_rules(
     # Multi-window burn rate alerts (Google SRE approach)
     for slo in slos:
         name = slo["name"]
-        target = slo["target"]
+        # target = slo["target"]  # Reserved for future use in alert messages
         
         # Fast burn alert (2% of monthly budget in 1 hour)
         rules.append({
