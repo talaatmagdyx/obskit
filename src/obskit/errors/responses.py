@@ -126,7 +126,7 @@ class ObservableError(Exception):
             if span and span.get_span_context().is_valid:
                 return format(span.get_span_context().trace_id, "032x")
         except Exception:
-            pass
+            pass  # OpenTelemetry not available or no active span
         return None
     
     def _get_span_id(self) -> Optional[str]:
@@ -136,7 +136,7 @@ class ObservableError(Exception):
             if span and span.get_span_context().is_valid:
                 return format(span.get_span_context().span_id, "016x")
         except Exception:
-            pass
+            pass  # OpenTelemetry not available or no active span
         return None
     
     def to_response(
@@ -294,7 +294,7 @@ def create_error_response(
                 response.trace_id = format(span.get_span_context().trace_id, "032x")
                 response.span_id = format(span.get_span_context().span_id, "016x")
         except Exception:
-            pass
+            pass  # OpenTelemetry not available or no active span
     
     # Add correlation ID
     if include_correlation_id:
@@ -338,7 +338,7 @@ def format_exception(
             trace_id = format(span.get_span_context().trace_id, "032x")
             lines.append(f"[trace_id={trace_id}]")
     except Exception:
-        pass
+        pass  # OpenTelemetry not available or no active span
     
     correlation_id = get_correlation_id()
     if correlation_id:

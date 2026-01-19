@@ -232,7 +232,7 @@ def traced_message_handler(
                 try:
                     headers = extract_headers(args[0])
                 except Exception:
-                    pass
+                    pass  # Header extraction failed - continue without trace context
             
             with tracer.trace_consume(queue=queue, headers=headers):
                 return await func(*args, **kwargs)
@@ -244,7 +244,7 @@ def traced_message_handler(
                 try:
                     headers = extract_headers(args[0])
                 except Exception:
-                    pass
+                    pass  # Header extraction failed - continue without trace context
             
             with tracer.trace_consume(queue=queue, headers=headers):
                 return func(*args, **kwargs)

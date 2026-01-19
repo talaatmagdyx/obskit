@@ -5,22 +5,21 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from obskit.metrics.async_recording import (
-    AsyncREDMetrics,
-    _ensure_worker_started,
-    _metric_worker,
-    shutdown_async_recording,
-)
+import obskit.metrics.async_recording as async_recording_module
+
+# Aliases for commonly used imports
+AsyncREDMetrics = async_recording_module.AsyncREDMetrics
+_ensure_worker_started = async_recording_module._ensure_worker_started
+_metric_worker = async_recording_module._metric_worker
+shutdown_async_recording = async_recording_module.shutdown_async_recording
 
 
 def reset_module_state():
     """Reset module global state."""
-    import obskit.metrics.async_recording as module
-
-    if module._metric_worker_task and not module._metric_worker_task.done():
-        module._metric_worker_task.cancel()
-    module._metric_queue = None
-    module._metric_worker_task = None
+    if async_recording_module._metric_worker_task and not async_recording_module._metric_worker_task.done():
+        async_recording_module._metric_worker_task.cancel()
+    async_recording_module._metric_queue = None
+    async_recording_module._metric_worker_task = None
 
 
 class TestAsyncREDMetrics:
@@ -54,7 +53,7 @@ class TestAsyncREDMetrics:
     @pytest.mark.asyncio
     async def test_observe_request_queues_metric(self):
         """Test observe_request adds metric to queue."""
-        import obskit.metrics.async_recording as module
+        module = async_recording_module
 
         mock_base = MagicMock()
         metrics = AsyncREDMetrics(mock_base)
@@ -123,7 +122,7 @@ class TestEnsureWorkerStarted:
     @pytest.mark.asyncio
     async def test_creates_queue(self):
         """Test function creates queue."""
-        import obskit.metrics.async_recording as module
+        module = async_recording_module
 
         await _ensure_worker_started()
 
@@ -133,7 +132,7 @@ class TestEnsureWorkerStarted:
     @pytest.mark.asyncio
     async def test_creates_worker_task(self):
         """Test function creates worker task."""
-        import obskit.metrics.async_recording as module
+        module = async_recording_module
 
         await _ensure_worker_started()
 
@@ -143,7 +142,7 @@ class TestEnsureWorkerStarted:
     @pytest.mark.asyncio
     async def test_idempotent(self):
         """Test calling multiple times is safe."""
-        import obskit.metrics.async_recording as module
+        module = async_recording_module
 
         await _ensure_worker_started()
         first_queue = module._metric_queue
@@ -169,7 +168,7 @@ class TestMetricWorker:
     @pytest.mark.asyncio
     async def test_worker_processes_metric(self):
         """Test worker processes queued metrics."""
-        import obskit.metrics.async_recording as module
+        module = async_recording_module
 
         await _ensure_worker_started()
 
@@ -192,7 +191,7 @@ class TestMetricWorker:
     @pytest.mark.asyncio
     async def test_worker_handles_invalid_method(self):
         """Test worker handles invalid method gracefully."""
-        import obskit.metrics.async_recording as module
+        module = async_recording_module
 
         await _ensure_worker_started()
 
@@ -217,7 +216,7 @@ class TestMetricWorker:
     @pytest.mark.asyncio
     async def test_worker_handles_method_exception(self):
         """Test worker handles exception in method call."""
-        import obskit.metrics.async_recording as module
+        module = async_recording_module
 
         await _ensure_worker_started()
 
@@ -249,7 +248,7 @@ class TestShutdownAsyncRecording:
     @pytest.mark.asyncio
     async def test_shutdown_cancels_worker(self):
         """Test shutdown cancels worker task."""
-        import obskit.metrics.async_recording as module
+        module = async_recording_module
 
         await _ensure_worker_started()
 
@@ -263,7 +262,7 @@ class TestShutdownAsyncRecording:
     @pytest.mark.asyncio
     async def test_shutdown_processes_remaining(self):
         """Test shutdown processes remaining queue items."""
-        import obskit.metrics.async_recording as module
+        module = async_recording_module
 
         await _ensure_worker_started()
 
@@ -288,7 +287,7 @@ class TestShutdownAsyncRecording:
     @pytest.mark.asyncio
     async def test_shutdown_when_not_started(self):
         """Test shutdown when not started is safe."""
-        import obskit.metrics.async_recording as module
+        module = async_recording_module
 
         module._metric_queue = None
         module._metric_worker_task = None
@@ -314,7 +313,7 @@ class TestWorkerEdgeCases:
     @pytest.mark.asyncio
     async def test_worker_returns_when_queue_none(self):
         """Test _metric_worker returns immediately when queue is None."""
-        import obskit.metrics.async_recording as module
+        module = async_recording_module
 
         module._metric_queue = None
 
@@ -324,7 +323,7 @@ class TestWorkerEdgeCases:
     @pytest.mark.asyncio
     async def test_observe_request_fallback_sync(self):
         """Test observe_request falls back to sync when queue unavailable."""
-        import obskit.metrics.async_recording as module
+        module = async_recording_module
 
         mock_base = MagicMock()
         metrics = AsyncREDMetrics(mock_base)
@@ -345,7 +344,7 @@ class TestWorkerEdgeCases:
     @pytest.mark.asyncio
     async def test_observe_request_queue_full_timeout(self):
         """Test observe_request handles queue full/timeout."""
-        import obskit.metrics.async_recording as module
+        module = async_recording_module
 
         mock_base = MagicMock()
         metrics = AsyncREDMetrics(mock_base, queue_size=1)
@@ -372,7 +371,7 @@ class TestWorkerEdgeCases:
     @pytest.mark.asyncio
     async def test_worker_timeout_continue(self):
         """Test worker continues on timeout when waiting for queue."""
-        import obskit.metrics.async_recording as module
+        module = async_recording_module
 
         await _ensure_worker_started()
 

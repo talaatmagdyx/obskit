@@ -33,7 +33,7 @@ def _reset_all_state():
 
         reset_settings()
     except ImportError:
-        pass
+        pass  # Module not installed - skip reset
 
     # Reset RED metrics
     try:
@@ -41,7 +41,7 @@ def _reset_all_state():
 
         reset_red_metrics()
     except ImportError:
-        pass
+        pass  # Module not installed - skip reset
 
     # Reset tracing
     try:
@@ -49,7 +49,7 @@ def _reset_all_state():
 
         reset_tracing()
     except ImportError:
-        pass
+        pass  # Module not installed - skip reset
 
     # Reset logging factory
     try:
@@ -57,7 +57,7 @@ def _reset_all_state():
 
         reset_logging_factory()
     except ImportError:
-        pass
+        pass  # Module not installed - skip reset
 
     # Reset Prometheus registry to avoid duplicate metrics
     try:
@@ -68,10 +68,10 @@ def _reset_all_state():
             try:
                 REGISTRY.unregister(collector)
             except Exception:
-                pass
+                pass  # Collector already unregistered or not found
         REGISTRY._names_to_collectors.clear()
     except ImportError:
-        pass
+        pass  # prometheus_client not installed - skip reset
 
 
 # =============================================================================

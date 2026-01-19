@@ -55,18 +55,6 @@ CIRCUIT_SUCCESS_COUNT = Gauge(
     ["breaker_name", "dependency_type"]
 )
 
-CIRCUIT_TRIPS_TOTAL = Counter(
-    "circuit_breaker_trips_total",
-    "Total times circuit tripped to open",
-    ["breaker_name", "dependency_type"]
-)
-
-CIRCUIT_RECOVERY_TOTAL = Counter(
-    "circuit_breaker_recovery_total",
-    "Total times circuit recovered to closed",
-    ["breaker_name", "dependency_type"]
-)
-
 
 # =============================================================================
 # Enums and Data Classes
