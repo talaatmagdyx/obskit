@@ -165,6 +165,13 @@ from obskit.logging.logger import (
     log_operation,
     log_performance,
 )
+from obskit.logging.sampling import (
+    SampledLogger,
+    AdaptiveSampledLogger,
+    SamplingConfig,
+    SamplingRule,
+    get_sampling_stats,
+)
 
 __all__ = [
     # ==========================================================================
@@ -198,4 +205,12 @@ __all__ = [
     "register_backend",
     # Reset factory (for testing)
     "reset_logging_factory",
+    # ==========================================================================
+    # Smart Log Sampling
+    # ==========================================================================
+    "SampledLogger",
+    "AdaptiveSampledLogger",
+    "SamplingConfig",
+    "SamplingRule",
+    "get_sampling_stats",
 ]

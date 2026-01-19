@@ -131,22 +131,26 @@ def get_tracer() -> Tracer | None:
     Thread Safety
     -------------
     This function is thread-safe using double-checked locking pattern.
+    
+    Note:
+        This function no longer calls configure_tracing() automatically
+        to avoid blocking. If tracing hasn't been configured yet, it
+        returns a basic tracer from OpenTelemetry's default provider.
     """
-    global _tracer, _configured
+    global _tracer
 
     if not OPENTELEMETRY_AVAILABLE:  # pragma: no cover
         return None
 
-    # Double-checked locking pattern for thread safety
-    if not _configured:
-        with _tracer_lock:
-            if not _configured:
-                configure_tracing()
+    # Return cached tracer if available
+    if _tracer is not None:
+        return _tracer
 
-    if _tracer is None:  # pragma: no cover
-        with _tracer_lock:
-            if _tracer is None:  # pragma: no branch
-                _tracer = trace.get_tracer(__name__)
+    # Create tracer without blocking - use OpenTelemetry's default provider
+    # This avoids calling configure_tracing() which can block on settings
+    with _tracer_lock:
+        if _tracer is None:
+            _tracer = trace.get_tracer(__name__)
 
     return _tracer
 

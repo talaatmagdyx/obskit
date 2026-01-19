@@ -30,6 +30,24 @@ Example - Custom Shutdown Hooks
 
     # shutdown() will call cleanup_database() automatically
 
+Example - GracefulShutdown Class
+--------------------------------
+.. code-block:: python
+
+    from obskit.shutdown import GracefulShutdown
+
+    # Create shutdown manager
+    shutdown_manager = GracefulShutdown(timeout=30)
+
+    # Register cleanup tasks
+    shutdown_manager.register(push_metrics_to_gateway)
+    shutdown_manager.register(close_database_connections)
+    shutdown_manager.register(stop_consuming_messages)
+
+    # Wait for completion (blocks until shutdown signal or timeout)
+    # This is useful for long-running services
+    shutdown_manager.wait_for_completion()
+
 Example - FastAPI Integration
 -----------------------------
 .. code-block:: python
@@ -270,3 +288,293 @@ def _setup_signal_handlers() -> None:
 
 # Automatically setup signal handlers when module is imported
 _setup_signal_handlers()
+
+
+class GracefulShutdown:
+    """
+    A class-based shutdown manager with enhanced features.
+    
+    Provides:
+    - Ordered hook execution with priorities
+    - Timeout support for long-running cleanup
+    - Wait-for-completion blocking
+    - Multiple shutdown signals support
+    - Shutdown state tracking
+    
+    Example
+    -------
+    >>> from obskit.shutdown import GracefulShutdown
+    >>>
+    >>> # Create shutdown manager
+    >>> shutdown_mgr = GracefulShutdown(timeout=30)
+    >>>
+    >>> # Register cleanup tasks with priorities (lower = earlier)
+    >>> shutdown_mgr.register(flush_metrics, priority=10)
+    >>> shutdown_mgr.register(close_connections, priority=20)
+    >>> shutdown_mgr.register(cleanup_temp_files, priority=30)
+    >>>
+    >>> # In your main loop, wait for shutdown
+    >>> shutdown_mgr.wait_for_completion()
+    """
+    
+    def __init__(
+        self,
+        timeout: float = 30.0,
+        exit_code: int = 0,
+        auto_exit: bool = True,
+    ):
+        """
+        Initialize graceful shutdown manager.
+        
+        Parameters
+        ----------
+        timeout : float
+            Maximum seconds to wait for hooks to complete (default: 30).
+        exit_code : int
+            Exit code to use on normal shutdown (default: 0).
+        auto_exit : bool
+            Whether to call sys.exit() after shutdown (default: True).
+        """
+        self.timeout = timeout
+        self.exit_code = exit_code
+        self.auto_exit = auto_exit
+        
+        self._hooks: list[tuple[int, str, Callable[[], None]]] = []
+        self._hooks_lock = threading.Lock()
+        self._shutdown_event = threading.Event()
+        self._shutdown_complete = threading.Event()
+        self._shutdown_count = 0
+        self._is_shutting_down = False
+        
+        # Register our signal handlers
+        self._original_sigterm = None
+        self._original_sigint = None
+        self._setup_signals()
+    
+    def _setup_signals(self):
+        """Setup signal handlers."""
+        if "pytest" in sys.modules:
+            return
+        
+        try:
+            self._original_sigterm = signal.signal(signal.SIGTERM, self._signal_handler)
+            self._original_sigint = signal.signal(signal.SIGINT, self._signal_handler)
+            logger.debug("graceful_shutdown_signals_registered")
+        except Exception as e:
+            logger.warning("signal_setup_failed", error=str(e))
+    
+    def _signal_handler(self, signum: int, frame: object):
+        """Handle shutdown signals."""
+        self._shutdown_count += 1
+        
+        logger.info(
+            "shutdown_signal_received",
+            signal=signum,
+            count=self._shutdown_count,
+        )
+        
+        if self._shutdown_count == 1:
+            # First signal - graceful shutdown
+            self._shutdown_event.set()
+            self._initiate_shutdown()
+        elif self._shutdown_count >= 3:
+            # Third signal - force exit
+            logger.warning("force_shutdown", signal_count=self._shutdown_count)
+            sys.exit(1)
+    
+    def register(
+        self,
+        hook: Callable[[], None],
+        priority: int = 50,
+        name: Optional[str] = None,
+    ) -> None:
+        """
+        Register a shutdown hook with priority.
+        
+        Parameters
+        ----------
+        hook : Callable
+            Function to call during shutdown.
+        priority : int
+            Execution priority (lower = earlier, default: 50).
+        name : str, optional
+            Hook name for logging (defaults to function name).
+            
+        Example
+        -------
+        >>> shutdown_mgr.register(flush_metrics, priority=10, name="metrics")
+        >>> shutdown_mgr.register(close_db, priority=20, name="database")
+        """
+        hook_name = name or getattr(hook, '__name__', 'unknown')
+        
+        with self._hooks_lock:
+            self._hooks.append((priority, hook_name, hook))
+            # Keep sorted by priority
+            self._hooks.sort(key=lambda x: x[0])
+        
+        logger.debug("shutdown_hook_registered", name=hook_name, priority=priority)
+    
+    def unregister(self, hook: Callable[[], None]) -> bool:
+        """
+        Unregister a shutdown hook.
+        
+        Parameters
+        ----------
+        hook : Callable
+            The hook function to remove.
+            
+        Returns
+        -------
+        bool
+            True if removed, False if not found.
+        """
+        with self._hooks_lock:
+            for i, (_, _, h) in enumerate(self._hooks):
+                if h == hook:
+                    self._hooks.pop(i)
+                    return True
+        return False
+    
+    def _initiate_shutdown(self):
+        """Execute shutdown sequence."""
+        if self._is_shutting_down:
+            return
+        
+        self._is_shutting_down = True
+        logger.info("graceful_shutdown_initiated", timeout=self.timeout)
+        
+        # Run in a thread to not block signal handler
+        shutdown_thread = threading.Thread(target=self._run_shutdown)
+        shutdown_thread.daemon = True
+        shutdown_thread.start()
+        
+        # Wait for completion with timeout
+        shutdown_thread.join(timeout=self.timeout)
+        
+        if shutdown_thread.is_alive():
+            logger.warning("shutdown_timeout_exceeded", timeout=self.timeout)
+        
+        self._shutdown_complete.set()
+        
+        # Also run global obskit shutdown
+        shutdown()
+        
+        logger.info("graceful_shutdown_complete")
+        
+        if self.auto_exit:
+            sys.exit(self.exit_code)
+    
+    def _run_shutdown(self):
+        """Execute all hooks in priority order."""
+        with self._hooks_lock:
+            hooks = list(self._hooks)
+        
+        for priority, name, hook in hooks:
+            try:
+                logger.debug("executing_shutdown_hook", name=name, priority=priority)
+                hook()
+                logger.debug("shutdown_hook_completed", name=name)
+            except Exception as e:
+                logger.error(
+                    "shutdown_hook_failed",
+                    name=name,
+                    error=str(e),
+                    error_type=type(e).__name__,
+                )
+    
+    def wait_for_completion(self, timeout: Optional[float] = None):
+        """
+        Block until shutdown is triggered and complete.
+        
+        This is useful for long-running services.
+        
+        Parameters
+        ----------
+        timeout : float, optional
+            Maximum seconds to wait (None = wait forever).
+            
+        Example
+        -------
+        >>> # In main()
+        >>> shutdown_mgr = GracefulShutdown()
+        >>> shutdown_mgr.register(cleanup_resources)
+        >>> 
+        >>> # Start your service (non-blocking)
+        >>> start_message_consumer()
+        >>>
+        >>> # Block until SIGTERM/SIGINT
+        >>> shutdown_mgr.wait_for_completion()
+        """
+        logger.info("waiting_for_shutdown_signal")
+        self._shutdown_event.wait(timeout=timeout)
+        
+        # If shutdown was triggered, wait for it to complete
+        if self._is_shutting_down:
+            self._shutdown_complete.wait(timeout=self.timeout)
+    
+    def trigger(self):
+        """
+        Manually trigger shutdown.
+        
+        Useful for testing or programmatic shutdown.
+        """
+        logger.info("manual_shutdown_triggered")
+        self._shutdown_event.set()
+        self._initiate_shutdown()
+    
+    @property
+    def is_shutting_down(self) -> bool:
+        """Check if shutdown is in progress."""
+        return self._is_shutting_down
+    
+    @property
+    def is_complete(self) -> bool:
+        """Check if shutdown is complete."""
+        return self._shutdown_complete.is_set()
+
+
+# Global instance for convenience
+_graceful_shutdown: Optional[GracefulShutdown] = None
+
+
+def get_graceful_shutdown(
+    timeout: float = 30.0,
+    exit_code: int = 0,
+    auto_exit: bool = True,
+) -> GracefulShutdown:
+    """
+    Get or create the global GracefulShutdown instance.
+    
+    Parameters
+    ----------
+    timeout : float
+        Shutdown timeout in seconds.
+    exit_code : int
+        Exit code on normal shutdown.
+    auto_exit : bool
+        Whether to exit after shutdown.
+        
+    Returns
+    -------
+    GracefulShutdown
+        The global shutdown manager instance.
+    """
+    global _graceful_shutdown
+    
+    if _graceful_shutdown is None:
+        _graceful_shutdown = GracefulShutdown(
+            timeout=timeout,
+            exit_code=exit_code,
+            auto_exit=auto_exit,
+        )
+    
+    return _graceful_shutdown
+
+
+__all__ = [
+    "shutdown",
+    "register_shutdown_hook",
+    "unregister_shutdown_hook",
+    "GracefulShutdown",
+    "get_graceful_shutdown",
+]

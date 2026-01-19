@@ -135,3 +135,7 @@ docker/grafana_data/
 .DS_Store
 Thumbs.db
 
+
+codeql-analysis-*/
+codeql-analysis-*.tgz
+codeql-db/
