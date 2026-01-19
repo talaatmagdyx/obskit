@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "obskit"
-version = "1.3.0"
+version = "1.3.1"
 description = "Production-ready observability toolkit for Python microservices with RED/Golden/USE metrics, tracing, logging, and resilience patterns"
 readme = "README.md"
 license = "MIT"
@@ -57,9 +57,11 @@ classifiers = [
 ]
 dependencies = [
     "structlog>=23.1.0,<26.0.0",  # Compatible with both lucidyalib (23.x) and newer versions
-    "pydantic-settings>=2.0.0,<3.0.0",
     "PyYAML>=6.0.0,<7.0.0",  # Required for alert rules generation
 ]
+
+# Note: pydantic-settings is now optional to support projects using pydantic v1
+# Install with obskit[pydantic] for pydantic v2 settings support
 
 [project.optional-dependencies]
 # Core metrics with Prometheus
@@ -101,6 +103,11 @@ flask = [
 # Django middleware support
 django = [
     "django>=4.0.0,<6.0.0",
+]
+
+# Pydantic v2 settings support (optional - for pydantic v2 based configuration)
+pydantic = [
+    "pydantic-settings>=2.0.0,<3.0.0",
 ]
 
 # Redis support (sync and async)

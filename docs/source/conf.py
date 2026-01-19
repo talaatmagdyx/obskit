@@ -15,14 +15,18 @@ project = "obskit"
 copyright = f"{datetime.now().year}, obskit Contributors"
 author = "obskit Contributors"
 
-# Version info
+# Version info - read directly from _version.py to avoid import issues
+import re
+_version_file = os.path.join(os.path.dirname(__file__), "../../src/obskit/_version.py")
 try:
-    from obskit import __version__
-    version = __version__
-    release = __version__
-except ImportError:
-    version = "0.1.0"
-    release = "0.1.0"
+    with open(_version_file) as f:
+        _version_content = f.read()
+        _version_match = re.search(r'__version__\s*=\s*["\']([^"\']+)["\']', _version_content)
+        version = _version_match.group(1) if _version_match else "1.3.1"
+        release = version
+except (FileNotFoundError, AttributeError):
+    version = "1.3.1"
+    release = "1.3.1"
 
 # -- General configuration ---------------------------------------------------
 
