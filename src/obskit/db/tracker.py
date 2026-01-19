@@ -218,7 +218,7 @@ class DatabaseTracker:
                 try:
                     slo_tracker.record_measurement(slo, value=duration_seconds, success=True)
                 except Exception:
-                    pass
+                    pass  # SLO tracking failure should not affect query result
 
             # Log slow queries
             if duration_ms > threshold_ms:
@@ -255,7 +255,7 @@ class DatabaseTracker:
                 try:
                     slo_tracker.record_measurement(slo, value=duration_seconds, success=False)
                 except Exception:
-                    pass
+                    pass  # SLO tracking failure should not affect error propagation
 
             logger.error(
                 "db_query_failed",
@@ -275,7 +275,7 @@ class DatabaseTracker:
                 try:
                     trace_context.__exit__(None, None, None)
                 except Exception:
-                    pass
+                    pass  # Span cleanup failure should not affect application
 
     def record_query(
         self,
@@ -323,7 +323,7 @@ class DatabaseTracker:
                 try:
                     slo_tracker.record_measurement(slo, value=duration_seconds, success=success)
                 except Exception:
-                    pass
+                    pass  # SLO tracking failure should not affect application
 
         # Log
         if success:

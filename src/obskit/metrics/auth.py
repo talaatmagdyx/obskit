@@ -35,8 +35,6 @@ from obskit.logging import get_logger
 
 logger = get_logger("obskit.metrics.auth")
 
-HTTP_SERVER_AVAILABLE = True
-
 
 class RateLimiter:
     """

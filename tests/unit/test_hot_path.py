@@ -45,7 +45,7 @@ class TestHotPathDetector:
             with detector.track("error-path"):
                 raise ValueError("Test error")
         except ValueError:
-            pass
+            pass  # Expected exception - testing error tracking
         
         stats = detector.get_path_stats("error-path")
         assert stats.error_count == 1

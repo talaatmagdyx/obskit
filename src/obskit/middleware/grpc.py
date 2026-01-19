@@ -53,7 +53,7 @@ from __future__ import annotations
 
 import time
 from collections.abc import Awaitable, Callable
-from typing import Any, Literal, TypeVar
+from typing import Any, Literal
 
 from obskit.config import get_settings
 from obskit.core.context import get_correlation_id, set_correlation_id
@@ -61,9 +61,6 @@ from obskit.logging import get_logger
 from obskit.metrics.red import get_red_metrics
 
 logger = get_logger("obskit.middleware.grpc")
-
-# Type for gRPC handlers
-T = TypeVar("T")
 
 # Check for gRPC availability
 try:
@@ -78,8 +75,6 @@ except ImportError:  # pragma: no cover
 
 # Metadata key for correlation ID
 CORRELATION_ID_KEY = "x-correlation-id"
-TRACE_PARENT_KEY = "traceparent"
-TRACE_STATE_KEY = "tracestate"
 
 
 def _extract_method_name(method: str) -> str:

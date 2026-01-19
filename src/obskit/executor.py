@@ -394,10 +394,10 @@ class TrackedExecutor:
         """Map function with tracking."""
         return self._executor.map(fn, *iterables, timeout=timeout, chunksize=chunksize)
     
-    def shutdown(self, wait: bool = True, *, cancel_futures: bool = False):
+    def shutdown(self, wait: bool = True, *, cancel_futures: bool = False) -> None:
         """Shutdown executor."""
         if hasattr(self._executor, 'shutdown'):
-            return self._executor.shutdown(wait=wait, cancel_futures=cancel_futures)
+            self._executor.shutdown(wait=wait, cancel_futures=cancel_futures)
     
     def __enter__(self):
         return self

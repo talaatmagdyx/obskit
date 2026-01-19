@@ -39,7 +39,7 @@ import time
 import threading
 from contextlib import contextmanager
 from functools import wraps
-from typing import Any, Callable, Dict, Generator, Optional, TypeVar
+from typing import Any, Callable, Dict, Generator, Optional
 
 from obskit.logging import get_logger, log_error
 from obskit.metrics import REDMetrics, GoldenSignals, USEMetrics, get_registry
@@ -48,8 +48,6 @@ from obskit.tracing import trace_span, get_tracer
 from obskit.slo import get_slo_tracker, SLOTracker
 from obskit.resilience import CircuitBreaker, TokenBucketRateLimiter, RateLimiter
 from obskit.health import get_health_checker, HealthChecker
-
-T = TypeVar("T")
 
 # Module-level registries for circuit breakers and rate limiters
 _circuit_breakers: Dict[str, CircuitBreaker] = {}
@@ -269,7 +267,7 @@ class ObservabilityMixin:
                     attributes=attributes,
                 )
             except Exception:
-                pass
+                pass  # Tracing unavailable - continue without span
         
         try:
             # Enter span
@@ -308,7 +306,7 @@ class ObservabilityMixin:
                 try:
                     self.slo_tracker.record_measurement(slo_name, value=duration, success=True)
                 except Exception:
-                    pass
+                    pass  # SLO tracking failure should not affect business logic
             
             # Check slow operation
             if enable_slow_alert and duration_ms > slow_threshold_ms:
@@ -346,7 +344,7 @@ class ObservabilityMixin:
                 try:
                     self.slo_tracker.record_measurement(slo_name, value=duration, success=False)
                 except Exception:
-                    pass
+                    pass  # SLO tracking failure should not affect error propagation
             
             log_error(
                 error=e,
@@ -362,7 +360,7 @@ class ObservabilityMixin:
                 try:
                     span_context.__exit__(None, None, None)
                 except Exception:
-                    pass
+                    pass  # Span cleanup failure should not affect application
     
     # =========================================================================
     # Resilience - Circuit Breakers
@@ -492,7 +490,7 @@ class ObservabilityMixin:
                     "burn_rate": status.error_budget_burn_rate,
                 }
         except Exception:
-            pass
+            pass  # SLO status check failure - return None as fallback
         return None
 
 

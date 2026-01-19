@@ -152,7 +152,7 @@ def inject_context_to_headers(
         from obskit.tracing import inject_trace_context
         headers = inject_trace_context(headers)
     except Exception:
-        pass
+        pass  # Tracing not available or injection failed - continue without trace context
     
     return headers
 
@@ -374,7 +374,7 @@ class WSGIMiddleware:
             try:
                 status_code[0] = int(status.split()[0])
             except (ValueError, IndexError):
-                pass
+                pass  # Invalid status format - use default status code
             return start_response(status, headers, exc_info)
         
         try:

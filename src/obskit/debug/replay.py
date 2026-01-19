@@ -376,7 +376,7 @@ class RequestCapture:
                 if args:
                     metadata = self.metadata_extractor(args[0]) or {}
             except Exception:
-                pass
+                pass  # Metadata extraction failed - continue without metadata
         
         capture = CapturedRequest(
             capture_id=capture_id,

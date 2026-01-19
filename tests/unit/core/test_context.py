@@ -92,7 +92,7 @@ class TestCorrelationContext:
             with correlation_context("error-id"):
                 raise ValueError("Test error")
         except ValueError:
-            pass
+            pass  # Expected exception - testing context cleanup
 
         assert get_correlation_id() is None
 

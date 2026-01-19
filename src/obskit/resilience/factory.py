@@ -299,7 +299,7 @@ def reset_circuit_breaker(name: str) -> bool:
             logger.info("circuit_breaker_reset", name=name)
             return True
         except Exception:
-            pass
+            pass  # Reset failed - return False below
     return False
 
 

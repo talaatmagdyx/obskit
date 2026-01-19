@@ -214,7 +214,7 @@ class TestResilienceIntegration:
                 async with breaker:
                     raise ValueError("Simulated failure")
             except ValueError:
-                pass
+                pass  # Expected exception - testing circuit breaker
 
         # Should be open now
         assert breaker.state == CircuitState.OPEN
