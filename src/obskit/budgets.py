@@ -300,7 +300,7 @@ class PerformanceBudget:
                     )
                 
                 return result
-            except Exception as e:
+            except Exception:
                 self.record_error()
                 raise
         
@@ -322,7 +322,7 @@ class PerformanceBudget:
                     )
                 
                 return result
-            except Exception as e:
+            except Exception:
                 self.record_error()
                 raise
         

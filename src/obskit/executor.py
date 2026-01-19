@@ -383,7 +383,7 @@ class TrackedExecutor:
                 execution_time = time.perf_counter() - start_time
                 self._tracker.task_completed(execution_time, success=True)
                 return result
-            except Exception as e:
+            except Exception:
                 execution_time = time.perf_counter() - start_time
                 self._tracker.task_completed(execution_time, success=False)
                 raise

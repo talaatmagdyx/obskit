@@ -196,7 +196,7 @@ class TestIncidentManager:
         """Test getting active incidents."""
         manager = IncidentManager()
         
-        active = manager.create_incident("MGR-003", "Active")
+        _active = manager.create_incident("MGR-003", "Active")  # Created for filtering test
         resolved = manager.create_incident("MGR-004", "Resolved")
         resolved.update_status(IncidentStatus.RESOLVED)
         

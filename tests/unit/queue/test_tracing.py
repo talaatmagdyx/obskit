@@ -50,8 +50,8 @@ class TestMessageTracer:
             exchange="test_exchange",
             routing_key="test_key",
             message_size=100
-        ) as span:
-            pass
+        ) as _span:
+            pass  # Just testing context manager works
         
         # Metrics should be recorded
         # Note: In a real test, you'd verify the counter was incremented
@@ -61,7 +61,7 @@ class TestMessageTracer:
         tracer = MessageTracer()
         
         with pytest.raises(ValueError):
-            with tracer.trace_publish(queue="test_queue") as span:
+            with tracer.trace_publish(queue="test_queue") as _span:
                 raise ValueError("Test error")
     
     def test_trace_consume_success(self):
@@ -73,15 +73,15 @@ class TestMessageTracer:
             headers={"traceparent": "00-12345678901234567890123456789012-1234567890123456-01"},
             message_id="msg-123",
             message_size=200
-        ) as span:
-            pass
+        ) as _span:
+            pass  # Just testing context manager works
     
     def test_trace_consume_failure(self):
         """Test trace_consume records failure on exception."""
         tracer = MessageTracer()
         
         with pytest.raises(RuntimeError):
-            with tracer.trace_consume(queue="test_queue") as span:
+            with tracer.trace_consume(queue="test_queue") as _span:
                 raise RuntimeError("Processing failed")
     
     def test_extract_context_from_headers(self):
@@ -90,7 +90,7 @@ class TestMessageTracer:
         headers = {
             "traceparent": "00-0af7651916cd43dd8448eb211c80319c-b7ad6b7169203331-01"
         }
-        context = tracer.extract_context(headers)
+        _context = tracer.extract_context(headers)
         # Context should be extracted (may be None if no active context)
 
 
