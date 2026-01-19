@@ -3,28 +3,32 @@
 
 version: 2
 
-# Set the OS, Python version, and other tools
+# Set the OS, Python version and other tools you might need
 build:
   os: ubuntu-22.04
   tools:
     python: "3.11"
+  jobs:
+    pre_build:
+      # Install the package itself for autodoc
+      - pip install -e .[docs]
 
-# Build documentation in the docs/ directory with Sphinx
+# Build documentation in the "docs/" directory with Sphinx
 sphinx:
   configuration: docs/source/conf.py
   builder: html
   fail_on_warning: false
 
-# Install dependencies
-python:
-  install:
-    - method: pip
-      path: .
-      extra_requirements:
-        - docs
-
-# Build PDF and ePub
+# Optional: Build PDF & ePub
 formats:
   - pdf
   - epub
 
+# Python requirements for documentation
+python:
+  install:
+    - requirements: docs/requirements.txt
+    - method: pip
+      path: .
+      extra_requirements:
+        - docs
