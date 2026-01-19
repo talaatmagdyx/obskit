@@ -139,23 +139,303 @@ health.add_readiness_check("database", check_database)
 start_http_server(port=9090)
 ```
 
-## Documentation
+## 📚 Documentation
 
-Full documentation is available at [obskit.readthedocs.io](https://obskit.readthedocs.io/).
+> **Full documentation**: [GitHub Docs](https://github.com/talaatmagdyx/obskit/tree/main/docs) | [Tech Docs](https://github.com/talaatmagdyx/obskit/tree/main/tech_docs) | [Examples](https://github.com/talaatmagdyx/obskit/tree/main/examples)
 
-| Resource | Description |
-|----------|-------------|
-| 📚 **[Complete Feature Reference](https://github.com/talaatmagdyx/obskit/blob/main/docs/FEATURES.md)** | All 52+ features with code examples |
-| 🚀 [Getting Started](https://github.com/talaatmagdyx/obskit/blob/main/tech_docs/01_QUICK_START.md) | Get started in 5 minutes |
-| ⚙️ [Configuration](https://github.com/talaatmagdyx/obskit/blob/main/tech_docs/02_CONFIGURATION.md) | Complete configuration reference |
-| 📊 [Metrics Guide](https://github.com/talaatmagdyx/obskit/blob/main/tech_docs/03_METRICS.md) | RED, Golden Signals, USE |
-| 🏥 [Health Checks](https://github.com/talaatmagdyx/obskit/blob/main/tech_docs/04_HEALTH_CHECKS.md) | Kubernetes-ready probes |
-| 🛡️ [Resilience](https://github.com/talaatmagdyx/obskit/blob/main/tech_docs/05_RESILIENCE.md) | Circuit breaker, retry, rate limiting |
-| 📈 [SLO Tracking](https://github.com/talaatmagdyx/obskit/blob/main/tech_docs/06_SLO_TRACKING.md) | Error budgets and SLO management |
-| 🔒 [Security](https://github.com/talaatmagdyx/obskit/blob/main/tech_docs/07_SECURITY.md) | Security hardening guide |
-| ☸️ [Kubernetes](https://github.com/talaatmagdyx/obskit/blob/main/tech_docs/08_KUBERNETES_DEPLOYMENT.md) | K8s deployment manifests |
-| 🔧 [Troubleshooting](https://github.com/talaatmagdyx/obskit/blob/main/tech_docs/09_TROUBLESHOOTING.md) | Common issues and solutions |
-| 💡 [Examples](https://github.com/talaatmagdyx/obskit/tree/main/examples) | Real-world usage examples |
+---
+
+## 🚀 Getting Started (5 Minutes)
+
+### Step 1: Install
+
+```bash
+pip install obskit[all]
+```
+
+### Step 2: Configure
+
+```python
+import os
+from obskit import configure, get_logger
+
+configure(
+    service_name=os.getenv("SERVICE_NAME", "my-api"),
+    environment=os.getenv("ENVIRONMENT", "production"),
+    
+    # Security (REQUIRED in production)
+    metrics_auth_enabled=True,
+    metrics_auth_token=os.getenv("METRICS_AUTH_TOKEN"),
+    
+    # Observability
+    log_level="INFO",
+    log_format="json",
+    metrics_enabled=True,
+    tracing_enabled=True,
+)
+
+logger = get_logger(__name__)
+```
+
+### Step 3: Add Health Checks
+
+```python
+from obskit.health import HealthChecker, create_health_response
+
+health_checker = HealthChecker()
+
+@health_checker.add_readiness_check("database")
+async def check_database():
+    return await db.ping()
+
+@health_checker.add_readiness_check("redis")
+async def check_redis():
+    return await redis.ping()
+```
+
+### Step 4: Environment Variables
+
+```bash
+export SERVICE_NAME="my-service"
+export ENVIRONMENT="production"
+export METRICS_AUTH_TOKEN="$(openssl rand -base64 32)"
+export OTLP_ENDPOINT="http://jaeger:4317"
+```
+
+### Step 5: Verify
+
+```bash
+# Check health
+curl http://localhost:8080/health
+
+# Check metrics (with auth)
+curl -H "Authorization: Bearer $METRICS_AUTH_TOKEN" http://localhost:9090/metrics
+```
+
+### What You Get
+
+| Feature | Endpoint/Output |
+|---------|-----------------|
+| Prometheus metrics | `http://localhost:9090/metrics` |
+| Structured JSON logs | stdout |
+| Health checks | `/health`, `/ready`, `/live` |
+| Request tracing | OTLP export to Jaeger |
+| Correlation IDs | Automatic propagation |
+| Error tracking | Automatic in metrics |
+
+---
+
+## ⚙️ Configuration Reference
+
+### Environment Variables
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `OBSKIT_SERVICE_NAME` | Service name for metrics/logs | `"unknown"` |
+| `OBSKIT_ENVIRONMENT` | Environment (prod/staging/dev) | `"development"` |
+| `OBSKIT_LOG_LEVEL` | Log level (DEBUG/INFO/WARNING/ERROR) | `"INFO"` |
+| `OBSKIT_LOG_FORMAT` | Log format (json/console) | `"json"` |
+| `OBSKIT_METRICS_ENABLED` | Enable Prometheus metrics | `true` |
+| `OBSKIT_METRICS_PORT` | Metrics server port | `9090` |
+| `OBSKIT_METRICS_AUTH_ENABLED` | Enable metrics authentication | `false` |
+| `OBSKIT_METRICS_AUTH_TOKEN` | Bearer token for metrics | - |
+| `OBSKIT_TRACING_ENABLED` | Enable distributed tracing | `false` |
+| `OBSKIT_TRACING_SAMPLE_RATE` | Trace sampling rate (0.0-1.0) | `1.0` |
+| `OBSKIT_OTLP_ENDPOINT` | OpenTelemetry collector endpoint | - |
+
+### Programmatic Configuration
+
+```python
+from obskit import configure
+
+configure(
+    # Identity
+    service_name="order-service",
+    environment="production",
+    version="1.0.0",
+    
+    # Logging
+    log_level="INFO",
+    log_format="json",
+    
+    # Metrics
+    metrics_enabled=True,
+    metrics_port=9090,
+    metrics_auth_enabled=True,
+    metrics_auth_token="your-secret-token",
+    metrics_rate_limit_enabled=True,
+    metrics_rate_limit_requests=100,
+    
+    # Tracing
+    tracing_enabled=True,
+    tracing_sample_rate=0.1,
+    otlp_endpoint="http://jaeger:4317",
+    
+    # Performance
+    async_metric_queue_size=10000,
+    metrics_sample_rate=0.1,
+)
+```
+
+---
+
+## 📊 Metrics (RED / Golden Signals / USE)
+
+### RED Method (APIs)
+
+```python
+from obskit.metrics import REDMetrics
+
+red = REDMetrics("order_service")
+
+# Track request
+red.observe_request(
+    operation="create_order",
+    duration_seconds=0.045,
+    status="success"
+)
+
+# Context manager
+with red.track_request(endpoint="/api/orders", method="POST"):
+    result = create_order(data)
+```
+
+### Golden Signals
+
+```python
+from obskit.metrics import GoldenSignals
+
+golden = GoldenSignals("order_service")
+
+# Request metrics
+golden.observe_request("create_order", duration_seconds=0.045)
+
+# Saturation
+golden.set_saturation("cpu", 0.75)
+golden.set_queue_depth("order_queue", 42)
+```
+
+### USE Method (Infrastructure)
+
+```python
+from obskit.metrics import USEMetrics
+
+cpu = USEMetrics("server_cpu")
+cpu.set_utilization("cpu", 0.65)
+cpu.set_saturation("cpu", 3)
+cpu.inc_error("cpu", "thermal")
+```
+
+---
+
+## 🛡️ Resilience Patterns
+
+### Circuit Breaker
+
+```python
+from obskit import CircuitBreaker
+
+breaker = CircuitBreaker(
+    name="payment_api",
+    failure_threshold=5,
+    recovery_timeout=30.0
+)
+
+async with breaker:
+    response = await payment_api.charge(amount)
+```
+
+### Distributed Circuit Breaker (Redis)
+
+```python
+from obskit import DistributedCircuitBreaker
+import redis.asyncio as redis
+
+redis_client = redis.Redis()
+breaker = DistributedCircuitBreaker(
+    name="payment_api",
+    redis_client=redis_client,
+    failure_threshold=5
+)
+```
+
+### Retry with Backoff
+
+```python
+from obskit import retry_async
+
+@retry_async(max_attempts=3, base_delay=1.0, jitter=True)
+async def call_external_api():
+    return await client.get("/data")
+```
+
+### Rate Limiting
+
+```python
+from obskit import RateLimiter
+
+limiter = RateLimiter(requests=100, window_seconds=60)
+
+if limiter.acquire():
+    process_request()
+else:
+    raise TooManyRequests()
+```
+
+---
+
+## 🏥 Health Checks
+
+```python
+from obskit.health import HealthChecker, start_health_server
+
+health = HealthChecker()
+
+@health.add_readiness_check("database")
+async def check_db():
+    return await db.ping()
+
+@health.add_readiness_check("redis")  
+async def check_redis():
+    return await redis.ping()
+
+@health.add_liveness_check("memory")
+def check_memory():
+    import psutil
+    return psutil.virtual_memory().percent < 90
+
+# Start HTTP server
+start_health_server(port=8080)
+```
+
+**Endpoints:**
+- `GET /health` - Overall health status
+- `GET /ready` - Readiness probe (Kubernetes)
+- `GET /live` - Liveness probe (Kubernetes)
+
+---
+
+## 📈 SLO Tracking
+
+```python
+from obskit.slo import SLOTracker, SLODefinition
+
+slo = SLODefinition(
+    name="api_availability",
+    target=0.999,  # 99.9%
+    window_days=30
+)
+
+tracker = SLOTracker(slo)
+
+# Record events
+tracker.record_event(success=True)
+tracker.record_event(success=False, error_type="timeout")
+
+# Check status
+status = tracker.get_status()
+print(f"Error Budget: {status.error_budget_remaining:.2%}")
+```
 
 ## Why obskit?
 
