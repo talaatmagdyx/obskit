@@ -12,10 +12,11 @@
 
 obskit provides unified metrics, tracing, logging, and resilience patterns following industry best practices like RED, Golden Signals, and USE methodologies.
 
-> 🎉 **v1.0.0 Released** - Production stable with full API stability guarantees!
+> 🎉 **v1.3.0 Released** - 52 comprehensive observability features for enterprise production!
 
 ## Features
 
+### Core Features
 - **Metrics** - RED, Golden Signals, and USE with Prometheus export, OTLP metrics, Pushgateway
 - **Tracing** - OpenTelemetry-based distributed tracing
 - **Logging** - Pluggable logging with structlog and loguru support
@@ -24,6 +25,71 @@ obskit provides unified metrics, tracing, logging, and resilience patterns follo
 - **SLO Tracking** - Error budgets, compliance monitoring, and Alertmanager integration
 - **Framework Support** - FastAPI, Flask, and Django middleware
 - **Production Ready** - Full type hints, 100% test coverage, comprehensive benchmarks
+
+### New in v1.3.0 (39 new features!)
+
+**Debugging & Analysis:**
+- **Flame Graph Profiler** - CPU/memory profiling with visualization export
+- **Query Plan Analyzer** - SQL query analysis and optimization suggestions
+- **Dependency Graph** - Service dependency visualization and health tracking
+- **Root Cause Analyzer** - Automated incident root cause analysis
+
+**Resilience & Reliability:**
+- **Chaos Engineering** - Failure injection for testing (latency, errors, exceptions)
+- **Failover Coordinator** - Primary/backup failover management
+- **Graceful Degradation** - Feature degradation under load
+- **Self-Healing Triggers** - Automatic remediation with cooldown/limits
+
+**Performance:**
+- **Adaptive Sampling** - Dynamic trace/log sampling based on load
+- **Hot Path Detector** - Identify critical code paths
+- **Resource Predictor** - Predict resource exhaustion
+- **Auto-Scaling Metrics** - Kubernetes HPA metrics provider
+
+**Security & Compliance:**
+- **Audit Trail** - Immutable audit logging with chain verification
+- **Secrets Detection** - Detect and redact secrets in logs
+- **Compliance Reporter** - GDPR/SOC2/HIPAA compliance checks
+
+**Operations:**
+- **Runbook Integration** - Link alerts to runbooks with execution tracking
+- **Incident Timeline** - Build incident timelines and post-mortems
+- **SLA Breach Predictor** - Predict SLA violations before they happen
+- **Capacity Planner** - Plan future capacity needs with projections
+
+**Deployment & Testing:**
+- **Feature Flag Tracker** - Track feature flag usage and impact
+- **Deployment Tracker** - Canary/Blue-Green deployment metrics
+
+**Infrastructure:**
+- **Connection Pool Metrics** - Database/Redis/RabbitMQ pool tracking
+- **DLQ Metrics** - Dead letter queue tracking
+- **External API SLA** - Monitor external API SLA compliance
+- **Executor Metrics** - ThreadPoolExecutor performance tracking
+- **Consumer Lag** - Message consumer lag monitoring
+- **Circuit Breaker Dashboard** - CB state visualization data
+- **Error Fingerprinting** - Group similar errors automatically
+- **Latency Breakdown** - Phase-by-phase latency analysis
+- **Distributed Locking** - Coordinate operations across instances
+- **Memory/GC Metrics** - Python memory and garbage collection
+- **Alert Deduplication** - Suppress redundant alerts
+- **Load Shedding** - Graceful request rejection under load
+- **Tenant Quota Tracking** - Per-tenant resource quotas
+
+### v1.1.0 Features (still available)
+- **Async Message Tracing** - Trace context propagation across RabbitMQ, Kafka, SQS
+- **Batch Operation Tracking** - Track batch processing with success/failure rates
+- **Cache Instrumentation** - Automatic cache hit/miss tracking
+- **Business Metrics** - Easy business KPI tracking (conversions, funnels, revenue)
+- **Performance Budgets** - Enforce latency/error rate constraints at code level
+- **Correlation ID Manager** - Better correlation across async boundaries
+- **Dependency Health Aggregator** - Single view of all dependencies' health
+- **Smart Log Sampling** - Reduce log volume while keeping important events
+- **Grafana Annotations** - Programmatic annotations for deployments/incidents
+- **Cost Attribution** - Track resource usage per tenant for billing
+- **Schema Validation Metrics** - Track data validation errors structured
+- **Adaptive Retry** - Smarter retries that adapt to system load
+- **Request Replay** - Capture and replay failed requests for debugging
 
 ## Installation
 
@@ -77,10 +143,12 @@ start_http_server(port=9090)
 
 Full documentation is available at [obskit.readthedocs.io](https://obskit.readthedocs.io/).
 
+- **[Complete Feature Reference](docs/FEATURES.md)** - All 52+ features with code examples
 - [Getting Started](https://obskit.readthedocs.io/getting-started/)
 - [User Guide](https://obskit.readthedocs.io/user-guide/)
+- [Technical Docs](tech_docs/) - Production deployment guides
 - [API Reference](https://obskit.readthedocs.io/api/)
-- [Examples](https://obskit.readthedocs.io/examples/)
+- [Examples](examples/)
 
 ## Why obskit?
 
@@ -259,6 +327,111 @@ golden.set_saturation("cpu", 0.75)
 cpu = USEMetrics("server_cpu")
 cpu.set_utilization("cpu", 0.65)
 ```
+
+## New Features (v1.1.0)
+
+### Message Tracing
+
+```python
+from obskit.queue.tracing import MessageTracer, traced_message_handler
+
+tracer = MessageTracer(queue_type="rabbitmq")
+
+# Trace publishing with context propagation
+with tracer.trace_publish(queue="orders") as span:
+    channel.basic_publish(..., properties=pika.BasicProperties(
+        headers=tracer.inject_context()
+    ))
+
+# Trace consuming
+@traced_message_handler(queue="orders")
+async def handle_order(message):
+    await process_order(message)
+```
+
+### Batch Processing
+
+```python
+from obskit.batch import BatchTracker
+
+tracker = BatchTracker("widget_processing")
+
+with tracker.track_batch(batch_size=100) as batch:
+    for item in items:
+        try:
+            process(item)
+            batch.record_success()
+        except Exception as e:
+            batch.record_failure(error=str(e))
+
+print(f"Success rate: {batch.get_result().success_rate * 100}%")
+```
+
+### Performance Budgets
+
+```python
+from obskit.budgets import PerformanceBudget
+
+budget = PerformanceBudget(
+    name="api",
+    latency_p95_ms=500,
+    error_rate_percent=1.0,
+    on_violation=lambda n, m, v: alert(f"{n}: {m}={v}")
+)
+
+@budget.enforce
+async def api_endpoint():
+    return await process()
+```
+
+### Business Metrics
+
+```python
+from obskit.business import BusinessMetrics, FunnelTracker
+
+biz = BusinessMetrics("my-service")
+biz.track_event("purchase", tenant_id="123", value=99.99)
+biz.track_revenue("subscription", amount=9.99, tenant_id="123")
+
+funnel = FunnelTracker("onboarding", ["signup", "verify", "complete"])
+funnel.enter("user123")
+funnel.progress("user123", "verify")
+```
+
+### Adaptive Retry
+
+```python
+from obskit.resilience.adaptive import AdaptiveRetry, BackpressureStrategy
+
+retry = AdaptiveRetry(
+    name="external_api",
+    max_retries=3,
+    backpressure_strategy=BackpressureStrategy.ADAPTIVE
+)
+
+result = await retry.execute(call_external_api)
+```
+
+### Request Replay
+
+```python
+from obskit.debug.replay import RequestCapture, FileStorage
+
+capture = RequestCapture(
+    storage=FileStorage("/var/log/captures"),
+    capture_on_error=True,
+    capture_on_slow=True
+)
+
+@capture.wrap
+async def process_message(data):
+    return await do_processing(data)
+
+# Later: replay a captured request
+result = await capture.replay("capture-abc123")
+```
+
+See [docs/NEW_FEATURES.md](docs/NEW_FEATURES.md) for complete documentation.
 
 ## Development
 
