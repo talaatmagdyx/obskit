@@ -24,7 +24,7 @@ Usage
 """
 
 # Version string
-__version__: str = "1.3.0"
+__version__: str = "1.3.1"
 
 # Version tuple for programmatic comparison
-__version_info__: tuple[int, int, int] = (1, 3, 0)
+__version_info__: tuple[int, int, int] = (1, 3, 1)

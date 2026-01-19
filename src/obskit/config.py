@@ -108,19 +108,52 @@ The settings will be automatically loaded from the file.
 
 from __future__ import annotations
 
+import os
 import threading
+from dataclasses import dataclass, field
 from functools import lru_cache
-from typing import Literal
+from typing import Literal, Optional, Any
 
-from pydantic import Field
-from pydantic_settings import BaseSettings, SettingsConfigDict
+# Try to import pydantic-settings (pydantic v2), fallback to dataclass-based config
+try:
+    from pydantic import Field
+    from pydantic_settings import BaseSettings, SettingsConfigDict
+    PYDANTIC_SETTINGS_AVAILABLE = True
+except ImportError:
+    PYDANTIC_SETTINGS_AVAILABLE = False
+    BaseSettings = object  # type: ignore
+    SettingsConfigDict = None  # type: ignore
+    Field = lambda **kwargs: field(default=kwargs.get("default"))  # type: ignore
 
 from obskit.core.types import MetricsMethod
 
 
-class ObskitSettings(BaseSettings):
-    """
-    Configuration settings for obskit.
+def _get_env_bool(key: str, default: bool = False) -> bool:
+    """Get boolean from environment variable."""
+    val = os.getenv(key, str(default)).lower()
+    return val in ("true", "1", "yes", "on")
+
+
+def _get_env_float(key: str, default: float) -> float:
+    """Get float from environment variable."""
+    try:
+        return float(os.getenv(key, str(default)))
+    except ValueError:
+        return default
+
+
+def _get_env_int(key: str, default: int) -> int:
+    """Get int from environment variable."""
+    try:
+        return int(os.getenv(key, str(default)))
+    except ValueError:
+        return default
+
+
+if PYDANTIC_SETTINGS_AVAILABLE:
+    class ObskitSettings(BaseSettings):  # type: ignore
+        """
+        Configuration settings for obskit.
 
     This class uses Pydantic Settings to provide configuration from multiple
     sources with automatic type validation and conversion.
@@ -636,6 +669,83 @@ class ObskitSettings(BaseSettings):
             "Only applies if metrics_rate_limit_enabled=True."
         ),
     )
+
+else:
+    # Fallback dataclass-based settings for pydantic v1 compatibility
+    @dataclass
+    class ObskitSettings:  # type: ignore[no-redef]
+        """
+        Configuration settings for obskit (pydantic v1 compatible fallback).
+        
+        This dataclass-based configuration is used when pydantic-settings is not available.
+        Settings are read from environment variables with OBSKIT_ prefix.
+        """
+        
+        # Service Identification
+        service_name: str = field(default_factory=lambda: os.getenv("OBSKIT_SERVICE_NAME", "unknown"))
+        environment: str = field(default_factory=lambda: os.getenv("OBSKIT_ENVIRONMENT", "development"))
+        version: str = field(default_factory=lambda: os.getenv("OBSKIT_VERSION", "0.0.0"))
+        
+        # Tracing Configuration
+        tracing_enabled: bool = field(default_factory=lambda: _get_env_bool("OBSKIT_TRACING_ENABLED", True))
+        otlp_endpoint: str = field(default_factory=lambda: os.getenv("OBSKIT_OTLP_ENDPOINT", "http://localhost:4317"))
+        otlp_insecure: bool = field(default_factory=lambda: _get_env_bool("OBSKIT_OTLP_INSECURE", True))
+        trace_sample_rate: float = field(default_factory=lambda: _get_env_float("OBSKIT_TRACE_SAMPLE_RATE", 1.0))
+        trace_export_queue_size: int = field(default_factory=lambda: _get_env_int("OBSKIT_TRACE_EXPORT_QUEUE_SIZE", 2048))
+        trace_export_batch_size: int = field(default_factory=lambda: _get_env_int("OBSKIT_TRACE_EXPORT_BATCH_SIZE", 512))
+        trace_export_timeout: float = field(default_factory=lambda: _get_env_float("OBSKIT_TRACE_EXPORT_TIMEOUT", 30.0))
+        
+        # Metrics Configuration
+        metrics_enabled: bool = field(default_factory=lambda: _get_env_bool("OBSKIT_METRICS_ENABLED", True))
+        metrics_port: int = field(default_factory=lambda: _get_env_int("OBSKIT_METRICS_PORT", 9090))
+        metrics_path: str = field(default_factory=lambda: os.getenv("OBSKIT_METRICS_PATH", "/metrics"))
+        metrics_method: MetricsMethod = field(default_factory=lambda: MetricsMethod(os.getenv("OBSKIT_METRICS_METHOD", "red")))
+        use_histogram: bool = field(default_factory=lambda: _get_env_bool("OBSKIT_USE_HISTOGRAM", True))
+        use_summary: bool = field(default_factory=lambda: _get_env_bool("OBSKIT_USE_SUMMARY", False))
+        
+        # Logging Configuration
+        log_level: str = field(default_factory=lambda: os.getenv("OBSKIT_LOG_LEVEL", "INFO"))
+        log_format: str = field(default_factory=lambda: os.getenv("OBSKIT_LOG_FORMAT", "json"))
+        log_include_timestamp: bool = field(default_factory=lambda: _get_env_bool("OBSKIT_LOG_INCLUDE_TIMESTAMP", True))
+        
+        # Health Check Configuration
+        health_check_timeout: float = field(default_factory=lambda: _get_env_float("OBSKIT_HEALTH_CHECK_TIMEOUT", 5.0))
+        
+        # Circuit Breaker Configuration
+        circuit_breaker_failure_threshold: int = field(default_factory=lambda: _get_env_int("OBSKIT_CIRCUIT_BREAKER_FAILURE_THRESHOLD", 5))
+        circuit_breaker_recovery_timeout: float = field(default_factory=lambda: _get_env_float("OBSKIT_CIRCUIT_BREAKER_RECOVERY_TIMEOUT", 30.0))
+        circuit_breaker_half_open_requests: int = field(default_factory=lambda: _get_env_int("OBSKIT_CIRCUIT_BREAKER_HALF_OPEN_REQUESTS", 3))
+        
+        # Retry Configuration
+        retry_max_attempts: int = field(default_factory=lambda: _get_env_int("OBSKIT_RETRY_MAX_ATTEMPTS", 3))
+        retry_base_delay: float = field(default_factory=lambda: _get_env_float("OBSKIT_RETRY_BASE_DELAY", 1.0))
+        retry_max_delay: float = field(default_factory=lambda: _get_env_float("OBSKIT_RETRY_MAX_DELAY", 60.0))
+        retry_exponential_base: float = field(default_factory=lambda: _get_env_float("OBSKIT_RETRY_EXPONENTIAL_BASE", 2.0))
+        
+        # Rate Limiting Configuration
+        rate_limit_requests: int = field(default_factory=lambda: _get_env_int("OBSKIT_RATE_LIMIT_REQUESTS", 100))
+        rate_limit_window_seconds: float = field(default_factory=lambda: _get_env_float("OBSKIT_RATE_LIMIT_WINDOW_SECONDS", 60.0))
+        
+        # Sampling Configuration
+        metrics_sample_rate: float = field(default_factory=lambda: _get_env_float("OBSKIT_METRICS_SAMPLE_RATE", 1.0))
+        log_sample_rate: float = field(default_factory=lambda: _get_env_float("OBSKIT_LOG_SAMPLE_RATE", 1.0))
+        
+        # Security Configuration
+        metrics_auth_enabled: bool = field(default_factory=lambda: _get_env_bool("OBSKIT_METRICS_AUTH_ENABLED", False))
+        metrics_auth_token: str = field(default_factory=lambda: os.getenv("OBSKIT_METRICS_AUTH_TOKEN", ""))
+        
+        # Logging Backend Configuration
+        logging_backend: str = field(default_factory=lambda: os.getenv("OBSKIT_LOGGING_BACKEND", "structlog"))
+        
+        # Internal Queue Configuration
+        async_metric_queue_size: int = field(default_factory=lambda: _get_env_int("OBSKIT_ASYNC_METRIC_QUEUE_SIZE", 10000))
+        
+        # Self-Monitoring Configuration
+        enable_self_metrics: bool = field(default_factory=lambda: _get_env_bool("OBSKIT_ENABLE_SELF_METRICS", True))
+        
+        # Rate Limiting for Metrics Endpoint
+        metrics_rate_limit_enabled: bool = field(default_factory=lambda: _get_env_bool("OBSKIT_METRICS_RATE_LIMIT_ENABLED", False))
+        metrics_rate_limit_requests: int = field(default_factory=lambda: _get_env_int("OBSKIT_METRICS_RATE_LIMIT_REQUESTS", 60))
 
 
 # =============================================================================

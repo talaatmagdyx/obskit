@@ -7,6 +7,10 @@ obskit Documentation
 It provides unified metrics, tracing, logging, and resilience patterns following
 industry best practices.
 
+.. image:: https://img.shields.io/pypi/v/obskit.svg
+   :target: https://pypi.org/project/obskit/
+   :alt: PyPI version
+
 .. image:: https://img.shields.io/badge/python-3.11%2B-blue.svg
    :target: https://www.python.org/downloads/
    :alt: Python 3.11+
@@ -18,9 +22,9 @@ industry best practices.
 .. image:: https://img.shields.io/badge/coverage-100%25-brightgreen.svg
    :alt: Coverage: 100%
 
-.. image:: https://img.shields.io/badge/code%20style-ruff-000000.svg
-   :target: https://github.com/astral-sh/ruff
-   :alt: Code style: ruff
+.. note::
+
+   🎉 **v1.3.0 Released** - 52 comprehensive observability features for enterprise production!
 
 Why obskit?
 -----------
@@ -39,51 +43,71 @@ Quick Example
 
 .. code-block:: python
 
-   from obskit import configure_logging, get_red_metrics, get_health_checker
+   from obskit import configure, get_logger, get_red_metrics
+   from obskit.health import get_health_checker
+   from obskit.metrics import start_http_server
 
-   # Configure structured logging
-   configure_logging(service_name="my-service")
+   # Configure at startup
+   configure(
+       service_name="my-service",
+       environment="production",
+       metrics_auth_enabled=True,
+       metrics_auth_token="your-secret-token",
+   )
 
-   # Get RED metrics (Rate, Errors, Duration)
-   metrics = get_red_metrics(service_name="my-service")
+   # Structured logging
+   logger = get_logger(__name__)
+   logger.info("order_created", order_id="123", amount=99.99)
 
-   # Track a request
-   with metrics.track_request(endpoint="/api/users", method="GET"):
-       # Your business logic here
-       pass
+   # RED metrics (Rate, Errors, Duration)
+   metrics = get_red_metrics()
+   with metrics.track_request(endpoint="/api/orders", method="POST"):
+       create_order(data)
 
    # Health checks
    health = get_health_checker()
-   health.add_readiness_check("database", check_database_connection)
+   health.add_readiness_check("database", check_database)
 
-Features
---------
+   # Start metrics server
+   start_http_server(port=9090)
 
-.. grid:: 2
+Installation
+------------
 
-   .. grid-item-card:: Metrics
-      :link: user-guide/metrics
-      :link-type: doc
+.. code-block:: bash
 
-      RED, Golden Signals, and USE methodologies with Prometheus export.
+   # Core package
+   pip install obskit
 
-   .. grid-item-card:: Tracing
-      :link: user-guide/tracing
-      :link-type: doc
+   # Full installation (recommended)
+   pip install obskit[all]
 
-      OpenTelemetry-based distributed tracing with automatic context propagation.
+   # Specific features
+   pip install obskit[metrics]      # Prometheus
+   pip install obskit[tracing]      # OpenTelemetry
+   pip install obskit[redis-async]  # Distributed circuit breaker
 
-   .. grid-item-card:: Logging
-      :link: user-guide/logging
-      :link-type: doc
+Features at a Glance
+--------------------
 
-      Structured logging with automatic correlation IDs and PII redaction.
+.. list-table::
+   :widths: 25 75
+   :header-rows: 1
 
-   .. grid-item-card:: Resilience
-      :link: user-guide/resilience
-      :link-type: doc
-
-      Circuit breakers, retries, and rate limiting for fault tolerance.
+   * - Category
+     - Features
+   * - **Metrics**
+     - RED, Golden Signals, USE, Tenant metrics, OTLP export, Pushgateway
+   * - **Logging**
+     - Structured (structlog/loguru), PII redaction, Dynamic log levels
+   * - **Tracing**
+     - OpenTelemetry, W3C context propagation, Adaptive sampling
+   * - **Health**
+     - Kubernetes probes, SLO-based checks, HTTP server
+   * - **Resilience**
+     - Circuit breaker (local + distributed), Retry, Rate limiting, Load shedding
+   * - **v1.3.0 New**
+     - Chaos engineering, Self-healing, Flame graphs, Root cause analysis, Audit trail
 
 Documentation
 -------------
@@ -98,6 +122,13 @@ Documentation
 
 .. toctree::
    :maxdepth: 2
+   :caption: Features
+
+   features/index
+   features/complete-reference
+
+.. toctree::
+   :maxdepth: 2
    :caption: User Guide
 
    user-guide/concepts
@@ -109,21 +140,33 @@ Documentation
    user-guide/slo
    user-guide/pii
    user-guide/multi-tenancy
+   user-guide/advanced-resilience
+   user-guide/debugging
+   user-guide/infrastructure
 
 .. toctree::
    :maxdepth: 2
-   :caption: Examples
+   :caption: Technical Docs
+
+   tech-docs/index
+   tech-docs/01_QUICK_START
+   tech-docs/02_CONFIGURATION
+   tech-docs/03_METRICS
+   tech-docs/04_HEALTH_CHECKS
+   tech-docs/05_RESILIENCE
+   tech-docs/06_SLO_TRACKING
+   tech-docs/07_SECURITY
+   tech-docs/08_KUBERNETES_DEPLOYMENT
+   tech-docs/09_TROUBLESHOOTING
+
+.. toctree::
+   :maxdepth: 2
+   :caption: Examples & Tutorials
 
    examples/fastapi
    examples/kubernetes
    examples/helm
-
-.. toctree::
-   :maxdepth: 2
-   :caption: Tutorials
-
    tutorials/index
-   tutorials/quickstart
    tutorials/fastapi-integration
    tutorials/flask-integration
    tutorials/kubernetes-deployment
@@ -147,6 +190,7 @@ Documentation
    troubleshooting/index
    performance/index
    performance/tuning
+   performance/benchmarks
 
 .. toctree::
    :maxdepth: 2

@@ -13,9 +13,16 @@ from typing import Any, Callable, Dict, List, Optional, Set
 
 import structlog
 
-from ..logging import get_logger
+# Lazy logger initialization to avoid circular imports
+_base_logger = None
 
-base_logger = get_logger(__name__)
+
+def _get_logger():
+    global _base_logger
+    if _base_logger is None:
+        from ..logging import get_logger
+        _base_logger = get_logger(__name__)
+    return _base_logger
 
 # Sampling metrics tracked internally
 _sampling_stats: Dict[str, Dict[str, int]] = defaultdict(lambda: defaultdict(int))
@@ -356,7 +363,7 @@ class AdaptiveSampledLogger(SampledLogger):
             self._log_count_in_window = 0
             self._window_start = now
             
-            base_logger.debug(
+            _get_logger().debug(
                 "adaptive_sampling_adjusted",
                 logger=self.name,
                 new_rate=self._current_rate,

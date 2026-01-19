@@ -442,7 +442,7 @@ class REDMetrics:
         self,
         operation: str,
         duration_seconds: float,
-        status: Literal["success", "failure"] = "success",
+        status: Literal["success", "failure", "error"] = "success",
         error_type: str | None = None,
     ) -> None:
         """
@@ -451,7 +451,7 @@ class REDMetrics:
         This method updates all relevant RED metrics:
         - Increments the request counter
         - Records duration in histogram/summary
-        - Increments error counter if status="failure"
+        - Increments error counter if status="failure" or status="error"
 
         Parameters
         ----------
@@ -463,11 +463,12 @@ class REDMetrics:
             How long the operation took in seconds.
             Example: 0.045 for 45 milliseconds
 
-        status : {"success", "failure"}
+        status : {"success", "failure", "error"}
             Whether the operation succeeded or failed.
+            Both "failure" and "error" are treated as failures.
 
         error_type : str, optional
-            Type of error if status="failure".
+            Type of error if status="failure" or "error".
             Typically the exception class name.
             Example: "ValidationError", "TimeoutError"
 
@@ -482,16 +483,20 @@ class REDMetrics:
         ...     status="success",
         ... )
         >>>
-        >>> # Record failed request
+        >>> # Record failed request (both "failure" and "error" work)
         >>> red.observe_request(
         ...     operation="create_order",
         ...     duration_seconds=0.012,
-        ...     status="failure",
+        ...     status="failure",  # or status="error"
         ...     error_type="ValidationError",
         ... )
         """
+        # Normalize status: treat "error" as "failure" for consistency
+        is_failure = status in ("failure", "error")
+        normalized_status = "failure" if is_failure else status
+        
         # Always record errors (not sampled) to ensure error visibility
-        if status == "failure":
+        if is_failure:
             error_label = error_type or "UnknownError"
             self.errors_total.labels(operation=operation, error_type=error_label).inc()
 
@@ -500,8 +505,8 @@ class REDMetrics:
         if self._sample_rate < 1.0 and random.random() > self._sample_rate:  # nosec B311
             return  # Skip this observation (errors already recorded above)
 
-        # Increment request counter (when sampled)
-        self.requests_total.labels(operation=operation, status=status).inc()
+        # Increment request counter (when sampled) - use normalized status for consistency
+        self.requests_total.labels(operation=operation, status=normalized_status).inc()
 
         # Record duration in histogram if enabled
         if self.duration_histogram is not None:  # pragma: no branch
