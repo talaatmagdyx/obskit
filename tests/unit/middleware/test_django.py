@@ -6,7 +6,10 @@ import pytest
 
 # Check if Django is available
 try:
-    import django  # noqa: F401
+    import django
+
+    # Verify Django is properly installed by accessing version
+    _django_version = django.__version__  # noqa: F841
     from django.conf import settings as django_settings
 
     if not django_settings.configured:

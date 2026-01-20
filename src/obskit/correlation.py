@@ -11,10 +11,6 @@ from collections.abc import Callable
 from contextlib import contextmanager
 from typing import Any, TypeVar
 
-from .logging import get_logger
-
-_logger = get_logger(__name__)
-
 # Context variables for correlation tracking
 _correlation_id: contextvars.ContextVar[str | None] = contextvars.ContextVar(
     "correlation_id", default=None

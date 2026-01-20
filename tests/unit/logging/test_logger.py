@@ -1,13 +1,15 @@
 """Tests for obskit.logging.logger module."""
 
-from obskit.logging.logger import (
-    configure_logging,
-    get_logger,
-    log_error,
-    log_operation,
-    log_performance,
-    reset_logging,
-)
+# Use module import consistently to avoid import/from-import mixing
+import obskit.logging.logger as logging_module
+
+# Create module-level aliases for cleaner test code
+configure_logging = logging_module.configure_logging
+get_logger = logging_module.get_logger
+log_error = logging_module.log_error
+log_operation = logging_module.log_operation
+log_performance = logging_module.log_performance
+reset_logging = logging_module.reset_logging
 
 
 class TestGetLogger:
@@ -73,9 +75,7 @@ class TestConfigureLogging:
 
     def test_configure_sets_flag(self):
         """Test configure_logging sets the configured flag."""
-        # Access module internals through direct import to check flag
-        import obskit.logging.logger as logging_module
-
+        # Access module internals using the top-level module import
         assert logging_module._logging_configured is False
         logging_module.configure_logging()
         assert logging_module._logging_configured is True

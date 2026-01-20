@@ -3,7 +3,11 @@
 from __future__ import annotations
 
 import time
+from io import BytesIO
 from unittest.mock import MagicMock, patch
+
+# Use module import consistently to avoid import/from-import mixing
+import obskit.metrics.auth as auth_module
 
 
 class TestRateLimiter:
@@ -11,18 +15,14 @@ class TestRateLimiter:
 
     def test_allows_requests_within_limit(self) -> None:
         """Test rate limiter allows requests within limit."""
-        from obskit.metrics.auth import RateLimiter
-
-        limiter = RateLimiter(max_requests=5, window_seconds=60)
+        limiter = auth_module.RateLimiter(max_requests=5, window_seconds=60)
 
         for _ in range(5):
             assert limiter.is_allowed()
 
     def test_blocks_requests_over_limit(self) -> None:
         """Test rate limiter blocks requests over limit."""
-        from obskit.metrics.auth import RateLimiter
-
-        limiter = RateLimiter(max_requests=3, window_seconds=60)
+        limiter = auth_module.RateLimiter(max_requests=3, window_seconds=60)
 
         # Use up the limit
         for _ in range(3):
@@ -33,9 +33,7 @@ class TestRateLimiter:
 
     def test_get_remaining(self) -> None:
         """Test get_remaining returns correct count."""
-        from obskit.metrics.auth import RateLimiter
-
-        limiter = RateLimiter(max_requests=5, window_seconds=60)
+        limiter = auth_module.RateLimiter(max_requests=5, window_seconds=60)
 
         assert limiter.get_remaining() == 5
 
@@ -48,9 +46,7 @@ class TestRateLimiter:
 
     def test_window_sliding(self) -> None:
         """Test requests expire after window."""
-        from obskit.metrics.auth import RateLimiter
-
-        limiter = RateLimiter(max_requests=2, window_seconds=0.1)
+        limiter = auth_module.RateLimiter(max_requests=2, window_seconds=0.1)
 
         # Use up limit
         assert limiter.is_allowed()
@@ -70,19 +66,17 @@ class TestGetRateLimiter:
     def test_returns_none_when_disabled(self) -> None:
         """Test returns None when rate limiting disabled."""
         from obskit.config import configure, reset_settings
-        from obskit.metrics.auth import _get_rate_limiter
 
         reset_settings()
         configure(metrics_rate_limit_enabled=False)
 
-        limiter = _get_rate_limiter()
+        limiter = auth_module._get_rate_limiter()
         assert limiter is None
 
         reset_settings()
 
     def test_returns_limiter_when_enabled(self) -> None:
         """Test returns limiter when enabled."""
-        import obskit.metrics.auth as auth_module
         from obskit.config import configure, reset_settings
 
         # Reset global state
@@ -112,19 +106,16 @@ class TestAuthenticatedMetricsHandlerRateLimiting:
 
     def test_rate_limited_request(self) -> None:
         """Test request is rate limited."""
-        from io import BytesIO
-
         from obskit.config import reset_settings
-        from obskit.metrics.auth import AuthenticatedMetricsHandler, RateLimiter
 
         reset_settings()
 
         # Mock a rate limiter that always blocks
-        mock_limiter = RateLimiter(max_requests=0, window_seconds=60)
+        mock_limiter = auth_module.RateLimiter(max_requests=0, window_seconds=60)
 
         with patch("obskit.metrics.auth._get_rate_limiter", return_value=mock_limiter):
             # Create mock request
-            handler = MagicMock(spec=AuthenticatedMetricsHandler)
+            handler = MagicMock(spec=auth_module.AuthenticatedMetricsHandler)
             handler.auth_token = None
             handler.path = "/metrics"
             handler.wfile = BytesIO()
@@ -136,7 +127,7 @@ class TestAuthenticatedMetricsHandlerRateLimiting:
             handler.end_headers = MagicMock()
 
             # Call do_GET
-            AuthenticatedMetricsHandler.do_GET(handler)
+            auth_module.AuthenticatedMetricsHandler.do_GET(handler)
 
             # Should send 429
             handler.send_response.assert_called_with(429)
