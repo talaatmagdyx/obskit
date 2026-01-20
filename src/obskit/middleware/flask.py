@@ -320,5 +320,19 @@ class ObskitFlaskMiddleware:
                 )
 
 
-# Singleton instance for Flask extension pattern
-obskit_flask: ObskitFlaskMiddleware | None = ObskitFlaskMiddleware() if FLASK_AVAILABLE else None
+# Lazy singleton instance for Flask extension pattern
+# Initialized on first access to avoid circular import issues
+_obskit_flask: ObskitFlaskMiddleware | None = None
+
+
+def get_obskit_flask() -> ObskitFlaskMiddleware | None:
+    """Get or create the Flask middleware singleton."""
+    global _obskit_flask
+    if FLASK_AVAILABLE and _obskit_flask is None:
+        _obskit_flask = ObskitFlaskMiddleware()
+    return _obskit_flask
+
+
+# For backward compatibility, create a property-like access
+# Note: Direct assignment to obskit_flask is deprecated, use get_obskit_flask()
+obskit_flask: ObskitFlaskMiddleware | None = None  # Lazy, use get_obskit_flask()

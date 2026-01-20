@@ -33,7 +33,8 @@ import threading
 from enum import Enum
 
 from obskit.logging import get_logger
-from obskit.resilience import CircuitBreaker, RateLimiter, TokenBucketRateLimiter
+from obskit.resilience.circuit_breaker import CircuitBreaker
+from obskit.resilience.rate_limiter import RateLimiter, TokenBucketRateLimiter
 
 logger = get_logger("obskit.resilience.factory")
 
