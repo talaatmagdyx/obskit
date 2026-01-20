@@ -81,12 +81,8 @@ try:
     import prometheus_client
 
     PROMETHEUS_AVAILABLE = True
-    if TYPE_CHECKING:
-        # Only import for type checking - used in docstring type annotations
-        from prometheus_client import CollectorRegistry
 except ImportError:  # pragma: no cover
     PROMETHEUS_AVAILABLE = False
-    CollectorRegistry = None  # type: ignore[assignment]
 
 
 class Counter:

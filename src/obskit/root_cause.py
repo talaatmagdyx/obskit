@@ -416,45 +416,40 @@ class RootCauseAnalyzer:
         components_set = set(affected_components)
         matched_rules = [r for r in self.rules if r.matches(components_set)]
 
-        # Determine probable cause
-        probable_cause = None
-        confidence = 0.0
-        suggestions = []
-
+        # Determine probable cause (no pre-initialization to avoid variable redefinition)
         if matched_rules:
             # Use the first matching rule
             best_rule = matched_rules[0]
-            probable_cause = best_rule.cause
+            probable_cause: str | None = best_rule.cause
             confidence = 0.7 + (len(matched_rules) - 1) * 0.1
-            suggestions = best_rule.suggestions
+            suggestions: list[str] = best_rule.suggestions
+        elif len(recent_anomalies) == 1:
+            # Heuristic analysis for single anomaly
+            anomaly = recent_anomalies[0]
+            probable_cause = (
+                f"Isolated {anomaly.anomaly_type.value} issue in {anomaly.component}"
+            )
+            confidence = 0.5
+            suggestions = [f"Investigate {anomaly.component} directly"]
         else:
-            # Heuristic analysis
-            if len(recent_anomalies) == 1:
-                anomaly = recent_anomalies[0]
+            # Multiple anomalies, look for common patterns
+            severities = [a.severity for a in recent_anomalies]
+            if AnomalySeverity.CRITICAL in severities:
+                critical = [
+                    a for a in recent_anomalies if a.severity == AnomalySeverity.CRITICAL
+                ]
                 probable_cause = (
-                    f"Isolated {anomaly.anomaly_type.value} issue in {anomaly.component}"
+                    f"Critical issue in {critical[0].component} with cascade effects"
                 )
-                confidence = 0.5
-                suggestions = [f"Investigate {anomaly.component} directly"]
+                confidence = 0.6
+                suggestions = [
+                    f"Prioritize {critical[0].component}",
+                    "Check downstream dependencies",
+                ]
             else:
-                # Multiple anomalies, look for common patterns
-                severities = [a.severity for a in recent_anomalies]
-                if AnomalySeverity.CRITICAL in severities:
-                    critical = [
-                        a for a in recent_anomalies if a.severity == AnomalySeverity.CRITICAL
-                    ]
-                    probable_cause = (
-                        f"Critical issue in {critical[0].component} with cascade effects"
-                    )
-                    confidence = 0.6
-                    suggestions = [
-                        f"Prioritize {critical[0].component}",
-                        "Check downstream dependencies",
-                    ]
-                else:
-                    probable_cause = "Multiple correlated issues detected"
-                    confidence = 0.4
-                    suggestions = ["Review all affected components"]
+                probable_cause = "Multiple correlated issues detected"
+                confidence = 0.4
+                suggestions = ["Review all affected components"]
 
         # Correlate events
         for event in recent_events:
