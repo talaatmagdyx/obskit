@@ -79,7 +79,7 @@ from typing import Any
 # Check if prometheus_client is available
 try:
     import prometheus_client
-    from prometheus_client import CollectorRegistry
+    from prometheus_client import CollectorRegistry  # noqa: F401 - used in docstrings
 
     PROMETHEUS_AVAILABLE = True
 except ImportError:  # pragma: no cover
