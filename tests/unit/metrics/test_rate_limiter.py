@@ -82,15 +82,13 @@ class TestGetRateLimiter:
 
     def test_returns_limiter_when_enabled(self) -> None:
         """Test returns limiter when enabled."""
+        import obskit.metrics.auth as auth_module
         from obskit.config import configure, reset_settings
-        from obskit.metrics.auth import _get_rate_limiter
 
         # Reset global state
         reset_settings()
 
         # Need to reset the module-level rate limiter
-        import obskit.metrics.auth as auth_module
-
         auth_module._metrics_rate_limiter = None
 
         configure(
@@ -98,11 +96,11 @@ class TestGetRateLimiter:
             metrics_rate_limit_requests=100,
         )
 
-        limiter = _get_rate_limiter()
+        limiter = auth_module._get_rate_limiter()
         assert limiter is not None
 
         # Should return same instance
-        limiter2 = _get_rate_limiter()
+        limiter2 = auth_module._get_rate_limiter()
         assert limiter is limiter2
 
         reset_settings()

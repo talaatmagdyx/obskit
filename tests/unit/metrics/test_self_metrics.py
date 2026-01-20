@@ -151,16 +151,12 @@ class TestSelfMetricsFunctions:
 
     def test_reset_self_metrics(self) -> None:
         """Test reset_self_metrics clears singleton."""
-        from obskit.metrics.self_metrics import (
-            reset_self_metrics,
-        )
+        import obskit.metrics.self_metrics as self_metrics_module
 
         # Just verify reset doesn't raise and clears the global
-        reset_self_metrics()
+        self_metrics_module.reset_self_metrics()
         # After reset, the module-level _self_metrics should be None
-        import obskit.metrics.self_metrics as module
-
-        assert module._self_metrics is None
+        assert self_metrics_module._self_metrics is None
 
 
 class TestSelfMetricsWithoutPrometheus:
