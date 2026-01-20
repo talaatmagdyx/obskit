@@ -209,7 +209,7 @@ class TestTrackBatchDecorator:
 
         @track_batch("decorated_batch", batch_size=5)
         def process_items(items, _batch_context=None):
-            for _ in items:
+            for _ in items:  # Item not used, just counting
                 _batch_context.record_success()
             return len(items)
 
@@ -222,7 +222,7 @@ class TestTrackBatchDecorator:
 
         @track_batch("decorated_batch_async", batch_size=3)
         async def process_items_async(items, _batch_context=None):
-            for _ in items:
+            for _ in items:  # Item not used, just counting
                 _batch_context.record_success()
             return len(items)
 

@@ -359,9 +359,9 @@ class MockCircuitBreaker:
 
     def __enter__(self):
         if self._state == "open":
-            from obskit.resilience.circuit_breaker import CircuitOpenError
+            from obskit import CircuitOpenError
 
-            raise CircuitOpenError(self.name, 0.0)
+            raise CircuitOpenError(breaker_name=self.name, time_until_retry=0.0)
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
