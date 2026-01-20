@@ -36,6 +36,9 @@ from datetime import datetime
 from typing import Any
 
 from obskit.core import get_correlation_id
+from obskit.logging import get_logger
+
+_logger = get_logger("obskit.errors")
 
 
 @dataclass
