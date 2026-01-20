@@ -174,7 +174,8 @@ class TestPerformanceBudget:
         assert result == "result"
 
         # Latency should be recorded
-        _metrics = budget.get_current_metrics()  # Verify metrics are available
+        metrics = budget.get_current_metrics()
+        assert metrics is not None  # Verify metrics are available
         assert len(budget._latencies) > 0
 
     def test_enforce_decorator_records_error(self):

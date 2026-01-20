@@ -18,8 +18,9 @@ class TestFlameGraphProfiler:
         profiler = FlameGraphProfiler()
 
         with profiler.profile("test_operation"):
-            # Simulate work
-            _total = sum(range(1000))  # Result not used, just consuming CPU
+            # Simulate work - result verified to ensure computation runs
+            total = sum(range(1000))
+            assert total == 499500  # Verify computation completed
 
         result = profiler.get_profile("test_operation")
         assert result is not None

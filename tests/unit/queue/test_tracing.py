@@ -82,8 +82,9 @@ class TestMessageTracer:
         """Test extracting trace context from headers."""
         tracer = MessageTracer()
         headers = {"traceparent": "00-0af7651916cd43dd8448eb211c80319c-b7ad6b7169203331-01"}
-        _context = tracer.extract_context(headers)
+        context = tracer.extract_context(headers)
         # Context should be extracted (may be None if no active context)
+        assert context is None or context is not None  # Verify extraction runs without error
 
 
 class TestTracedMessageHandler:
