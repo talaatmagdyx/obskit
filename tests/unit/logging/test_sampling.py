@@ -163,13 +163,16 @@ class TestSampledLogger:
         logger = SampledLogger("test", config=config)
 
         # First occurrence
-        should_log1, _ = logger._should_log("info", "dedupe_event", key="same")
+        should_log1, reason1 = logger._should_log("info", "dedupe_event", key="same")
+        assert reason1 is None or isinstance(reason1, str)  # Verify reason format
 
         # Immediate duplicate
-        should_log2, reason = logger._should_log("info", "dedupe_event", key="same")
+        should_log2, reason2 = logger._should_log("info", "dedupe_event", key="same")
+        assert reason2 is None or isinstance(reason2, str)  # Verify reason format
 
         # Different key should log
-        should_log3, _ = logger._should_log("info", "dedupe_event", key="different")
+        should_log3, reason3 = logger._should_log("info", "dedupe_event", key="different")
+        assert reason3 is None or isinstance(reason3, str)  # Verify reason format
 
         assert should_log1 is True
         assert should_log3 is True

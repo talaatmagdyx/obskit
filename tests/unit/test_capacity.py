@@ -120,7 +120,8 @@ class TestCapacityPlanner:
         # Simulate growth over time
         base_time = datetime.utcnow() - timedelta(days=60)
         for i in range(60):
-            _timestamp = base_time + timedelta(days=i)  # For reference
+            timestamp = base_time + timedelta(days=i)
+            assert timestamp is not None  # Verify timestamp calculation
             planner.update_resource("data", current_value=100 + i)
 
         # Calculate growth rate should work

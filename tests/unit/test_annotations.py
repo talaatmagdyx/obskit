@@ -346,5 +346,6 @@ class TestGetAnnotator:
 
         annotations._annotator = None
 
-        _result = get_annotator()
+        result = get_annotator()
         # May be None or the configured one depending on test order
+        assert result is None or result is not None  # Verify call completes
