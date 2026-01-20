@@ -22,12 +22,14 @@ from obskit.logging.adapters.base import LoggerAdapter
 
 # Check if loguru is available
 try:
+    from loguru import Logger
     from loguru import logger as loguru_logger
 
     LOGURU_AVAILABLE = True
 except ImportError:  # pragma: no cover
     LOGURU_AVAILABLE = False
     loguru_logger = None  # type: ignore[assignment]
+    Logger = None  # type: ignore[assignment, misc]
 
 
 class LoguruAdapter(LoggerAdapter):

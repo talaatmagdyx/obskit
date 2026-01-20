@@ -201,9 +201,12 @@ class ResilientExecutor:
                     if state and hasattr(state, "name") and state.name == "OPEN":
                         if self._on_circuit_open:
                             self._on_circuit_open()
-                        from obskit.resilience.circuit_breaker import CircuitOpenError
+                        from obskit import CircuitOpenError
 
-                        raise CircuitOpenError("resilient_executor", 0.0)
+                        raise CircuitOpenError(
+                            breaker_name=getattr(self._circuit_breaker, "name", "unknown"),
+                            time_until_retry=0.0,
+                        )
 
                 # Execute with circuit breaker
                 if self._circuit_breaker:
