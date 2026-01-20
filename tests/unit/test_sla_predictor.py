@@ -1,11 +1,11 @@
 """Unit tests for SLA Breach Predictor."""
 
-import pytest
 from datetime import datetime, timedelta
+
 from obskit.sla_predictor import (
-    SLAPredictor,
     RiskAssessment,
     SLADefinition,
+    SLAPredictor,
     get_sla_predictor,
 )
 
@@ -16,14 +16,14 @@ class TestSLAPredictor:
     def test_set_sla(self):
         """Test defining an SLA."""
         predictor = SLAPredictor()
-        
+
         predictor.set_sla(
             name="response_time",
             target_value=200.0,
             percentile=95,
             comparison="less_than",
         )
-        
+
         # SLA should be stored
         risk = predictor.assess_risk("response_time")
         # May return None if not enough data
@@ -33,10 +33,10 @@ class TestSLAPredictor:
         """Test recording metrics."""
         predictor = SLAPredictor()
         predictor.set_sla("latency", target_value=100.0)
-        
+
         for i in range(10):
             predictor.record("latency", 50.0 + i)
-        
+
         risk = predictor.assess_risk("latency")
         assert risk is not None
         assert risk.current_value > 0
@@ -45,9 +45,9 @@ class TestSLAPredictor:
         """Test risk assessment with insufficient data."""
         predictor = SLAPredictor()
         predictor.set_sla("metric", target_value=100.0)
-        
+
         predictor.record("metric", 50.0)  # Only 1 data point
-        
+
         risk = predictor.assess_risk("metric")
         assert risk is not None
         assert "Insufficient" in risk.suggestions[0]
@@ -56,13 +56,13 @@ class TestSLAPredictor:
         """Test risk assessment for stable metric."""
         predictor = SLAPredictor()
         predictor.set_sla("stable", target_value=100.0)
-        
+
         # Record stable values well below threshold
-        for i in range(20):
+        for _i in range(20):
             predictor.record("stable", 50.0)
-        
+
         risk = predictor.assess_risk("stable")
-        
+
         assert risk is not None
         assert risk.breach_likely is False
         assert risk.trend == "stable"
@@ -71,15 +71,15 @@ class TestSLAPredictor:
         """Test risk assessment for degrading metric."""
         predictor = SLAPredictor()
         predictor.set_sla("degrading", target_value=100.0)
-        
+
         # Record increasing values
         base_time = datetime.utcnow() - timedelta(hours=20)
         for i in range(20):
             timestamp = base_time + timedelta(hours=i)
             predictor.record("degrading", 50.0 + i * 3, timestamp=timestamp)
-        
+
         risk = predictor.assess_risk("degrading")
-        
+
         assert risk is not None
         # Trend should be detected
         assert risk.trend in ["degrading", "increasing"] or risk.trend_slope > 0
@@ -88,15 +88,15 @@ class TestSLAPredictor:
         """Test breach prediction."""
         predictor = SLAPredictor()
         predictor.set_sla("breach_test", target_value=100.0)
-        
+
         # Record values that will breach soon
         base_time = datetime.utcnow() - timedelta(hours=10)
         for i in range(10):
             timestamp = base_time + timedelta(hours=i)
             predictor.record("breach_test", 80.0 + i * 3, timestamp=timestamp)
-        
+
         risk = predictor.assess_risk("breach_test")
-        
+
         # May or may not predict breach depending on trend calculation
         assert risk is not None
         assert risk.risk_score >= 0
@@ -104,16 +104,16 @@ class TestSLAPredictor:
     def test_get_all_risks(self):
         """Test getting all risk assessments."""
         predictor = SLAPredictor()
-        
+
         predictor.set_sla("sla1", target_value=100.0)
         predictor.set_sla("sla2", target_value=200.0)
-        
-        for i in range(10):
+
+        for _i in range(10):
             predictor.record("sla1", 50.0)
             predictor.record("sla2", 100.0)
-        
+
         all_risks = predictor.get_all_risks()
-        
+
         assert len(all_risks) == 2
         assert "sla1" in all_risks
         assert "sla2" in all_risks
@@ -121,35 +121,35 @@ class TestSLAPredictor:
     def test_get_at_risk_slas(self):
         """Test getting at-risk SLAs."""
         predictor = SLAPredictor()
-        
+
         predictor.set_sla("safe", target_value=100.0)
         predictor.set_sla("risky", target_value=50.0)
-        
-        for i in range(10):
+
+        for _i in range(10):
             predictor.record("safe", 30.0)  # Well below target
             predictor.record("risky", 45.0)  # Close to target
-        
+
         at_risk = predictor.get_at_risk_slas(threshold=30.0)
-        
+
         # Results depend on risk calculation
         assert isinstance(at_risk, list)
 
     def test_warning_callback(self):
         """Test warning callback."""
         warnings = []
-        
+
         def on_warning(assessment):
             warnings.append(assessment)
-        
+
         predictor = SLAPredictor(on_warning=on_warning)
         predictor.set_sla("callback_test", target_value=50.0)
-        
+
         # Record values that exceed threshold
-        for i in range(10):
+        for _i in range(10):
             predictor.record("callback_test", 60.0)  # Over target
-        
+
         predictor.assess_risk("callback_test")
-        
+
         # Callback may or may not be called depending on breach detection
         assert isinstance(warnings, list)
 
@@ -171,7 +171,7 @@ class TestRiskAssessment:
             confidence=0.8,
             suggestions=["Scale up"],
         )
-        
+
         data = risk.to_dict()
         assert data["sla_name"] == "test"
         assert data["risk_score"] == 75.0
@@ -188,7 +188,7 @@ class TestSLADefinition:
             target_value=100.0,
             comparison="less_than",
         )
-        
+
         assert sla.is_breached(50.0) is False
         assert sla.is_breached(150.0) is True
 
@@ -199,7 +199,7 @@ class TestSLADefinition:
             target_value=99.9,
             comparison="greater_than",
         )
-        
+
         assert sla.is_breached(99.99) is False
         assert sla.is_breached(99.0) is True
 

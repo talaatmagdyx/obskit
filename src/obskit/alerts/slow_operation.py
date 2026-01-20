@@ -28,11 +28,12 @@ from __future__ import annotations
 
 import time
 import uuid
+from collections.abc import Callable, Generator
 from contextlib import contextmanager
 from dataclasses import dataclass
 from datetime import datetime
 from functools import wraps
-from typing import Any, Callable, Dict, Generator, List, Optional, TypeVar
+from typing import Any, TypeVar
 
 from obskit.logging import get_logger
 from obskit.metrics import REDMetrics
@@ -44,6 +45,7 @@ T = TypeVar("T")
 # Try to import Alertmanager webhook
 try:
     from obskit.slo.alertmanager import SyncAlertmanagerWebhook
+
     ALERTMANAGER_AVAILABLE = True
 except ImportError:
     ALERTMANAGER_AVAILABLE = False
@@ -52,26 +54,27 @@ except ImportError:
 @dataclass
 class SlowOperationEvent:
     """Represents a slow operation event."""
+
     operation: str
     duration_ms: float
     threshold_ms: float
     timestamp: datetime
     alert_id: str
-    component: Optional[str] = None
-    tenant_id: Optional[str] = None
-    context: Optional[Dict[str, Any]] = None
+    component: str | None = None
+    tenant_id: str | None = None
+    context: dict[str, Any] | None = None
 
 
 class SlowOperationDetector:
     """
     Detects and alerts on slow operations.
-    
+
     Features:
     - Configurable thresholds per operation
     - Alertmanager integration
     - Metrics recording
     - Event history
-    
+
     Example
     -------
     >>> detector = SlowOperationDetector(
@@ -82,18 +85,18 @@ class SlowOperationDetector:
     >>> with detector.track("process_order"):
     ...     process_order(data)
     """
-    
+
     def __init__(
         self,
         threshold_ms: float = 5000.0,
-        alertmanager_url: Optional[str] = None,
+        alertmanager_url: str | None = None,
         component: str = "service",
         enable_metrics: bool = True,
         history_size: int = 100,
     ):
         """
         Initialize slow operation detector.
-        
+
         Parameters
         ----------
         threshold_ms : float
@@ -112,33 +115,33 @@ class SlowOperationDetector:
         self.component = component
         self.enable_metrics = enable_metrics
         self.history_size = history_size
-        
+
         # History of slow operations
-        self._history: List[SlowOperationEvent] = []
-        
+        self._history: list[SlowOperationEvent] = []
+
         # Metrics
         if enable_metrics:
             self._metrics = REDMetrics(name=f"{component}_slow_operations")
         else:
             self._metrics = None
-        
+
         # Alertmanager webhook
         self._webhook = None
         if alertmanager_url and ALERTMANAGER_AVAILABLE:
             self._webhook = SyncAlertmanagerWebhook(alertmanager_url=alertmanager_url)
-    
+
     @contextmanager
     def track(
         self,
         operation: str,
-        threshold_ms: Optional[float] = None,
-        tenant_id: Optional[str] = None,
-        context: Optional[Dict[str, Any]] = None,
+        threshold_ms: float | None = None,
+        tenant_id: str | None = None,
+        context: dict[str, Any] | None = None,
         send_alert: bool = True,
     ) -> Generator[None, None, None]:
         """
         Track an operation and alert if it's slow.
-        
+
         Parameters
         ----------
         operation : str
@@ -151,11 +154,11 @@ class SlowOperationDetector:
             Additional context for alerts.
         send_alert : bool
             Whether to send alert if slow (default: True).
-            
+
         Yields
         ------
         None
-        
+
         Example
         -------
         >>> with detector.track("process_order", threshold_ms=3000):
@@ -163,12 +166,12 @@ class SlowOperationDetector:
         """
         start_time = time.perf_counter()
         threshold = threshold_ms or self.default_threshold_ms
-        
+
         try:
             yield
         finally:
             duration_ms = (time.perf_counter() - start_time) * 1000
-            
+
             if duration_ms > threshold:
                 alert_id = self._handle_slow_operation(
                     operation=operation,
@@ -178,7 +181,7 @@ class SlowOperationDetector:
                     context=context,
                     send_alert=send_alert,
                 )
-                
+
                 if alert_id:
                     logger.warning(
                         "slow_operation_alert_sent",
@@ -187,16 +190,16 @@ class SlowOperationDetector:
                         duration_ms=round(duration_ms, 2),
                         threshold_ms=threshold,
                     )
-    
+
     def monitor(
         self,
         operation: str,
-        threshold_ms: Optional[float] = None,
+        threshold_ms: float | None = None,
         send_alert: bool = True,
     ):
         """
         Decorator for monitoring function execution time.
-        
+
         Parameters
         ----------
         operation : str
@@ -205,33 +208,36 @@ class SlowOperationDetector:
             Override threshold.
         send_alert : bool
             Whether to send alert if slow.
-            
+
         Example
         -------
         >>> @detector.monitor("fetch_data", threshold_ms=2000)
         >>> def fetch_data(user_id):
         ...     return db.get(user_id)
         """
+
         def decorator(func: Callable[..., T]) -> Callable[..., T]:
             @wraps(func)
             def wrapper(*args, **kwargs) -> T:
                 with self.track(operation, threshold_ms=threshold_ms, send_alert=send_alert):
                     return func(*args, **kwargs)
+
             return wrapper
+
         return decorator
-    
+
     def _handle_slow_operation(
         self,
         operation: str,
         duration_ms: float,
         threshold_ms: float,
-        tenant_id: Optional[str] = None,
-        context: Optional[Dict[str, Any]] = None,
+        tenant_id: str | None = None,
+        context: dict[str, Any] | None = None,
         send_alert: bool = True,
-    ) -> Optional[str]:
+    ) -> str | None:
         """Handle a detected slow operation."""
         alert_id = str(uuid.uuid4())[:8]
-        
+
         # Create event
         event = SlowOperationEvent(
             operation=operation,
@@ -243,12 +249,12 @@ class SlowOperationDetector:
             tenant_id=tenant_id,
             context=context,
         )
-        
+
         # Add to history
         self._history.append(event)
         if len(self._history) > self.history_size:
             self._history.pop(0)
-        
+
         # Record metrics
         if self._metrics:
             self._metrics.observe_request(
@@ -256,7 +262,7 @@ class SlowOperationDetector:
                 duration_seconds=duration_ms / 1000,
                 status="slow",
             )
-        
+
         # Log warning
         logger.warning(
             "slow_operation_detected",
@@ -267,7 +273,7 @@ class SlowOperationDetector:
             tenant_id=tenant_id,
             alert_id=alert_id,
         )
-        
+
         # Send Alertmanager alert
         if send_alert and self._webhook:
             try:
@@ -289,28 +295,28 @@ class SlowOperationDetector:
                 return alert_id
             except Exception as e:
                 logger.error("alertmanager_send_failed", error=str(e))
-        
+
         return alert_id
-    
-    def get_history(self, limit: int = 10) -> List[SlowOperationEvent]:
+
+    def get_history(self, limit: int = 10) -> list[SlowOperationEvent]:
         """Get recent slow operation events."""
         return list(reversed(self._history[-limit:]))
-    
-    def get_stats(self) -> Dict[str, Any]:
+
+    def get_stats(self) -> dict[str, Any]:
         """Get statistics about slow operations."""
         if not self._history:
             return {
                 "total_events": 0,
                 "operations": {},
             }
-        
+
         # Group by operation
-        by_operation: Dict[str, List[float]] = {}
+        by_operation: dict[str, list[float]] = {}
         for event in self._history:
             if event.operation not in by_operation:
                 by_operation[event.operation] = []
             by_operation[event.operation].append(event.duration_ms)
-        
+
         return {
             "total_events": len(self._history),
             "operations": {
@@ -323,7 +329,7 @@ class SlowOperationDetector:
                 for op, durations in by_operation.items()
             },
         }
-    
+
     def clear_history(self):
         """Clear the event history."""
         self._history.clear()
@@ -334,14 +340,14 @@ def check_slow_operation(
     operation: str,
     duration_seconds: float,
     threshold_ms: float = 5000.0,
-    alertmanager_url: Optional[str] = None,
+    alertmanager_url: str | None = None,
     component: str = "service",
-    tenant_id: Optional[str] = None,
-    context: Optional[Dict[str, Any]] = None,
-) -> Optional[str]:
+    tenant_id: str | None = None,
+    context: dict[str, Any] | None = None,
+) -> str | None:
     """
     Check if an operation was slow and optionally send alert.
-    
+
     Parameters
     ----------
     operation : str
@@ -358,12 +364,12 @@ def check_slow_operation(
         Tenant ID.
     context : dict, optional
         Additional context.
-        
+
     Returns
     -------
     str or None
         Alert ID if slow, None otherwise.
-        
+
     Example
     -------
     >>> start = time.time()
@@ -372,12 +378,12 @@ def check_slow_operation(
     >>> alert_id = check_slow_operation("process_order", duration, threshold_ms=5000)
     """
     duration_ms = duration_seconds * 1000
-    
+
     if duration_ms <= threshold_ms:
         return None
-    
+
     alert_id = str(uuid.uuid4())[:8]
-    
+
     logger.warning(
         "slow_operation_detected",
         operation=operation,
@@ -387,26 +393,26 @@ def check_slow_operation(
         tenant_id=tenant_id,
         alert_id=alert_id,
     )
-    
+
     # Send alert if URL provided
     if alertmanager_url and ALERTMANAGER_AVAILABLE:
         try:
             webhook = SyncAlertmanagerWebhook(alertmanager_url=alertmanager_url)
             webhook.fire_alert(
-                alertname="SlowOperation",
+                alert_name="SlowOperation",
                 labels={
                     "operation": operation,
                     "component": component,
-                    "severity": "warning",
                 },
                 annotations={
                     "summary": f"Slow operation: {operation}",
                     "description": f"Operation {operation} took {duration_ms:.0f}ms",
                 },
+                severity="warning",
             )
         except Exception as e:
             logger.error("alertmanager_send_failed", error=str(e))
-    
+
     return alert_id
 
 

@@ -166,8 +166,8 @@ from obskit.logging.logger import (
     log_performance,
 )
 from obskit.logging.sampling import (
-    SampledLogger,
     AdaptiveSampledLogger,
+    SampledLogger,
     SamplingConfig,
     SamplingRule,
     get_sampling_stats,

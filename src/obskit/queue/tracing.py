@@ -7,8 +7,9 @@ Provides automatic trace context propagation across message queues.
 import functools
 import json
 import time
+from collections.abc import Callable
 from contextlib import contextmanager
-from typing import Any, Callable, Dict, Optional, TypeVar, Union
+from typing import Any, TypeVar
 
 from opentelemetry import trace
 from opentelemetry.trace import SpanKind, Status, StatusCode
@@ -16,29 +17,26 @@ from opentelemetry.trace.propagation.tracecontext import TraceContextTextMapProp
 from prometheus_client import Counter, Histogram
 
 from ..logging import get_logger
-from ..tracing import trace_span, inject_trace_context, extract_trace_context
 
 logger = get_logger(__name__)
 
 # Metrics
 MESSAGE_COUNTER = Counter(
-    "queue_messages_total",
-    "Total messages processed",
-    ["queue", "operation", "status"]
+    "queue_messages_total", "Total messages processed", ["queue", "operation", "status"]
 )
 
 MESSAGE_LATENCY = Histogram(
     "queue_message_latency_seconds",
     "Message processing latency",
     ["queue", "operation"],
-    buckets=[0.001, 0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1.0, 2.5, 5.0, 10.0]
+    buckets=[0.001, 0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1.0, 2.5, 5.0, 10.0],
 )
 
 MESSAGE_SIZE = Histogram(
     "queue_message_size_bytes",
     "Message size in bytes",
     ["queue", "operation"],
-    buckets=[100, 500, 1000, 5000, 10000, 50000, 100000, 500000, 1000000]
+    buckets=[100, 500, 1000, 5000, 10000, 50000, 100000, 500000, 1000000],
 )
 
 F = TypeVar("F", bound=Callable[..., Any])
@@ -48,27 +46,27 @@ _propagator = TraceContextTextMapPropagator()
 class MessageTracer:
     """
     Traces messages across queue systems.
-    
+
     Supports RabbitMQ, Kafka, and SQS with automatic trace context propagation.
     """
-    
+
     def __init__(self, queue_type: str = "rabbitmq"):
         """
         Initialize message tracer.
-        
+
         Args:
             queue_type: Type of queue system (rabbitmq, kafka, sqs)
         """
         self.queue_type = queue_type
         self.tracer = trace.get_tracer(__name__)
-    
-    def inject_context(self, headers: Optional[Dict[str, str]] = None) -> Dict[str, str]:
+
+    def inject_context(self, headers: dict[str, str] | None = None) -> dict[str, str]:
         """
         Inject trace context into message headers.
-        
+
         Args:
             headers: Existing headers dict (will be modified in place)
-            
+
         Returns:
             Headers dict with trace context
         """
@@ -76,32 +74,32 @@ class MessageTracer:
             headers = {}
         _propagator.inject(headers)
         return headers
-    
-    def extract_context(self, headers: Dict[str, str]) -> Optional[trace.SpanContext]:
+
+    def extract_context(self, headers: dict[str, str]) -> trace.SpanContext | None:
         """
         Extract trace context from message headers.
-        
+
         Args:
             headers: Message headers
-            
+
         Returns:
             Extracted span context or None
         """
         ctx = _propagator.extract(headers)
         return trace.get_current_span(ctx).get_span_context()
-    
+
     @contextmanager
     def trace_publish(
         self,
         queue: str,
-        exchange: Optional[str] = None,
-        routing_key: Optional[str] = None,
-        message_size: Optional[int] = None,
-        attributes: Optional[Dict[str, Any]] = None
+        exchange: str | None = None,
+        routing_key: str | None = None,
+        message_size: int | None = None,
+        attributes: dict[str, Any] | None = None,
     ):
         """
         Context manager for tracing message publishing.
-        
+
         Args:
             queue: Queue/topic name
             exchange: Exchange name (RabbitMQ)
@@ -120,14 +118,12 @@ class MessageTracer:
             span_attributes["messaging.rabbitmq.routing_key"] = routing_key
         if attributes:
             span_attributes.update(attributes)
-        
+
         start_time = time.time()
         status = "success"
-        
+
         with self.tracer.start_as_current_span(
-            f"publish {queue}",
-            kind=SpanKind.PRODUCER,
-            attributes=span_attributes
+            f"publish {queue}", kind=SpanKind.PRODUCER, attributes=span_attributes
         ) as span:
             try:
                 yield span
@@ -142,19 +138,19 @@ class MessageTracer:
                 MESSAGE_LATENCY.labels(queue=queue, operation="publish").observe(duration)
                 if message_size:
                     MESSAGE_SIZE.labels(queue=queue, operation="publish").observe(message_size)
-    
+
     @contextmanager
     def trace_consume(
         self,
         queue: str,
-        headers: Optional[Dict[str, str]] = None,
-        message_id: Optional[str] = None,
-        message_size: Optional[int] = None,
-        attributes: Optional[Dict[str, Any]] = None
+        headers: dict[str, str] | None = None,
+        message_id: str | None = None,
+        message_size: int | None = None,
+        attributes: dict[str, Any] | None = None,
     ):
         """
         Context manager for tracing message consumption.
-        
+
         Args:
             queue: Queue/topic name
             headers: Message headers (for trace context extraction)
@@ -166,7 +162,7 @@ class MessageTracer:
         ctx = None
         if headers:
             ctx = _propagator.extract(headers)
-        
+
         span_attributes = {
             "messaging.system": self.queue_type,
             "messaging.destination": queue,
@@ -176,15 +172,12 @@ class MessageTracer:
             span_attributes["messaging.message_id"] = message_id
         if attributes:
             span_attributes.update(attributes)
-        
+
         start_time = time.time()
         status = "success"
-        
+
         with self.tracer.start_as_current_span(
-            f"consume {queue}",
-            context=ctx,
-            kind=SpanKind.CONSUMER,
-            attributes=span_attributes
+            f"consume {queue}", context=ctx, kind=SpanKind.CONSUMER, attributes=span_attributes
         ) as span:
             try:
                 yield span
@@ -204,26 +197,26 @@ class MessageTracer:
 def traced_message_handler(
     queue: str,
     queue_type: str = "rabbitmq",
-    extract_headers: Optional[Callable[[Any], Dict[str, str]]] = None
+    extract_headers: Callable[[Any], dict[str, str]] | None = None,
 ) -> Callable[[F], F]:
     """
     Decorator for tracing message handlers.
-    
+
     Args:
         queue: Queue/topic name
         queue_type: Type of queue system
         extract_headers: Function to extract headers from message
-        
+
     Returns:
         Decorated function
-        
+
     Example:
         @traced_message_handler(queue="my_queue")
         async def handle_message(message):
             process(message)
     """
     tracer = MessageTracer(queue_type)
-    
+
     def decorator(func: F) -> F:
         @functools.wraps(func)
         async def async_wrapper(*args, **kwargs):
@@ -233,10 +226,10 @@ def traced_message_handler(
                     headers = extract_headers(args[0])
                 except Exception:
                     pass  # Header extraction failed - continue without trace context
-            
+
             with tracer.trace_consume(queue=queue, headers=headers):
                 return await func(*args, **kwargs)
-        
+
         @functools.wraps(func)
         def sync_wrapper(*args, **kwargs):
             headers = {}
@@ -245,36 +238,32 @@ def traced_message_handler(
                     headers = extract_headers(args[0])
                 except Exception:
                     pass  # Header extraction failed - continue without trace context
-            
+
             with tracer.trace_consume(queue=queue, headers=headers):
                 return func(*args, **kwargs)
-        
+
         import asyncio
+
         if asyncio.iscoroutinefunction(func):
             return async_wrapper  # type: ignore
         return sync_wrapper  # type: ignore
-    
+
     return decorator
 
 
 class TracedMessagePublisher:
     """
     Publisher with automatic trace context injection.
-    
+
     Example:
         publisher = TracedMessagePublisher(channel, exchange="my_exchange")
         await publisher.publish(routing_key="key", body={"data": "value"})
     """
-    
-    def __init__(
-        self,
-        channel: Any,
-        exchange: str = "",
-        queue_type: str = "rabbitmq"
-    ):
+
+    def __init__(self, channel: Any, exchange: str = "", queue_type: str = "rabbitmq"):
         """
         Initialize traced publisher.
-        
+
         Args:
             channel: Queue channel/connection
             exchange: Default exchange name
@@ -283,18 +272,18 @@ class TracedMessagePublisher:
         self.channel = channel
         self.exchange = exchange
         self.tracer = MessageTracer(queue_type)
-    
+
     async def publish(
         self,
         routing_key: str,
-        body: Union[dict, str, bytes],
-        exchange: Optional[str] = None,
-        headers: Optional[Dict[str, str]] = None,
-        **kwargs
+        body: dict | str | bytes,
+        exchange: str | None = None,
+        headers: dict[str, str] | None = None,
+        **kwargs,
     ):
         """
         Publish message with trace context.
-        
+
         Args:
             routing_key: Routing key
             body: Message body
@@ -304,10 +293,10 @@ class TracedMessagePublisher:
         """
         exchange = exchange or self.exchange
         headers = headers or {}
-        
+
         # Inject trace context
         self.tracer.inject_context(headers)
-        
+
         # Serialize body if needed
         if isinstance(body, dict):
             body_bytes = json.dumps(body).encode()
@@ -315,32 +304,32 @@ class TracedMessagePublisher:
             body_bytes = body.encode()
         else:
             body_bytes = body
-        
+
         with self.tracer.trace_publish(
             queue=routing_key,
             exchange=exchange,
             routing_key=routing_key,
-            message_size=len(body_bytes)
+            message_size=len(body_bytes),
         ):
             # Support both pika and aio_pika style
-            if hasattr(self.channel, 'basic_publish'):
+            if hasattr(self.channel, "basic_publish"):
                 # pika style
                 import pika
+
                 self.channel.basic_publish(
                     exchange=exchange,
                     routing_key=routing_key,
                     body=body_bytes,
                     properties=pika.BasicProperties(headers=headers),
-                    **kwargs
+                    **kwargs,
                 )
-            elif hasattr(self.channel, 'default_exchange'):
+            elif hasattr(self.channel, "default_exchange"):
                 # aio_pika style
                 import aio_pika
+
                 message = aio_pika.Message(body=body_bytes, headers=headers)
                 await self.channel.default_exchange.publish(
-                    message,
-                    routing_key=routing_key,
-                    **kwargs
+                    message, routing_key=routing_key, **kwargs
                 )
             else:
                 logger.warning("Unknown channel type, publishing without trace context")

@@ -171,6 +171,21 @@ obskit.metrics : Record health check metrics
 obskit.resilience : Circuit breakers for unhealthy dependencies
 """
 
+from obskit.health.aggregator import (
+    DEPENDENCY_CHECK_TOTAL,
+    DEPENDENCY_HEALTH,
+    DEPENDENCY_LATENCY,
+    OVERALL_HEALTH,
+    AggregatedHealth,
+    DependencyHealth,
+    DependencyHealthAggregator,
+    DependencyType,
+    HealthStatus,
+    check_http,
+    check_postgres,
+    check_rabbitmq,
+    check_redis,
+)
 from obskit.health.checker import (
     HealthCheck,
     HealthChecker,
@@ -188,31 +203,16 @@ from obskit.health.checks import (
     create_redis_cluster_check,
 )
 from obskit.health.server import (
-    start_health_server,
-    stop_health_server,
-    register_health_endpoint,
     get_health_server,
     is_health_server_running,
+    register_health_endpoint,
+    start_health_server,
+    stop_health_server,
 )
 from obskit.health.slo_check import (
+    SLOReadinessCheck,
     add_slo_readiness_check,
     get_slo_health_status,
-    SLOReadinessCheck,
-)
-from obskit.health.aggregator import (
-    DependencyHealthAggregator,
-    DependencyHealth,
-    AggregatedHealth,
-    HealthStatus,
-    DependencyType,
-    check_postgres,
-    check_redis,
-    check_rabbitmq,
-    check_http,
-    DEPENDENCY_HEALTH,
-    DEPENDENCY_LATENCY,
-    DEPENDENCY_CHECK_TOTAL,
-    OVERALL_HEALTH,
 )
 
 __all__ = [

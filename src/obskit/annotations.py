@@ -4,12 +4,10 @@ Alert Annotations and Grafana Integration.
 Programmatic annotations for Grafana dashboards.
 """
 
-import json
 import time
 from dataclasses import dataclass, field
-from datetime import datetime
 from enum import Enum
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from .logging import get_logger
 
@@ -18,6 +16,7 @@ logger = get_logger(__name__)
 
 class AnnotationType(Enum):
     """Types of annotations."""
+
     DEPLOYMENT = "deployment"
     INCIDENT = "incident"
     FEATURE_FLAG = "feature_flag"
@@ -28,6 +27,7 @@ class AnnotationType(Enum):
 
 class AnnotationSeverity(Enum):
     """Severity levels for annotations."""
+
     INFO = "info"
     WARNING = "warning"
     ERROR = "error"
@@ -37,20 +37,21 @@ class AnnotationSeverity(Enum):
 @dataclass
 class Annotation:
     """Represents a Grafana annotation."""
+
     text: str
-    tags: List[str] = field(default_factory=list)
+    tags: list[str] = field(default_factory=list)
     time: int = 0  # Unix timestamp in milliseconds
-    time_end: Optional[int] = None  # For range annotations
+    time_end: int | None = None  # For range annotations
     annotation_type: AnnotationType = AnnotationType.CUSTOM
     severity: AnnotationSeverity = AnnotationSeverity.INFO
-    dashboard_uid: Optional[str] = None
-    panel_id: Optional[int] = None
-    
+    dashboard_uid: str | None = None
+    panel_id: int | None = None
+
     def __post_init__(self):
         if self.time == 0:
             self.time = int(time.time() * 1000)
-    
-    def to_grafana_format(self) -> Dict[str, Any]:
+
+    def to_grafana_format(self) -> dict[str, Any]:
         """Convert to Grafana API format."""
         data = {
             "text": self.text,
@@ -69,34 +70,34 @@ class Annotation:
 class GrafanaAnnotator:
     """
     Creates annotations in Grafana.
-    
+
     Example:
         annotator = GrafanaAnnotator(
             grafana_url="http://grafana:3000",
             api_key="your-api-key"
         )
-        
+
         # Mark deployment
         annotator.mark_deployment(version="1.2.3", environment="production")
-        
+
         # Mark incident
         annotator.mark_incident(title="High error rate", severity="warning")
-        
+
         # Mark feature toggle
         annotator.mark_feature_toggle(feature="new_widget", enabled=True)
     """
-    
+
     def __init__(
         self,
         grafana_url: str,
-        api_key: Optional[str] = None,
-        default_tags: Optional[List[str]] = None,
-        default_dashboard_uid: Optional[str] = None,
-        dry_run: bool = False
+        api_key: str | None = None,
+        default_tags: list[str] | None = None,
+        default_dashboard_uid: str | None = None,
+        dry_run: bool = False,
     ):
         """
         Initialize Grafana annotator.
-        
+
         Args:
             grafana_url: Grafana base URL
             api_key: Grafana API key
@@ -109,11 +110,11 @@ class GrafanaAnnotator:
         self.default_tags = default_tags or []
         self.default_dashboard_uid = default_dashboard_uid
         self.dry_run = dry_run
-        
+
         # Store annotations locally for dry run or when Grafana unavailable
-        self._local_annotations: List[Annotation] = []
-    
-    def _create_annotation(self, annotation: Annotation) -> Optional[Dict[str, Any]]:
+        self._local_annotations: list[Annotation] = []
+
+    def _create_annotation(self, annotation: Annotation) -> dict[str, Any] | None:
         """Create annotation in Grafana."""
         if self.dry_run:
             self._local_annotations.append(annotation)
@@ -121,69 +122,62 @@ class GrafanaAnnotator:
                 "annotation_created_dry_run",
                 text=annotation.text,
                 tags=annotation.tags,
-                type=annotation.annotation_type.value
+                type=annotation.annotation_type.value,
             )
             return annotation.to_grafana_format()
-        
+
         try:
             import requests
-            
+
             headers = {
                 "Content-Type": "application/json",
             }
             if self.api_key:
                 headers["Authorization"] = f"Bearer {self.api_key}"
-            
+
             data = annotation.to_grafana_format()
-            
+
             response = requests.post(
-                f"{self.grafana_url}/api/annotations",
-                headers=headers,
-                json=data,
-                timeout=10
+                f"{self.grafana_url}/api/annotations", headers=headers, json=data, timeout=10
             )
-            
+
             if response.status_code in (200, 201):
                 result = response.json()
                 logger.info(
                     "annotation_created",
                     annotation_id=result.get("id"),
                     text=annotation.text,
-                    type=annotation.annotation_type.value
+                    type=annotation.annotation_type.value,
                 )
                 return result
             else:
                 logger.warning(
                     "annotation_creation_failed",
                     status_code=response.status_code,
-                    response=response.text
+                    response=response.text,
                 )
                 # Store locally as fallback
                 self._local_annotations.append(annotation)
                 return None
-                
+
         except Exception as e:
-            logger.warning(
-                "annotation_creation_error",
-                error=str(e),
-                text=annotation.text
-            )
+            logger.warning("annotation_creation_error", error=str(e), text=annotation.text)
             self._local_annotations.append(annotation)
             return None
-    
+
     def annotate(
         self,
         text: str,
-        tags: Optional[List[str]] = None,
+        tags: list[str] | None = None,
         annotation_type: AnnotationType = AnnotationType.CUSTOM,
         severity: AnnotationSeverity = AnnotationSeverity.INFO,
-        duration_minutes: Optional[float] = None,
-        dashboard_uid: Optional[str] = None,
-        panel_id: Optional[int] = None
-    ) -> Optional[Dict[str, Any]]:
+        duration_minutes: float | None = None,
+        dashboard_uid: str | None = None,
+        panel_id: int | None = None,
+    ) -> dict[str, Any] | None:
         """
         Create a custom annotation.
-        
+
         Args:
             text: Annotation text
             tags: Additional tags
@@ -192,38 +186,38 @@ class GrafanaAnnotator:
             duration_minutes: Duration for range annotation
             dashboard_uid: Target dashboard UID
             panel_id: Target panel ID
-            
+
         Returns:
             Created annotation or None
         """
         all_tags = self.default_tags + (tags or [])
-        
+
         annotation = Annotation(
             text=text,
             tags=all_tags,
             annotation_type=annotation_type,
             severity=severity,
             dashboard_uid=dashboard_uid or self.default_dashboard_uid,
-            panel_id=panel_id
+            panel_id=panel_id,
         )
-        
+
         if duration_minutes:
             annotation.time_end = annotation.time + int(duration_minutes * 60 * 1000)
-        
+
         return self._create_annotation(annotation)
-    
+
     def mark_deployment(
         self,
         version: str,
         environment: str = "production",
-        service: Optional[str] = None,
-        commit_sha: Optional[str] = None,
-        deployed_by: Optional[str] = None,
-        **extra
-    ) -> Optional[Dict[str, Any]]:
+        service: str | None = None,
+        commit_sha: str | None = None,
+        deployed_by: str | None = None,
+        **extra,
+    ) -> dict[str, Any] | None:
         """
         Mark a deployment.
-        
+
         Args:
             version: Version being deployed
             environment: Target environment
@@ -242,31 +236,31 @@ class GrafanaAnnotator:
             parts.append(f"By: {deployed_by}")
         for k, v in extra.items():
             parts.append(f"{k}: {v}")
-        
+
         text = " | ".join(parts)
         tags = ["deployment", environment, version]
         if service:
             tags.append(service)
-        
+
         return self.annotate(
             text=text,
             tags=tags,
             annotation_type=AnnotationType.DEPLOYMENT,
-            severity=AnnotationSeverity.INFO
+            severity=AnnotationSeverity.INFO,
         )
-    
+
     def mark_incident(
         self,
         title: str,
         severity: str = "warning",
-        description: Optional[str] = None,
-        affected_services: Optional[List[str]] = None,
-        incident_id: Optional[str] = None,
-        **extra
-    ) -> Optional[Dict[str, Any]]:
+        description: str | None = None,
+        affected_services: list[str] | None = None,
+        incident_id: str | None = None,
+        **extra,
+    ) -> dict[str, Any] | None:
         """
         Mark an incident.
-        
+
         Args:
             title: Incident title
             severity: Severity level (info, warning, error, critical)
@@ -275,13 +269,8 @@ class GrafanaAnnotator:
             incident_id: Incident ID
             **extra: Additional metadata
         """
-        emoji = {
-            "info": "ℹ️",
-            "warning": "⚠️",
-            "error": "❌",
-            "critical": "🔥"
-        }.get(severity, "⚠️")
-        
+        emoji = {"info": "ℹ️", "warning": "⚠️", "error": "❌", "critical": "🔥"}.get(severity, "⚠️")
+
         parts = [f"{emoji} Incident: {title}"]
         if incident_id:
             parts.append(f"ID: {incident_id}")
@@ -291,26 +280,26 @@ class GrafanaAnnotator:
             parts.append(f"Affected: {', '.join(affected_services)}")
         for k, v in extra.items():
             parts.append(f"{k}: {v}")
-        
+
         text = " | ".join(parts)
         tags = ["incident", severity]
         if affected_services:
             tags.extend(affected_services)
-        
+
         return self.annotate(
             text=text,
             tags=tags,
             annotation_type=AnnotationType.INCIDENT,
-            severity=AnnotationSeverity(severity)
+            severity=AnnotationSeverity(severity),
         )
-    
+
     def mark_incident_resolved(
         self,
         title: str,
-        duration_minutes: Optional[float] = None,
-        resolution: Optional[str] = None,
-        **extra
-    ) -> Optional[Dict[str, Any]]:
+        duration_minutes: float | None = None,
+        resolution: str | None = None,
+        **extra,
+    ) -> dict[str, Any] | None:
         """Mark an incident as resolved."""
         parts = [f"✅ Resolved: {title}"]
         if duration_minutes:
@@ -319,28 +308,28 @@ class GrafanaAnnotator:
             parts.append(f"Resolution: {resolution}")
         for k, v in extra.items():
             parts.append(f"{k}: {v}")
-        
+
         text = " | ".join(parts)
         tags = ["incident", "resolved"]
-        
+
         return self.annotate(
             text=text,
             tags=tags,
             annotation_type=AnnotationType.INCIDENT,
-            severity=AnnotationSeverity.INFO
+            severity=AnnotationSeverity.INFO,
         )
-    
+
     def mark_feature_toggle(
         self,
         feature: str,
         enabled: bool,
-        percentage: Optional[float] = None,
-        affected_users: Optional[str] = None,
-        **extra
-    ) -> Optional[Dict[str, Any]]:
+        percentage: float | None = None,
+        affected_users: str | None = None,
+        **extra,
+    ) -> dict[str, Any] | None:
         """
         Mark a feature flag change.
-        
+
         Args:
             feature: Feature name
             enabled: Whether feature is enabled
@@ -350,7 +339,7 @@ class GrafanaAnnotator:
         """
         emoji = "🟢" if enabled else "🔴"
         status = "enabled" if enabled else "disabled"
-        
+
         parts = [f"{emoji} Feature: {feature} {status}"]
         if percentage is not None:
             parts.append(f"Rollout: {percentage}%")
@@ -358,27 +347,27 @@ class GrafanaAnnotator:
             parts.append(f"Users: {affected_users}")
         for k, v in extra.items():
             parts.append(f"{k}: {v}")
-        
+
         text = " | ".join(parts)
         tags = ["feature_flag", feature, status]
-        
+
         return self.annotate(
             text=text,
             tags=tags,
             annotation_type=AnnotationType.FEATURE_FLAG,
-            severity=AnnotationSeverity.INFO
+            severity=AnnotationSeverity.INFO,
         )
-    
+
     def mark_maintenance(
         self,
         title: str,
         duration_minutes: float,
-        affected_services: Optional[List[str]] = None,
-        **extra
-    ) -> Optional[Dict[str, Any]]:
+        affected_services: list[str] | None = None,
+        **extra,
+    ) -> dict[str, Any] | None:
         """
         Mark a maintenance window.
-        
+
         Args:
             title: Maintenance title
             duration_minutes: Expected duration
@@ -391,32 +380,32 @@ class GrafanaAnnotator:
             parts.append(f"Affected: {', '.join(affected_services)}")
         for k, v in extra.items():
             parts.append(f"{k}: {v}")
-        
+
         text = " | ".join(parts)
         tags = ["maintenance"]
         if affected_services:
             tags.extend(affected_services)
-        
+
         return self.annotate(
             text=text,
             tags=tags,
             annotation_type=AnnotationType.MAINTENANCE,
             severity=AnnotationSeverity.WARNING,
-            duration_minutes=duration_minutes
+            duration_minutes=duration_minutes,
         )
-    
+
     def mark_alert(
         self,
         alert_name: str,
         status: str = "firing",
         severity: str = "warning",
-        value: Optional[float] = None,
-        threshold: Optional[float] = None,
-        **extra
-    ) -> Optional[Dict[str, Any]]:
+        value: float | None = None,
+        threshold: float | None = None,
+        **extra,
+    ) -> dict[str, Any] | None:
         """
         Mark an alert event.
-        
+
         Args:
             alert_name: Alert name
             status: Alert status (firing, resolved)
@@ -426,7 +415,7 @@ class GrafanaAnnotator:
             **extra: Additional metadata
         """
         emoji = "🔔" if status == "firing" else "✅"
-        
+
         parts = [f"{emoji} Alert: {alert_name} ({status})"]
         if value is not None:
             parts.append(f"Value: {value}")
@@ -434,34 +423,32 @@ class GrafanaAnnotator:
             parts.append(f"Threshold: {threshold}")
         for k, v in extra.items():
             parts.append(f"{k}: {v}")
-        
+
         text = " | ".join(parts)
         tags = ["alert", alert_name, status, severity]
-        
+
         return self.annotate(
             text=text,
             tags=tags,
             annotation_type=AnnotationType.ALERT,
-            severity=AnnotationSeverity(severity)
+            severity=AnnotationSeverity(severity),
         )
-    
-    def get_local_annotations(self) -> List[Annotation]:
+
+    def get_local_annotations(self) -> list[Annotation]:
         """Get locally stored annotations (for dry run or fallback)."""
         return self._local_annotations.copy()
-    
+
     def clear_local_annotations(self):
         """Clear locally stored annotations."""
         self._local_annotations.clear()
 
 
 # Global annotator instance
-_annotator: Optional[GrafanaAnnotator] = None
+_annotator: GrafanaAnnotator | None = None
 
 
 def configure_annotator(
-    grafana_url: str,
-    api_key: Optional[str] = None,
-    **kwargs
+    grafana_url: str, api_key: str | None = None, **kwargs
 ) -> GrafanaAnnotator:
     """Configure the global annotator."""
     global _annotator
@@ -469,7 +456,7 @@ def configure_annotator(
     return _annotator
 
 
-def get_annotator() -> Optional[GrafanaAnnotator]:
+def get_annotator() -> GrafanaAnnotator | None:
     """Get the global annotator."""
     return _annotator
 

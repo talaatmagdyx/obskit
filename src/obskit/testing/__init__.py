@@ -31,17 +31,17 @@ Example
 ...         self.mock_metrics.assert_request_recorded("create_order")
 """
 
-from obskit.testing.mocks import (
-    MockMetrics,
-    MockTracer,
-    MockSLOTracker,
-    MockHealthChecker,
-    MockCircuitBreaker,
-)
 from obskit.testing.context import (
+    ObskitTestContext,
     disable_observability,
     mock_observability,
-    ObskitTestContext,
+)
+from obskit.testing.mocks import (
+    MockCircuitBreaker,
+    MockHealthChecker,
+    MockMetrics,
+    MockSLOTracker,
+    MockTracer,
 )
 from obskit.testing.testcase import ObskitTestCase
 
