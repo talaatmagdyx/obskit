@@ -73,11 +73,12 @@ class TestConfigureLogging:
 
     def test_configure_sets_flag(self):
         """Test configure_logging sets the configured flag."""
-        import obskit.logging.logger as logger_module
+        # Access module internals through direct import to check flag
+        import obskit.logging.logger as logging_module
 
-        assert logger_module._logging_configured is False
-        configure_logging()
-        assert logger_module._logging_configured is True
+        assert logging_module._logging_configured is False
+        logging_module.configure_logging()
+        assert logging_module._logging_configured is True
 
 
 class TestResetLogging:
