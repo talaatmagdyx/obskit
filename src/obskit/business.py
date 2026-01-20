@@ -5,11 +5,10 @@ Provides utilities for tracking business KPIs alongside technical metrics.
 """
 
 import time
-from collections.abc import Callable
 from contextlib import contextmanager
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Any, TypeVar
+from typing import Any
 
 from prometheus_client import Counter, Gauge, Histogram
 
@@ -48,8 +47,6 @@ ACTIVE_USERS = Gauge(
 FEATURE_USAGE = Counter(
     "business_feature_usage_total", "Feature usage count", ["service", "feature", "tenant_id"]
 )
-
-F = TypeVar("F", bound=Callable[..., Any])
 
 
 @dataclass

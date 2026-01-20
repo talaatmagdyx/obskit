@@ -14,10 +14,6 @@ from typing import Any, TypeVar
 
 from prometheus_client import Counter, Gauge, Histogram
 
-from .logging import get_logger
-
-logger = get_logger(__name__)
-
 # Metrics
 COST_CPU_TIME = Counter(
     "cost_cpu_time_seconds_total", "CPU time consumed", ["service", "tenant_id", "operation"]

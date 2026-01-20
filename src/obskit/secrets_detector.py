@@ -24,13 +24,14 @@ Example:
     safe_text = detector.redact("password=mypassword123")
 """
 
+from __future__ import annotations
+
 import re
 import threading
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
-from re import Pattern
 from typing import Any
 
 from prometheus_client import Counter
@@ -81,7 +82,7 @@ class SecretPattern:
 
     name: str
     secret_type: SecretType
-    pattern: Pattern
+    pattern: re.Pattern[str]
     severity: str = "high"
     redact_with: str = "[REDACTED]"
 

@@ -214,6 +214,7 @@ from obskit._version import __version__, __version_info__
 # =============================================================================
 from obskit.adaptive_sampling import (
     AdaptiveSampler,
+    SamplingConfig,
     SamplingStats,
     get_adaptive_sampler,
 )
@@ -273,6 +274,7 @@ from obskit.annotations import (
 from obskit.audit import (
     AuditAction,
     AuditEntry,
+    AuditResult,
     AuditTrail,
     get_audit_trail,
 )
@@ -435,6 +437,36 @@ from obskit.core.batch_context import (
 )
 
 # =============================================================================
+# Deprecation Utilities
+# =============================================================================
+from obskit.core.deprecation import (
+    ObskitDeprecationWarning,
+    deprecated,
+    deprecated_class,
+    deprecated_parameter,
+    warn_deprecated,
+)
+
+# =============================================================================
+# Structured Errors
+# =============================================================================
+from obskit.core.errors import (
+    CircuitBreakerError,
+    CircuitOpenError,
+    ConfigFileNotFoundError,
+    ConfigurationError,
+    ConfigValidationError,
+    HealthCheckError,
+    MetricsError,
+    ObskitError,
+    RateLimitError,
+    RateLimitExceeded,
+    RetryError,
+    SLOError,
+    TracingError,
+)
+
+# =============================================================================
 # Correlation ID Manager
 # =============================================================================
 from obskit.correlation import (
@@ -506,6 +538,7 @@ from obskit.degradation import (
 from obskit.dependency_graph import (
     DependencyGraph,
     DependencyNode,
+    DependencyType,
     GraphVisualization,
     get_dependency_graph,
 )
