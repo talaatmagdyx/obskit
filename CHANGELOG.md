@@ -5,6 +5,28 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.2] - 2026-01-20
+
+### Fixed
+
+- **CodeQL Alerts Resolution**
+  - Fixed variable redefinition in `root_cause.py` by refactoring to single-assignment pattern
+  - Removed unused `_logger` imports in `correlation.py`, `cost.py`, and `errors/responses.py`
+  - Removed unused `TYPE_CHECKING` and `CollectorRegistry` imports in `metrics/types.py`
+  - Standardized import patterns in test files to avoid import/from-import mixing
+  - Fixed Django version check in `test_django.py` to avoid unused variable warnings
+
+- **Import Consistency**
+  - `test_self_metrics.py`: Use consistent module import pattern
+  - `test_rate_limiter.py`: Use consistent module import pattern
+  - `test_logger.py`: Use consistent module import pattern
+
+## [1.3.1] - 2026-01-20
+
+### Fixed
+
+- Minor bug fixes and code quality improvements
+
 ## [1.3.0] - 2026-01-19
 
 ### 🚀 Major Release - 39 New Features!
