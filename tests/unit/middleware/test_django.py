@@ -9,7 +9,7 @@ try:
     import django
 
     # Verify Django is properly installed by accessing version
-    _django_version = django.__version__  # noqa: F841
+    assert django.__version__  # nosec - version check, not security assertion
     from django.conf import settings as django_settings
 
     if not django_settings.configured:
