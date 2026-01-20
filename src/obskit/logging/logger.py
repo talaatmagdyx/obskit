@@ -103,10 +103,16 @@ def sample_log(
     if method_name in ("error", "critical", "exception"):
         return event_dict
 
+    # Handle settings attributes that might not exist during circular imports
+    try:
+        sample_rate = settings.log_sample_rate
+    except AttributeError:
+        sample_rate = 1.0  # Default: no sampling
+
     # Apply sampling for other log levels
     # nosec B311 - random is used for log sampling, not security
     if (
-        settings.log_sample_rate < 1.0 and random.random() > settings.log_sample_rate  # nosec B311
+        sample_rate < 1.0 and random.random() > sample_rate  # nosec B311
     ):  # pragma: no branch
         return None  # Drop this log entry  # pragma: no cover
 
@@ -180,9 +186,21 @@ def add_service_info(
     """
     settings = get_settings()
 
-    event_dict["service"] = settings.service_name
-    event_dict["environment"] = settings.environment
-    event_dict["version"] = settings.version
+    # Handle settings attributes that might not exist during circular imports
+    try:
+        event_dict["service"] = settings.service_name
+    except AttributeError:
+        event_dict["service"] = "unknown"
+
+    try:
+        event_dict["environment"] = settings.environment
+    except AttributeError:
+        event_dict["environment"] = "development"
+
+    try:
+        event_dict["version"] = settings.version
+    except AttributeError:
+        event_dict["version"] = "0.0.0"
 
     return event_dict
 
@@ -255,6 +273,23 @@ def configure_logging() -> None:
 
     settings = get_settings()
 
+    # Handle settings attributes that might not exist during circular imports
+    # (this can happen when modules are being loaded)
+    try:
+        include_timestamp = settings.log_include_timestamp
+    except AttributeError:
+        include_timestamp = True  # Default value
+
+    try:
+        log_format = settings.log_format
+    except AttributeError:
+        log_format = "json"  # Default value
+
+    try:
+        log_level = settings.log_level.upper()
+    except AttributeError:
+        log_level = "INFO"  # Default value
+
     # =================================================================
     # Build processor chain
     # =================================================================
@@ -273,7 +308,7 @@ def configure_logging() -> None:
         structlog.processors.format_exc_info,
         # Add timestamp if enabled
         *(
-            [structlog.processors.TimeStamper(fmt="iso")] if settings.log_include_timestamp else []
+            [structlog.processors.TimeStamper(fmt="iso")] if include_timestamp else []
         ),  # pragma: no branch
         # Stack info for exceptions
         structlog.processors.StackInfoRenderer(),
@@ -284,7 +319,7 @@ def configure_logging() -> None:
     # =================================================================
     # Add format-specific final processor
     # =================================================================
-    if settings.log_format == "json":
+    if log_format == "json":
         # JSON format for production/log aggregation
         processors.append(structlog.processors.JSONRenderer())
     else:  # pragma: no cover
@@ -297,7 +332,7 @@ def configure_logging() -> None:
     structlog.configure(
         processors=processors,
         wrapper_class=structlog.make_filtering_bound_logger(
-            getattr(logging, settings.log_level.upper())
+            getattr(logging, log_level)
         ),
         context_class=dict,
         logger_factory=structlog.PrintLoggerFactory(),
@@ -310,7 +345,7 @@ def configure_logging() -> None:
     logging.basicConfig(
         format="%(message)s",
         stream=sys.stdout,
-        level=getattr(logging, settings.log_level.upper()),
+        level=getattr(logging, log_level),
     )
 
     _logging_configured = True

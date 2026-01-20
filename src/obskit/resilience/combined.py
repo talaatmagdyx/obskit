@@ -37,7 +37,7 @@ from functools import wraps
 from typing import TypeVar
 
 from obskit.logging import get_logger
-from obskit.resilience import CircuitBreaker
+from obskit.resilience.circuit_breaker import CircuitBreaker, CircuitOpenError
 from obskit.resilience.factory import CircuitBreakerPreset, get_circuit_breaker
 
 logger = get_logger("obskit.resilience.combined")

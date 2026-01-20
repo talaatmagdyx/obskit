@@ -5,6 +5,33 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.3] - 2026-01-20
+
+### Fixed
+
+- **Critical: Circular Import Bug in obskit.resilience**
+  - Fixed circular import that prevented `from obskit.resilience import ...` from working
+  - Root cause: `combined.py` and `factory.py` imported from `obskit.resilience` package instead of specific modules
+  - Fix: Changed to direct imports from `obskit.resilience.circuit_breaker` and `obskit.resilience.rate_limiter`
+
+- **Critical: ObskitSettings Class Indentation Bug**
+  - Fixed class body being defined at module level instead of inside the class
+  - This caused `model_fields` to be empty and all settings to fail validation
+  - Fix: Corrected indentation of entire class body (lines 234-683)
+
+- **Circular Import Handling in Logging**
+  - Added defensive `try/except` for settings access during circular imports
+  - Affected: `configure_logging()`, `add_service_info()`, `sample_log()` processors
+  - Uses sensible defaults when settings attributes unavailable during import
+
+- **MetricsMethod Import Cycle**
+  - Moved `MetricsMethod` enum definition directly into `config.py`
+  - Prevents import cycle: `config.py` → `obskit.core.types` → `obskit/__init__.py` → `config.py`
+
+- **Flask Middleware Lazy Initialization**
+  - Changed `obskit_flask` singleton to lazy initialization via `get_obskit_flask()`
+  - Prevents settings access during module import
+
 ## [1.3.2] - 2026-01-20
 
 ### Fixed
