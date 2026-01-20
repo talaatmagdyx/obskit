@@ -348,6 +348,7 @@ from obskit.capacity import (
     CapacityPlan,
     CapacityPlanner,
     CapacityProjection,
+    Resource,
     get_capacity_planner,
 )
 from obskit.capacity import (
@@ -400,6 +401,7 @@ from obskit.compliance_reporter import (
 # Configuration
 # =============================================================================
 from obskit.config import configure, get_settings, validate_config
+from obskit.config_file import configure_from_file
 
 # =============================================================================
 # Consumer Lag Tracking (NEW v1.2)
