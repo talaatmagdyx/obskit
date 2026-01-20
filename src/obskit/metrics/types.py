@@ -74,19 +74,18 @@ obskit.metrics.golden : Four Golden Signals implementation
 from __future__ import annotations
 
 from collections.abc import Sequence
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
 # Check if prometheus_client is available
 try:
     import prometheus_client
+    from prometheus_client import CollectorRegistry
 
     PROMETHEUS_AVAILABLE = True
-    if TYPE_CHECKING:
-        # Only import for type checking - used in docstring type annotations
-        from prometheus_client import CollectorRegistry
 except ImportError:  # pragma: no cover
     PROMETHEUS_AVAILABLE = False
-    CollectorRegistry = None  # type: ignore[assignment]
+    CollectorRegistry = None  # type: ignore[assignment, misc]
+    prometheus_client = None  # type: ignore[assignment]
 
 
 class Counter:
