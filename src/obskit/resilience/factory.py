@@ -31,72 +31,71 @@ from __future__ import annotations
 
 import threading
 from enum import Enum
-from typing import Dict, Optional
 
-from obskit.resilience import CircuitBreaker, TokenBucketRateLimiter, RateLimiter
 from obskit.logging import get_logger
+from obskit.resilience import CircuitBreaker, RateLimiter, TokenBucketRateLimiter
 
 logger = get_logger("obskit.resilience.factory")
 
 # Global registries
-_circuit_breakers: Dict[str, CircuitBreaker] = {}
+_circuit_breakers: dict[str, CircuitBreaker] = {}
 _circuit_breaker_lock = threading.Lock()
-_rate_limiters: Dict[str, RateLimiter] = {}
+_rate_limiters: dict[str, RateLimiter] = {}
 _rate_limiter_lock = threading.Lock()
 
 
 class CircuitBreakerPreset(Enum):
     """Pre-configured circuit breaker settings for common use cases."""
-    
+
     # Database connections - fail fast, recover quickly
     DATABASE = {
         "failure_threshold": 3,
         "recovery_timeout": 15.0,
         "half_open_requests": 1,
     }
-    
+
     # Cache (Redis, Memcached) - tolerant, quick recovery
     CACHE = {
         "failure_threshold": 5,
         "recovery_timeout": 10.0,
         "half_open_requests": 2,
     }
-    
+
     # External APIs - less tolerant, longer recovery
     EXTERNAL_API = {
         "failure_threshold": 3,
         "recovery_timeout": 60.0,
         "half_open_requests": 1,
     }
-    
+
     # Internal microservices - balanced
     MICROSERVICE = {
         "failure_threshold": 5,
         "recovery_timeout": 30.0,
         "half_open_requests": 2,
     }
-    
+
     # Search engines (Elasticsearch, Solr)
     SEARCH = {
         "failure_threshold": 5,
         "recovery_timeout": 30.0,
         "half_open_requests": 1,
     }
-    
+
     # Message queues (RabbitMQ, Kafka)
     MESSAGE_QUEUE = {
         "failure_threshold": 3,
         "recovery_timeout": 20.0,
         "half_open_requests": 1,
     }
-    
+
     # AI/ML APIs - external, slow, expensive
     AI_API = {
         "failure_threshold": 3,
         "recovery_timeout": 120.0,
         "half_open_requests": 1,
     }
-    
+
     # Default balanced settings
     DEFAULT = {
         "failure_threshold": 5,
@@ -107,37 +106,37 @@ class CircuitBreakerPreset(Enum):
 
 class RateLimiterPreset(Enum):
     """Pre-configured rate limiter settings for common use cases."""
-    
+
     # High throughput internal operations
     HIGH_THROUGHPUT = {
         "requests_per_minute": 10000,
     }
-    
+
     # Standard API endpoints
     STANDARD_API = {
         "requests_per_minute": 1000,
     }
-    
+
     # Database queries
     DATABASE = {
         "requests_per_minute": 500,
     }
-    
+
     # External API calls (rate limited by provider)
     EXTERNAL_API = {
         "requests_per_minute": 100,
     }
-    
+
     # AI/ML API calls (expensive, rate limited)
     AI_API = {
         "requests_per_minute": 60,
     }
-    
+
     # Webhook/notification sending
     NOTIFICATION = {
         "requests_per_minute": 200,
     }
-    
+
     # Default moderate rate
     DEFAULT = {
         "requests_per_minute": 500,
@@ -146,14 +145,14 @@ class RateLimiterPreset(Enum):
 
 def get_circuit_breaker(
     name: str,
-    preset: Optional[CircuitBreakerPreset] = None,
-    failure_threshold: Optional[int] = None,
-    recovery_timeout: Optional[float] = None,
-    half_open_requests: Optional[int] = None,
+    preset: CircuitBreakerPreset | None = None,
+    failure_threshold: int | None = None,
+    recovery_timeout: float | None = None,
+    half_open_requests: int | None = None,
 ) -> CircuitBreaker:
     """
     Get or create a circuit breaker with optional preset configuration.
-    
+
     Parameters
     ----------
     name : str
@@ -166,17 +165,17 @@ def get_circuit_breaker(
         Override seconds before trying recovery.
     half_open_requests : int, optional
         Override requests allowed in half-open state.
-        
+
     Returns
     -------
     CircuitBreaker
         Circuit breaker instance (cached by name).
-        
+
     Example
     -------
     >>> # Use preset
     >>> db_breaker = get_circuit_breaker("postgres", preset=CircuitBreakerPreset.DATABASE)
-    >>> 
+    >>>
     >>> # Custom settings
     >>> custom = get_circuit_breaker("custom", failure_threshold=10, recovery_timeout=60)
     >>>
@@ -192,7 +191,7 @@ def get_circuit_breaker(
                     config = preset.value.copy()
                 else:
                     config = CircuitBreakerPreset.DEFAULT.value.copy()
-                
+
                 # Override with explicit parameters
                 if failure_threshold is not None:
                     config["failure_threshold"] = failure_threshold
@@ -200,30 +199,30 @@ def get_circuit_breaker(
                     config["recovery_timeout"] = recovery_timeout
                 if half_open_requests is not None:
                     config["half_open_requests"] = half_open_requests
-                
+
                 _circuit_breakers[name] = CircuitBreaker(
                     name=name,
                     **config,
                 )
-                
+
                 logger.info(
                     "circuit_breaker_created",
                     name=name,
                     preset=preset.name if preset else "custom",
                     **config,
                 )
-    
+
     return _circuit_breakers[name]
 
 
 def get_rate_limiter(
     name: str,
-    preset: Optional[RateLimiterPreset] = None,
-    requests_per_minute: Optional[int] = None,
+    preset: RateLimiterPreset | None = None,
+    requests_per_minute: int | None = None,
 ) -> RateLimiter:
     """
     Get or create a rate limiter with optional preset configuration.
-    
+
     Parameters
     ----------
     name : str
@@ -232,12 +231,12 @@ def get_rate_limiter(
         Pre-configured settings to use.
     requests_per_minute : int, optional
         Override maximum requests per minute.
-        
+
     Returns
     -------
     RateLimiter
         Rate limiter instance (cached by name).
-        
+
     Example
     -------
     >>> # Use preset
@@ -258,36 +257,36 @@ def get_rate_limiter(
                     config = preset.value.copy()
                 else:
                     config = RateLimiterPreset.DEFAULT.value.copy()
-                
+
                 # Override with explicit parameters
                 if requests_per_minute is not None:
                     config["requests_per_minute"] = requests_per_minute
-                
+
                 rpm = config["requests_per_minute"]
                 _rate_limiters[name] = TokenBucketRateLimiter(
                     bucket_size=rpm,  # Max burst capacity
                     refill_rate=rpm / 60.0,  # Tokens per second
                 )
-                
+
                 logger.info(
                     "rate_limiter_created",
                     name=name,
                     preset=preset.name if preset else "custom",
                     requests_per_minute=rpm,
                 )
-    
+
     return _rate_limiters[name]
 
 
 def reset_circuit_breaker(name: str) -> bool:
     """
     Reset a circuit breaker to closed state.
-    
+
     Parameters
     ----------
     name : str
         Name of the circuit breaker.
-        
+
     Returns
     -------
     bool
@@ -303,15 +302,15 @@ def reset_circuit_breaker(name: str) -> bool:
     return False
 
 
-def get_circuit_breaker_status(name: str) -> Optional[Dict]:
+def get_circuit_breaker_status(name: str) -> dict | None:
     """
     Get status of a circuit breaker.
-    
+
     Parameters
     ----------
     name : str
         Name of the circuit breaker.
-        
+
     Returns
     -------
     dict or None
@@ -321,22 +320,19 @@ def get_circuit_breaker_status(name: str) -> Optional[Dict]:
         cb = _circuit_breakers[name]
         return {
             "name": name,
-            "state": cb.state.name if hasattr(cb, 'state') else "unknown",
-            "failure_count": getattr(cb, 'failure_count', 0),
-            "success_count": getattr(cb, 'success_count', 0),
+            "state": cb.state.name if hasattr(cb, "state") else "unknown",
+            "failure_count": getattr(cb, "failure_count", 0),
+            "success_count": getattr(cb, "success_count", 0),
         }
     return None
 
 
-def list_circuit_breakers() -> Dict[str, Dict]:
+def list_circuit_breakers() -> dict[str, dict]:
     """List all registered circuit breakers with their status."""
-    return {
-        name: get_circuit_breaker_status(name)
-        for name in _circuit_breakers
-    }
+    return {name: get_circuit_breaker_status(name) for name in _circuit_breakers}
 
 
-def list_rate_limiters() -> Dict[str, str]:
+def list_rate_limiters() -> dict[str, str]:
     """List all registered rate limiters."""
     return {name: str(limiter) for name, limiter in _rate_limiters.items()}
 

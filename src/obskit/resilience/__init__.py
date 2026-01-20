@@ -148,10 +148,37 @@ obskit.metrics : Track resilience pattern metrics
 obskit.logging : Log resilience events
 """
 
+from obskit.resilience.adaptive import (
+    ADAPTIVE_RETRY_ATTEMPTS,
+    ADAPTIVE_RETRY_BACKPRESSURE,
+    ADAPTIVE_RETRY_CONCURRENCY,
+    ADAPTIVE_RETRY_DELAY,
+    ADAPTIVE_RETRY_ERROR_RATE,
+    AdaptiveRetry,
+    BackpressureStrategy,
+    RetryState,
+    adaptive_retry,
+)
+from obskit.resilience.adaptive import (
+    RetryConfig as AdaptiveRetryConfig,
+)
 from obskit.resilience.circuit_breaker import (
     CircuitBreaker,
     CircuitBreakerError,
     CircuitOpenError,
+)
+from obskit.resilience.combined import (
+    BackoffStrategy,
+    ResilientExecutor,
+    resilient_call,
+    resilient_call_sync,
+    with_resilience,
+)
+from obskit.resilience.factory import (
+    CircuitBreakerPreset,
+    RateLimiterPreset,
+    get_circuit_breaker,
+    get_rate_limiter,
 )
 from obskit.resilience.rate_limiter import (
     RateLimiter,
@@ -164,31 +191,6 @@ from obskit.resilience.retry import (
     RetryError,
     retry,
     retry_async,
-)
-from obskit.resilience.factory import (
-    CircuitBreakerPreset,
-    RateLimiterPreset,
-    get_circuit_breaker,
-    get_rate_limiter,
-)
-from obskit.resilience.combined import (
-    BackoffStrategy,
-    ResilientExecutor,
-    resilient_call,
-    resilient_call_sync,
-    with_resilience,
-)
-from obskit.resilience.adaptive import (
-    AdaptiveRetry,
-    RetryConfig as AdaptiveRetryConfig,
-    RetryState,
-    BackpressureStrategy,
-    adaptive_retry,
-    ADAPTIVE_RETRY_ATTEMPTS,
-    ADAPTIVE_RETRY_DELAY,
-    ADAPTIVE_RETRY_ERROR_RATE,
-    ADAPTIVE_RETRY_BACKPRESSURE,
-    ADAPTIVE_RETRY_CONCURRENCY,
 )
 
 __all__ = [

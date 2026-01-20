@@ -19,18 +19,18 @@ Example
 """
 
 from obskit.errors.responses import (
-    # Response types
-    ErrorResponse,
-    # Base error
-    ObservableError,
-    # Common errors
-    ValidationError,
-    NotFoundError,
     AuthenticationError,
     AuthorizationError,
+    CircuitOpenError,
+    # Response types
+    ErrorResponse,
+    NotFoundError,
+    # Base error
+    ObservableError,
     RateLimitError,
     ServiceUnavailableError,
-    CircuitOpenError,
+    # Common errors
+    ValidationError,
     # Functions
     create_error_response,
     format_exception,

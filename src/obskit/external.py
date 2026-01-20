@@ -13,27 +13,28 @@ Features:
 
 Example:
     from obskit.external import ExternalAPISLATracker
-    
+
     api = ExternalAPISLATracker(
         "dialects_ai",
         expected_availability=0.99,
         expected_latency_p95_ms=500
     )
-    
+
     with api.track_call():
         response = requests.get("https://api.example.com/endpoint")
-    
+
     # Get compliance report
     report = api.get_compliance_report()
 """
 
-import time
-import threading
 import statistics
+import threading
+import time
+from collections.abc import Callable, Generator
 from contextlib import contextmanager
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
-from typing import Any, Callable, Dict, Generator, List, Optional
+from typing import Any
 
 from prometheus_client import Counter, Gauge, Histogram
 
@@ -49,44 +50,36 @@ logger = get_logger(__name__)
 EXTERNAL_API_REQUESTS_TOTAL = Counter(
     "external_api_requests_total",
     "Total requests to external API",
-    ["api_name", "method", "status"]
+    ["api_name", "method", "status"],
 )
 
 EXTERNAL_API_LATENCY = Histogram(
     "external_api_latency_seconds",
     "External API latency",
     ["api_name", "method"],
-    buckets=(0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10, 30)
+    buckets=(0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10, 30),
 )
 
 EXTERNAL_API_ERRORS_TOTAL = Counter(
-    "external_api_errors_total",
-    "Total errors from external API",
-    ["api_name", "error_type"]
+    "external_api_errors_total", "Total errors from external API", ["api_name", "error_type"]
 )
 
 EXTERNAL_API_AVAILABILITY = Gauge(
-    "external_api_availability",
-    "Current availability of external API",
-    ["api_name"]
+    "external_api_availability", "Current availability of external API", ["api_name"]
 )
 
 EXTERNAL_API_LATENCY_P95 = Gauge(
-    "external_api_latency_p95_ms",
-    "P95 latency of external API",
-    ["api_name"]
+    "external_api_latency_p95_ms", "P95 latency of external API", ["api_name"]
 )
 
 EXTERNAL_API_SLA_COMPLIANT = Gauge(
     "external_api_sla_compliant",
     "Whether API is SLA compliant (1=yes, 0=no)",
-    ["api_name", "sla_type"]
+    ["api_name", "sla_type"],
 )
 
 EXTERNAL_API_SLA_BREACHES_TOTAL = Counter(
-    "external_api_sla_breaches_total",
-    "Total SLA breaches",
-    ["api_name", "sla_type"]
+    "external_api_sla_breaches_total", "Total SLA breaches", ["api_name", "sla_type"]
 )
 
 
@@ -94,9 +87,11 @@ EXTERNAL_API_SLA_BREACHES_TOTAL = Counter(
 # Data Classes
 # =============================================================================
 
+
 @dataclass
 class SLADefinition:
     """Definition of expected SLA."""
+
     availability: float = 0.99  # 99%
     latency_p50_ms: float = 100
     latency_p95_ms: float = 500
@@ -108,16 +103,18 @@ class SLADefinition:
 @dataclass
 class APICallRecord:
     """Record of a single API call."""
+
     timestamp: datetime
     latency_seconds: float
     success: bool
-    status_code: Optional[int] = None
-    error_type: Optional[str] = None
+    status_code: int | None = None
+    error_type: str | None = None
 
 
 @dataclass
 class SLAComplianceReport:
     """SLA compliance report for an API."""
+
     api_name: str
     window_start: datetime
     window_end: datetime
@@ -136,9 +133,9 @@ class SLAComplianceReport:
     error_rate_sla_percent: float
     error_rate_compliant: bool
     overall_compliant: bool
-    sla_breaches: List[str] = field(default_factory=list)
-    
-    def to_dict(self) -> Dict[str, Any]:
+    sla_breaches: list[str] = field(default_factory=list)
+
+    def to_dict(self) -> dict[str, Any]:
         return {
             "api_name": self.api_name,
             "window_start": self.window_start.isoformat(),
@@ -166,10 +163,11 @@ class SLAComplianceReport:
 # External API SLA Tracker
 # =============================================================================
 
+
 class ExternalAPISLATracker:
     """
     Track SLA compliance for an external API.
-    
+
     Parameters
     ----------
     api_name : str
@@ -185,7 +183,7 @@ class ExternalAPISLATracker:
     on_sla_breach : callable, optional
         Callback when SLA is breached
     """
-    
+
     def __init__(
         self,
         api_name: str,
@@ -194,7 +192,7 @@ class ExternalAPISLATracker:
         expected_latency_p99_ms: float = 1000,
         expected_error_rate_percent: float = 1.0,
         window_seconds: int = 3600,
-        on_sla_breach: Optional[Callable[[str, str, float], None]] = None,
+        on_sla_breach: Callable[[str, str, float], None] | None = None,
     ):
         self.api_name = api_name
         self.sla = SLADefinition(
@@ -205,20 +203,20 @@ class ExternalAPISLATracker:
         )
         self.window_seconds = window_seconds
         self.on_sla_breach = on_sla_breach
-        
-        self._records: List[APICallRecord] = []
+
+        self._records: list[APICallRecord] = []
         self._lock = threading.Lock()
-        
+
         # Track recent breaches to avoid alert spam
-        self._recent_breaches: Dict[str, datetime] = {}
+        self._recent_breaches: dict[str, datetime] = {}
         self._breach_cooldown = timedelta(minutes=5)
-    
+
     def set_expected_sla(
         self,
-        availability: Optional[float] = None,
-        latency_p95_ms: Optional[float] = None,
-        latency_p99_ms: Optional[float] = None,
-        error_rate_percent: Optional[float] = None,
+        availability: float | None = None,
+        latency_p95_ms: float | None = None,
+        latency_p99_ms: float | None = None,
+        error_rate_percent: float | None = None,
     ):
         """Update expected SLA values."""
         if availability is not None:
@@ -229,7 +227,7 @@ class ExternalAPISLATracker:
             self.sla.latency_p99_ms = latency_p99_ms
         if error_rate_percent is not None:
             self.sla.error_rate_percent = error_rate_percent
-    
+
     @contextmanager
     def track_call(
         self,
@@ -237,7 +235,7 @@ class ExternalAPISLATracker:
     ) -> Generator[None, None, None]:
         """
         Track an API call.
-        
+
         Parameters
         ----------
         method : str
@@ -247,7 +245,7 @@ class ExternalAPISLATracker:
         success = True
         status_code = None
         error_type = None
-        
+
         try:
             yield
         except Exception as e:
@@ -256,7 +254,7 @@ class ExternalAPISLATracker:
             raise
         finally:
             latency = time.perf_counter() - start_time
-            
+
             record = APICallRecord(
                 timestamp=datetime.utcnow(),
                 latency_seconds=latency,
@@ -264,20 +262,20 @@ class ExternalAPISLATracker:
                 status_code=status_code,
                 error_type=error_type,
             )
-            
+
             self._record_call(record, method)
-    
+
     def record_call(
         self,
         latency_seconds: float,
         success: bool,
         method: str = "GET",
-        status_code: Optional[int] = None,
-        error_type: Optional[str] = None,
+        status_code: int | None = None,
+        error_type: str | None = None,
     ):
         """
         Manually record an API call.
-        
+
         Parameters
         ----------
         latency_seconds : float
@@ -298,106 +296,100 @@ class ExternalAPISLATracker:
             status_code=status_code,
             error_type=error_type,
         )
-        
+
         self._record_call(record, method)
-    
+
     def _record_call(self, record: APICallRecord, method: str):
         """Internal method to record a call."""
         with self._lock:
             self._records.append(record)
             self._cleanup_old_records()
-        
+
         # Update metrics
         status = "success" if record.success else "error"
-        
+
         EXTERNAL_API_REQUESTS_TOTAL.labels(
-            api_name=self.api_name,
-            method=method,
-            status=status
+            api_name=self.api_name, method=method, status=status
         ).inc()
-        
-        EXTERNAL_API_LATENCY.labels(
-            api_name=self.api_name,
-            method=method
-        ).observe(record.latency_seconds)
-        
+
+        EXTERNAL_API_LATENCY.labels(api_name=self.api_name, method=method).observe(
+            record.latency_seconds
+        )
+
         if not record.success:
             EXTERNAL_API_ERRORS_TOTAL.labels(
-                api_name=self.api_name,
-                error_type=record.error_type or "unknown"
+                api_name=self.api_name, error_type=record.error_type or "unknown"
             ).inc()
-        
+
         # Update gauges
         self._update_gauges()
-        
+
         # Check SLA compliance
         self._check_sla_compliance()
-    
+
     def _cleanup_old_records(self):
         """Remove records outside the window."""
         cutoff = datetime.utcnow() - timedelta(seconds=self.window_seconds)
         self._records = [r for r in self._records if r.timestamp > cutoff]
-    
+
     def _update_gauges(self):
         """Update gauge metrics."""
         with self._lock:
             if not self._records:
                 return
-            
+
             # Availability
             successful = sum(1 for r in self._records if r.success)
             availability = successful / len(self._records) if self._records else 1.0
             EXTERNAL_API_AVAILABILITY.labels(api_name=self.api_name).set(availability)
-            
+
             # Latency P95
             latencies = [r.latency_seconds * 1000 for r in self._records]  # Convert to ms
             if latencies:
-                p95 = statistics.quantiles(latencies, n=20)[18] if len(latencies) >= 2 else latencies[0]
+                p95 = (
+                    statistics.quantiles(latencies, n=20)[18]
+                    if len(latencies) >= 2
+                    else latencies[0]
+                )
                 EXTERNAL_API_LATENCY_P95.labels(api_name=self.api_name).set(p95)
-    
+
     def _check_sla_compliance(self):
         """Check and report SLA compliance."""
         report = self.get_compliance_report()
-        
+
         # Update compliance gauges
-        EXTERNAL_API_SLA_COMPLIANT.labels(
-            api_name=self.api_name,
-            sla_type="availability"
-        ).set(1 if report.availability_compliant else 0)
-        
-        EXTERNAL_API_SLA_COMPLIANT.labels(
-            api_name=self.api_name,
-            sla_type="latency"
-        ).set(1 if report.latency_compliant else 0)
-        
-        EXTERNAL_API_SLA_COMPLIANT.labels(
-            api_name=self.api_name,
-            sla_type="error_rate"
-        ).set(1 if report.error_rate_compliant else 0)
-        
+        EXTERNAL_API_SLA_COMPLIANT.labels(api_name=self.api_name, sla_type="availability").set(
+            1 if report.availability_compliant else 0
+        )
+
+        EXTERNAL_API_SLA_COMPLIANT.labels(api_name=self.api_name, sla_type="latency").set(
+            1 if report.latency_compliant else 0
+        )
+
+        EXTERNAL_API_SLA_COMPLIANT.labels(api_name=self.api_name, sla_type="error_rate").set(
+            1 if report.error_rate_compliant else 0
+        )
+
         # Report breaches
         now = datetime.utcnow()
-        
+
         for breach in report.sla_breaches:
             # Check cooldown
             if breach in self._recent_breaches:
                 if now - self._recent_breaches[breach] < self._breach_cooldown:
                     continue
-            
+
             self._recent_breaches[breach] = now
-            
-            EXTERNAL_API_SLA_BREACHES_TOTAL.labels(
-                api_name=self.api_name,
-                sla_type=breach
-            ).inc()
-            
+
+            EXTERNAL_API_SLA_BREACHES_TOTAL.labels(api_name=self.api_name, sla_type=breach).inc()
+
             logger.warning(
                 "external_api_sla_breach",
                 api_name=self.api_name,
                 breach_type=breach,
                 report=report.to_dict(),
             )
-            
+
             if self.on_sla_breach:
                 if "availability" in breach:
                     self.on_sla_breach(self.api_name, breach, report.availability)
@@ -405,11 +397,11 @@ class ExternalAPISLATracker:
                     self.on_sla_breach(self.api_name, breach, report.latency_p95_ms)
                 elif "error" in breach:
                     self.on_sla_breach(self.api_name, breach, report.error_rate_percent)
-    
+
     def get_compliance_report(self) -> SLAComplianceReport:
         """
         Get current SLA compliance report.
-        
+
         Returns
         -------
         SLAComplianceReport
@@ -417,21 +409,21 @@ class ExternalAPISLATracker:
         """
         with self._lock:
             self._cleanup_old_records()
-            
+
             now = datetime.utcnow()
             window_start = now - timedelta(seconds=self.window_seconds)
-            
+
             total = len(self._records)
             successful = sum(1 for r in self._records if r.success)
             failed = total - successful
-            
+
             # Availability
             availability = successful / total if total > 0 else 1.0
             availability_compliant = availability >= self.sla.availability
-            
+
             # Latency
             latencies_ms = [r.latency_seconds * 1000 for r in self._records]
-            
+
             if latencies_ms:
                 latency_p50 = statistics.median(latencies_ms)
                 sorted_latencies = sorted(latencies_ms)
@@ -443,25 +435,31 @@ class ExternalAPISLATracker:
                 latency_p50 = 0
                 latency_p95 = 0
                 latency_p99 = 0
-            
+
             latency_compliant = latency_p95 <= self.sla.latency_p95_ms
-            
+
             # Error rate
             error_rate = (failed / total * 100) if total > 0 else 0
             error_rate_compliant = error_rate <= self.sla.error_rate_percent
-            
+
             # Overall
-            overall_compliant = availability_compliant and latency_compliant and error_rate_compliant
-            
+            overall_compliant = (
+                availability_compliant and latency_compliant and error_rate_compliant
+            )
+
             # List breaches
             breaches = []
             if not availability_compliant:
                 breaches.append(f"availability ({availability:.2%} < {self.sla.availability:.2%})")
             if not latency_compliant:
-                breaches.append(f"latency_p95 ({latency_p95:.0f}ms > {self.sla.latency_p95_ms:.0f}ms)")
+                breaches.append(
+                    f"latency_p95 ({latency_p95:.0f}ms > {self.sla.latency_p95_ms:.0f}ms)"
+                )
             if not error_rate_compliant:
-                breaches.append(f"error_rate ({error_rate:.2f}% > {self.sla.error_rate_percent:.2f}%)")
-            
+                breaches.append(
+                    f"error_rate ({error_rate:.2f}% > {self.sla.error_rate_percent:.2f}%)"
+                )
+
             return SLAComplianceReport(
                 api_name=self.api_name,
                 window_start=window_start,
@@ -483,7 +481,7 @@ class ExternalAPISLATracker:
                 overall_compliant=overall_compliant,
                 sla_breaches=breaches,
             )
-    
+
     def is_compliant(self) -> bool:
         """Check if API is currently SLA compliant."""
         return self.get_compliance_report().overall_compliant
@@ -493,7 +491,7 @@ class ExternalAPISLATracker:
 # Registry
 # =============================================================================
 
-_api_trackers: Dict[str, ExternalAPISLATracker] = {}
+_api_trackers: dict[str, ExternalAPISLATracker] = {}
 _api_lock = threading.Lock()
 
 
@@ -506,10 +504,10 @@ def get_external_api_tracker(
         with _api_lock:
             if api_name not in _api_trackers:
                 _api_trackers[api_name] = ExternalAPISLATracker(api_name, **kwargs)
-    
+
     return _api_trackers[api_name]
 
 
-def get_all_api_compliance() -> Dict[str, SLAComplianceReport]:
+def get_all_api_compliance() -> dict[str, SLAComplianceReport]:
     """Get compliance reports for all tracked APIs."""
     return {name: tracker.get_compliance_report() for name, tracker in _api_trackers.items()}

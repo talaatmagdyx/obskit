@@ -12,20 +12,20 @@ Features:
 
 Example:
     from obskit.feature_flags import FeatureFlagTracker
-    
+
     flags = FeatureFlagTracker()
-    
+
     # Track flag evaluation
     flags.record_evaluation("new_checkout", enabled=True, user_id="123")
-    
+
     # Get metrics
     metrics = flags.get_flag_metrics("new_checkout")
 """
 
 import threading
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta
-from typing import Any, Dict, List, Optional
+from datetime import datetime
+from typing import Any
 
 from prometheus_client import Counter, Gauge
 
@@ -39,21 +39,15 @@ logger = get_logger(__name__)
 # =============================================================================
 
 FLAG_EVALUATIONS = Counter(
-    "feature_flag_evaluations_total",
-    "Total feature flag evaluations",
-    ["flag_name", "result"]
+    "feature_flag_evaluations_total", "Total feature flag evaluations", ["flag_name", "result"]
 )
 
 FLAG_ENABLED = Gauge(
-    "feature_flag_enabled",
-    "Feature flag enabled state (1=enabled, 0=disabled)",
-    ["flag_name"]
+    "feature_flag_enabled", "Feature flag enabled state (1=enabled, 0=disabled)", ["flag_name"]
 )
 
 FLAG_ROLLOUT_PERCENT = Gauge(
-    "feature_flag_rollout_percent",
-    "Feature flag rollout percentage",
-    ["flag_name"]
+    "feature_flag_rollout_percent", "Feature flag rollout percentage", ["flag_name"]
 )
 
 
@@ -61,28 +55,31 @@ FLAG_ROLLOUT_PERCENT = Gauge(
 # Data Classes
 # =============================================================================
 
+
 @dataclass
 class FlagEvaluation:
     """A feature flag evaluation."""
+
     flag_name: str
     enabled: bool
-    user_id: Optional[str] = None
-    context: Dict[str, Any] = field(default_factory=dict)
+    user_id: str | None = None
+    context: dict[str, Any] = field(default_factory=dict)
     timestamp: datetime = field(default_factory=datetime.utcnow)
 
 
 @dataclass
 class FlagMetrics:
     """Metrics for a feature flag."""
+
     flag_name: str
     total_evaluations: int
     enabled_count: int
     disabled_count: int
     unique_users: int
     enabled_percent: float
-    last_evaluation: Optional[datetime]
-    
-    def to_dict(self) -> Dict[str, Any]:
+    last_evaluation: datetime | None
+
+    def to_dict(self) -> dict[str, Any]:
         return {
             "flag_name": self.flag_name,
             "total_evaluations": self.total_evaluations,
@@ -97,11 +94,12 @@ class FlagMetrics:
 @dataclass
 class FeatureFlag:
     """Feature flag definition."""
+
     name: str
     enabled: bool = False
     rollout_percent: float = 0.0
     description: str = ""
-    owner: Optional[str] = None
+    owner: str | None = None
     created_at: datetime = field(default_factory=datetime.utcnow)
 
 
@@ -109,31 +107,32 @@ class FeatureFlag:
 # Feature Flag Tracker
 # =============================================================================
 
+
 class FeatureFlagTracker:
     """
     Track feature flag usage.
-    
+
     Parameters
     ----------
     max_history : int
         Maximum evaluations to keep per flag
     """
-    
+
     def __init__(self, max_history: int = 10000):
         self.max_history = max_history
-        
-        self._flags: Dict[str, FeatureFlag] = {}
-        self._evaluations: Dict[str, List[FlagEvaluation]] = {}
-        self._users_by_flag: Dict[str, set] = {}
+
+        self._flags: dict[str, FeatureFlag] = {}
+        self._evaluations: dict[str, list[FlagEvaluation]] = {}
+        self._users_by_flag: dict[str, set] = {}
         self._lock = threading.Lock()
-    
+
     def register_flag(
         self,
         name: str,
         enabled: bool = False,
         rollout_percent: float = 0.0,
         description: str = "",
-        owner: Optional[str] = None,
+        owner: str | None = None,
     ):
         """Register a feature flag."""
         flag = FeatureFlag(
@@ -143,26 +142,26 @@ class FeatureFlagTracker:
             description=description,
             owner=owner,
         )
-        
+
         with self._lock:
             self._flags[name] = flag
             if name not in self._evaluations:
                 self._evaluations[name] = []
                 self._users_by_flag[name] = set()
-        
+
         FLAG_ENABLED.labels(flag_name=name).set(1 if enabled else 0)
         FLAG_ROLLOUT_PERCENT.labels(flag_name=name).set(rollout_percent)
-    
+
     def record_evaluation(
         self,
         flag_name: str,
         enabled: bool,
-        user_id: Optional[str] = None,
-        context: Optional[Dict[str, Any]] = None,
+        user_id: str | None = None,
+        context: dict[str, Any] | None = None,
     ):
         """
         Record a flag evaluation.
-        
+
         Parameters
         ----------
         flag_name : str
@@ -180,35 +179,34 @@ class FeatureFlagTracker:
             user_id=user_id,
             context=context or {},
         )
-        
+
         with self._lock:
             if flag_name not in self._evaluations:
                 self._evaluations[flag_name] = []
                 self._users_by_flag[flag_name] = set()
-            
+
             self._evaluations[flag_name].append(evaluation)
-            
+
             if user_id:
                 self._users_by_flag[flag_name].add(user_id)
-            
+
             # Trim history
             if len(self._evaluations[flag_name]) > self.max_history:
-                self._evaluations[flag_name] = self._evaluations[flag_name][-self.max_history:]
-        
+                self._evaluations[flag_name] = self._evaluations[flag_name][-self.max_history :]
+
         FLAG_EVALUATIONS.labels(
-            flag_name=flag_name,
-            result="enabled" if enabled else "disabled"
+            flag_name=flag_name, result="enabled" if enabled else "disabled"
         ).inc()
-    
-    def get_flag_metrics(self, flag_name: str) -> Optional[FlagMetrics]:
+
+    def get_flag_metrics(self, flag_name: str) -> FlagMetrics | None:
         """Get metrics for a flag."""
         with self._lock:
             if flag_name not in self._evaluations:
                 return None
-            
+
             evals = self._evaluations[flag_name]
             users = self._users_by_flag.get(flag_name, set())
-        
+
         if not evals:
             return FlagMetrics(
                 flag_name=flag_name,
@@ -219,10 +217,10 @@ class FeatureFlagTracker:
                 enabled_percent=0.0,
                 last_evaluation=None,
             )
-        
+
         enabled_count = sum(1 for e in evals if e.enabled)
         disabled_count = len(evals) - enabled_count
-        
+
         return FlagMetrics(
             flag_name=flag_name,
             total_evaluations=len(evals),
@@ -232,26 +230,28 @@ class FeatureFlagTracker:
             enabled_percent=(enabled_count / len(evals)) * 100,
             last_evaluation=evals[-1].timestamp,
         )
-    
-    def get_all_metrics(self) -> Dict[str, FlagMetrics]:
+
+    def get_all_metrics(self) -> dict[str, FlagMetrics]:
         """Get metrics for all flags."""
         with self._lock:
             flag_names = list(self._evaluations.keys())
-        
+
         return {
             name: self.get_flag_metrics(name)
             for name in flag_names
             if self.get_flag_metrics(name) is not None
         }
-    
-    def update_flag_state(self, flag_name: str, enabled: bool, rollout_percent: Optional[float] = None):
+
+    def update_flag_state(
+        self, flag_name: str, enabled: bool, rollout_percent: float | None = None
+    ):
         """Update flag state."""
         with self._lock:
             if flag_name in self._flags:
                 self._flags[flag_name].enabled = enabled
                 if rollout_percent is not None:
                     self._flags[flag_name].rollout_percent = rollout_percent
-        
+
         FLAG_ENABLED.labels(flag_name=flag_name).set(1 if enabled else 0)
         if rollout_percent is not None:
             FLAG_ROLLOUT_PERCENT.labels(flag_name=flag_name).set(rollout_percent)
@@ -261,17 +261,17 @@ class FeatureFlagTracker:
 # Singleton
 # =============================================================================
 
-_tracker: Optional[FeatureFlagTracker] = None
+_tracker: FeatureFlagTracker | None = None
 _tracker_lock = threading.Lock()
 
 
 def get_feature_flag_tracker(**kwargs) -> FeatureFlagTracker:
     """Get or create the global feature flag tracker."""
     global _tracker
-    
+
     if _tracker is None:
         with _tracker_lock:
             if _tracker is None:
                 _tracker = FeatureFlagTracker(**kwargs)
-    
+
     return _tracker

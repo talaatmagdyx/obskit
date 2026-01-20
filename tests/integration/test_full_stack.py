@@ -29,8 +29,8 @@ class TestMetricsIntegration:
         if registry is None:
             pytest.skip("prometheus_client not available")
 
-        # Create metrics
-        red = REDMetrics("integration_test", registry=registry)
+        # Create metrics (REDMetrics uses the default prometheus registry)
+        red = REDMetrics("integration_test")
 
         # Record some requests
         for i in range(100):

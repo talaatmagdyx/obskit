@@ -46,16 +46,16 @@ Example - Manual Queue Tracking
 
 from __future__ import annotations
 
-from obskit.queue.tracker import QueueTracker, track_message_processing
 from obskit.queue.tracing import (
-    MessageTracer,
-    TracedMessagePublisher,
-    traced_message_handler,
-    get_message_tracer,
     MESSAGE_COUNTER,
     MESSAGE_LATENCY,
     MESSAGE_SIZE,
+    MessageTracer,
+    TracedMessagePublisher,
+    get_message_tracer,
+    traced_message_handler,
 )
+from obskit.queue.tracker import QueueTracker, track_message_processing
 
 try:
     from obskit.queue.kafka import instrument_kafka

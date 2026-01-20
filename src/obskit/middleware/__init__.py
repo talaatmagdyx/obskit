@@ -32,13 +32,13 @@ Example
 """
 
 from obskit.middleware.base import (
-    extract_context_from_headers,
-    inject_context_to_headers,
-    BaseMiddleware,
-    ASGIMiddleware,
-    WSGIMiddleware,
     CORRELATION_ID_HEADERS,
     TENANT_ID_HEADERS,
+    ASGIMiddleware,
+    BaseMiddleware,
+    WSGIMiddleware,
+    extract_context_from_headers,
+    inject_context_to_headers,
 )
 
 # Alias for convenience

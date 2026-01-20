@@ -210,9 +210,173 @@ from typing import Any
 from obskit._version import __version__, __version_info__
 
 # =============================================================================
+# Adaptive Sampling (NEW v1.3)
+# =============================================================================
+from obskit.adaptive_sampling import (
+    AdaptiveSampler,
+    SamplingStats,
+    get_adaptive_sampler,
+)
+from obskit.adaptive_sampling import (
+    SamplingConfig as AdaptiveSamplingConfig,
+)
+
+# =============================================================================
+# Alert Deduplication (NEW v1.2)
+# =============================================================================
+from obskit.alert_dedup import (
+    AlertDeduplicator,
+    AlertRecord,
+    DeduplicationConfig,
+    get_alert_deduplicator,
+    should_alert,
+)
+
+# =============================================================================
 # Alerting Rules
 # =============================================================================
 from obskit.alerts.config import AlertConfig, generate_prometheus_rules
+
+# =============================================================================
+# Prometheus Rules Generator
+# =============================================================================
+from obskit.alerts.rules_generator import (
+    generate_alert_rules,
+    generate_all_rules,
+    generate_recording_rules,
+    generate_slo_recording_rules,
+    save_rules,
+)
+
+# =============================================================================
+# Slow Operation Alerting
+# =============================================================================
+from obskit.alerts.slow_operation import SlowOperationDetector, check_slow_operation
+
+# =============================================================================
+# Grafana Annotations
+# =============================================================================
+from obskit.annotations import (
+    Annotation,
+    AnnotationSeverity,
+    GrafanaAnnotator,
+    configure_annotator,
+    get_annotator,
+)
+from obskit.annotations import (
+    AnnotationType as GrafanaAnnotationType,
+)
+
+# =============================================================================
+# Audit Trail (NEW v1.3)
+# =============================================================================
+from obskit.audit import (
+    AuditAction,
+    AuditEntry,
+    AuditTrail,
+    get_audit_trail,
+)
+from obskit.audit import (
+    AuditResult as AuditResultType,
+)
+
+# =============================================================================
+# Auto-Scaling Metrics (NEW v1.3)
+# =============================================================================
+from obskit.autoscaling import (
+    AutoScalingMetrics,
+    ScalingConfig,
+    ScalingRecommendation,
+    get_autoscaling_metrics,
+)
+
+# =============================================================================
+# Batch Operation Tracking
+# =============================================================================
+from obskit.batch import (
+    BatchContext,
+    BatchResult,
+    BatchTracker,
+    track_batch,
+)
+
+# =============================================================================
+# Latency Breakdown (NEW v1.2)
+# =============================================================================
+from obskit.breakdown import (
+    BreakdownSummary,
+    LatencyBreakdown,
+    PhaseRecord,
+    track_breakdown,
+)
+
+# =============================================================================
+# Performance Budgets
+# =============================================================================
+from obskit.budgets import (
+    BudgetManager,
+    BudgetStatus,
+    PerformanceBudget,
+    budget,
+    get_budget_manager,
+)
+
+# =============================================================================
+# Business Metrics
+# =============================================================================
+from obskit.business import (
+    BusinessEvent,
+    BusinessMetrics,
+    FunnelTracker,
+)
+
+# =============================================================================
+# Cache Instrumentation
+# =============================================================================
+from obskit.cache import (
+    CacheTracker,
+    RedisCacheTracker,
+    cached,
+)
+
+# =============================================================================
+# Capacity Planner (NEW v1.3)
+# =============================================================================
+from obskit.capacity import (
+    CapacityPlan,
+    CapacityPlanner,
+    CapacityProjection,
+    get_capacity_planner,
+)
+from obskit.capacity import (
+    Resource as CapacityResource,
+)
+
+# =============================================================================
+# Chaos Engineering (NEW v1.3)
+# =============================================================================
+from obskit.chaos import (
+    ChaosEngine,
+    ChaosExperiment,
+    InjectionType,
+    chaos_injection,
+    disable_chaos,
+    enable_chaos,
+    get_chaos_engine,
+)
+
+# =============================================================================
+# Circuit Breaker Dashboard (NEW v1.2)
+# =============================================================================
+from obskit.circuit_dashboard import (
+    CircuitBreakerDashboard,
+    CircuitBreakerStatus,
+    CircuitState,
+    DashboardData,
+    get_all_circuit_states,
+    get_circuit_dashboard,
+    register_circuit_breaker,
+)
 
 # =============================================================================
 # Compliance & PII Redaction
@@ -220,9 +384,31 @@ from obskit.alerts.config import AlertConfig, generate_prometheus_rules
 from obskit.compliance.pii import redact_pii
 
 # =============================================================================
+# Compliance Reporter (NEW v1.3)
+# =============================================================================
+from obskit.compliance_reporter import (
+    ComplianceCheck,
+    ComplianceFramework,
+    ComplianceReport,
+    ComplianceReporter,
+    get_compliance_reporter,
+)
+
+# =============================================================================
 # Configuration
 # =============================================================================
 from obskit.config import configure, get_settings, validate_config
+
+# =============================================================================
+# Consumer Lag Tracking (NEW v1.2)
+# =============================================================================
+from obskit.consumer_lag import (
+    ConsumerLagStats,
+    ConsumerLagTracker,
+    QueueType,
+    get_all_consumer_lag_stats,
+    get_consumer_lag_tracker,
+)
 
 # Note: These modules use lazy loading to avoid circular imports
 # They are loaded on first access via __getattr__
@@ -249,9 +435,49 @@ from obskit.core.batch_context import (
 )
 
 # =============================================================================
+# Correlation ID Manager
+# =============================================================================
+from obskit.correlation import (
+    CorrelatedTask,
+    CorrelationManager,
+    create_correlated_task,
+    generate_correlation_id,
+    with_correlation,
+)
+
+# =============================================================================
+# Cost Attribution
+# =============================================================================
+from obskit.cost import (
+    CostTracker,
+    ResourceUsage,
+    track_cost,
+)
+
+# =============================================================================
+# Dashboard Generator
+# =============================================================================
+from obskit.dashboards import (
+    DashboardBuilder,
+    generate_grafana_dashboard,
+    generate_red_dashboard,
+    generate_slo_dashboard,
+)
+
+# =============================================================================
 # Database Instrumentation
 # =============================================================================
 from obskit.db import DatabaseTracker, instrument_sqlalchemy, track_query
+
+# =============================================================================
+# Debug / Request Replay
+# =============================================================================
+from obskit.debug import (
+    CapturedRequest,
+    FileStorage,
+    MemoryStorage,
+    RequestCapture,
+)
 
 # =============================================================================
 # Observability Decorators
@@ -261,6 +487,133 @@ from obskit.decorators import (
     track_operation,
     with_observability,
     with_observability_async,
+)
+
+# =============================================================================
+# Graceful Degradation (NEW v1.3)
+# =============================================================================
+from obskit.degradation import (
+    DegradationLevel,
+    DegradationManager,
+    DegradationState,
+    Feature,
+    get_degradation_manager,
+)
+
+# =============================================================================
+# Dependency Graph (NEW v1.3)
+# =============================================================================
+from obskit.dependency_graph import (
+    DependencyGraph,
+    DependencyNode,
+    GraphVisualization,
+    get_dependency_graph,
+)
+from obskit.dependency_graph import (
+    DependencyType as DepGraphDependencyType,
+)
+
+# =============================================================================
+# Deployment Tracking (NEW v1.3)
+# =============================================================================
+from obskit.deployment import (
+    Deployment,
+    DeploymentStatus,
+    DeploymentTracker,
+    DeploymentType,
+    get_deployment_tracker,
+)
+
+# =============================================================================
+# Dead Letter Queue Metrics (NEW v1.2)
+# =============================================================================
+from obskit.dlq import (
+    DLQMessage,
+    DLQReason,
+    DLQStats,
+    DLQTracker,
+    get_all_dlq_stats,
+    get_dlq_tracker,
+)
+
+# =============================================================================
+# Structured Error Responses
+# =============================================================================
+from obskit.errors import (
+    AuthenticationError,
+    AuthorizationError,
+    ErrorResponse,
+    NotFoundError,
+    ObservableError,
+    ServiceUnavailableError,
+    ValidationError,
+    create_error_response,
+    format_exception,
+)
+
+# =============================================================================
+# Thread Pool Executor Metrics (NEW v1.2)
+# =============================================================================
+from obskit.executor import (
+    ExecutorStats,
+    ExecutorTracker,
+    TrackedExecutor,
+    create_tracked_executor,
+    get_all_executor_stats,
+    get_executor_tracker,
+    wrap_executor,
+)
+
+# =============================================================================
+# External API SLA Tracking (NEW v1.2)
+# =============================================================================
+from obskit.external import (
+    ExternalAPISLATracker,
+    SLAComplianceReport,
+    SLADefinition,
+    get_all_api_compliance,
+    get_external_api_tracker,
+)
+
+# =============================================================================
+# Failover Coordinator (NEW v1.3)
+# =============================================================================
+from obskit.failover import (
+    FailoverCoordinator,
+    FailoverEvent,
+    FailoverState,
+    get_failover_coordinator,
+)
+
+# =============================================================================
+# Feature Flags (NEW v1.3)
+# =============================================================================
+from obskit.feature_flags import (
+    FeatureFlagTracker,
+    FlagMetrics,
+    get_feature_flag_tracker,
+)
+
+# =============================================================================
+# Error Fingerprinting (NEW v1.2)
+# =============================================================================
+from obskit.fingerprint import (
+    ErrorFingerprinter,
+    ErrorGroup,
+    FingerprintResult,
+    get_error_fingerprinter,
+    get_error_group,
+    get_fingerprint,
+)
+
+# =============================================================================
+# Flame Graph Profiler (NEW v1.3)
+# =============================================================================
+from obskit.flamegraph import (
+    FlameGraphProfiler,
+    ProfileResult,
+    get_flamegraph_profiler,
+    profile_function,
 )
 
 # =============================================================================
@@ -276,6 +629,48 @@ from obskit.health import (
 )
 
 # =============================================================================
+# HTTP Health Server
+# =============================================================================
+from obskit.health.server import (
+    get_health_server,
+    is_health_server_running,
+    register_health_endpoint,
+    start_health_server,
+    stop_health_server,
+)
+
+# =============================================================================
+# SLO Health Checks
+# =============================================================================
+from obskit.health.slo_check import (
+    SLOReadinessCheck,
+    add_slo_readiness_check,
+    get_slo_health_status,
+)
+
+# =============================================================================
+# Hot Path Detector (NEW v1.3)
+# =============================================================================
+from obskit.hot_path import (
+    HotPath,
+    HotPathDetector,
+    PathStats,
+    get_hot_path_detector,
+    track_path,
+)
+
+# =============================================================================
+# Incident Timeline (NEW v1.3)
+# =============================================================================
+from obskit.incident_timeline import (
+    IncidentManager,
+    IncidentStatus,
+    IncidentTimeline,
+    TimelineEvent,
+    get_incident_manager,
+)
+
+# =============================================================================
 # Interfaces (ABCs)
 # =============================================================================
 from obskit.interfaces import (
@@ -284,6 +679,17 @@ from obskit.interfaces import (
     LoggerInterface,
     MetricsInterface,
     TracerInterface,
+)
+
+# =============================================================================
+# Distributed Locking (NEW v1.2)
+# =============================================================================
+from obskit.locking import (
+    DistributedLock,
+    LeaderElection,
+    LockInfo,
+    create_distributed_lock,
+    create_leader_election,
 )
 
 # =============================================================================
@@ -307,6 +713,19 @@ from obskit.logging.adapters import LoguruAdapter, StructlogAdapter
 # =============================================================================
 from obskit.logging.dynamic import get_log_level, set_log_level
 from obskit.logging.factory import get_logger_from_factory
+
+# =============================================================================
+# Memory/GC Metrics (NEW v1.2)
+# =============================================================================
+from obskit.memory import (
+    GCStats,
+    MemoryStats,
+    MemoryTracker,
+    ObjectStats,
+    get_memory_tracker,
+    start_memory_tracking,
+    stop_memory_tracking,
+)
 
 # =============================================================================
 # Metrics (RED, Golden Signals, USE)
@@ -349,17 +768,76 @@ from obskit.metrics.red import get_red_metrics
 # =============================================================================
 # Tenant Metrics
 # =============================================================================
+# =============================================================================
+# Enhanced Tenant Context
+# =============================================================================
 from obskit.metrics.tenant import (
     TenantREDMetrics,
+    extract_tenant_from_params,
     get_tenant_id,
     set_tenant_id,
+    tenant_context,
     tenant_metrics_context,
+    with_tenant,
+)
+
+# =============================================================================
+# Request Context Middleware
+# =============================================================================
+from obskit.middleware import (
+    ASGIMiddleware,
+    BaseMiddleware,
+    ObskitMiddleware,
+    WSGIMiddleware,
+    extract_context_from_headers,
+    inject_context_to_headers,
+)
+
+# =============================================================================
+# Observability Mixin
+# =============================================================================
+from obskit.mixin import ObservabilityMixin, create_service_mixin
+
+# =============================================================================
+# Connection Pool Metrics (NEW v1.2)
+# =============================================================================
+from obskit.pools import (
+    ConnectionPoolTracker,
+    PoolStats,
+    PoolType,
+    check_all_pools_healthy,
+    get_all_pool_stats,
+    get_pool_tracker,
+    wrap_psycopg2_pool,
+    wrap_redis_pool,
+)
+
+# =============================================================================
+# Query Plan Analyzer (NEW v1.3)
+# =============================================================================
+from obskit.query_analyzer import (
+    QueryAnalysis,
+    QueryAnalyzer,
+    QueryType,
+    get_query_analyzer,
 )
 
 # =============================================================================
 # Queue Instrumentation
 # =============================================================================
 from obskit.queue import QueueTracker, track_message_processing
+
+# =============================================================================
+# Tenant Quota Tracking (NEW v1.2)
+# =============================================================================
+from obskit.quota import (
+    QuotaLimit,
+    QuotaPeriod,
+    QuotaReport,
+    QuotaTracker,
+    TenantUsage,
+    get_quota_tracker,
+)
 
 # =============================================================================
 # Resilience Patterns
@@ -378,19 +856,20 @@ from obskit.resilience import (
 )
 
 # =============================================================================
+# Combined Resilience (Retry + Circuit Breaker)
+# =============================================================================
+from obskit.resilience.combined import (
+    BackoffStrategy,
+    ResilientExecutor,
+    resilient_call,
+    resilient_call_sync,
+    with_resilience,
+)
+
+# =============================================================================
 # Distributed Circuit Breaker
 # =============================================================================
 from obskit.resilience.distributed import DistributedCircuitBreaker
-
-# =============================================================================
-# Shutdown Management
-# =============================================================================
-from obskit.shutdown import register_shutdown_hook, shutdown, GracefulShutdown, get_graceful_shutdown
-
-# =============================================================================
-# Observability Mixin
-# =============================================================================
-from obskit.mixin import ObservabilityMixin, create_service_mixin
 
 # =============================================================================
 # Resilience Factory
@@ -403,353 +882,56 @@ from obskit.resilience.factory import (
 )
 
 # =============================================================================
-# Slow Operation Alerting
+# Resource Predictor (NEW v1.3)
 # =============================================================================
-from obskit.alerts.slow_operation import SlowOperationDetector, check_slow_operation
-
-# =============================================================================
-# SLO Health Checks
-# =============================================================================
-from obskit.health.slo_check import (
-    add_slo_readiness_check,
-    get_slo_health_status,
-    SLOReadinessCheck,
+from obskit.resource_predictor import (
+    Forecast,
+    ResourcePredictor,
+    TrendAnalysis,
+    get_resource_predictor,
 )
 
 # =============================================================================
-# Enhanced Tenant Context
+# Root Cause Analyzer (NEW v1.3)
 # =============================================================================
-from obskit.metrics.tenant import (
-    tenant_context,
-    with_tenant,
-    extract_tenant_from_params,
+from obskit.root_cause import (
+    Anomaly,
+    AnomalySeverity,
+    RootCauseAnalyzer,
+    RootCauseResult,
+    get_root_cause_analyzer,
 )
 
 # =============================================================================
-# SLO Alertmanager Integration
+# Runbook Integration (NEW v1.3)
 # =============================================================================
-from obskit.slo.alertmanager import AlertmanagerWebhook, SyncAlertmanagerWebhook
-
-# =============================================================================
-# HTTP Health Server
-# =============================================================================
-from obskit.health.server import (
-    start_health_server,
-    stop_health_server,
-    register_health_endpoint,
-    get_health_server,
-    is_health_server_running,
+from obskit.runbook import (
+    Runbook,
+    RunbookExecution,
+    RunbookManager,
+    get_runbook_manager,
 )
 
 # =============================================================================
-# Dashboard Generator
+# Secrets Detection (NEW v1.3)
 # =============================================================================
-from obskit.dashboards import (
-    DashboardBuilder,
-    generate_grafana_dashboard,
-    generate_slo_dashboard,
-    generate_red_dashboard,
+from obskit.secrets_detector import (
+    DetectionResult,
+    SecretsDetector,
+    SecretType,
+    get_secrets_detector,
+    redact_secrets,
+    scan_for_secrets,
 )
 
 # =============================================================================
-# Prometheus Rules Generator
+# Self-Healing (NEW v1.3)
 # =============================================================================
-from obskit.alerts.rules_generator import (
-    generate_recording_rules,
-    generate_slo_recording_rules,
-    generate_alert_rules,
-    generate_all_rules,
-    save_rules,
-)
-
-# =============================================================================
-# Testing Utilities
-# =============================================================================
-from obskit.testing import (
-    MockMetrics,
-    MockTracer,
-    MockSLOTracker,
-    MockHealthChecker,
-    MockCircuitBreaker,
-    disable_observability,
-    mock_observability,
-    ObskitTestContext,
-    ObskitTestCase,
-)
-
-# =============================================================================
-# Combined Resilience (Retry + Circuit Breaker)
-# =============================================================================
-from obskit.resilience.combined import (
-    ResilientExecutor,
-    resilient_call,
-    resilient_call_sync,
-    with_resilience,
-    BackoffStrategy,
-)
-
-# =============================================================================
-# Request Context Middleware
-# =============================================================================
-from obskit.middleware import (
-    extract_context_from_headers,
-    inject_context_to_headers,
-    BaseMiddleware,
-    ASGIMiddleware,
-    WSGIMiddleware,
-    ObskitMiddleware,
-)
-
-# =============================================================================
-# Structured Error Responses
-# =============================================================================
-from obskit.errors import (
-    ErrorResponse,
-    ObservableError,
-    ValidationError,
-    NotFoundError,
-    AuthenticationError,
-    AuthorizationError,
-    ServiceUnavailableError,
-    create_error_response,
-    format_exception,
-)
-
-# =============================================================================
-# Observability Annotations (decorators)
-# =============================================================================
-# Note: These decorators are defined in the decorators module
-# The observable, traced, metered, slo, circuit_breaker, rate_limited, observed
-# decorators are provided through the @with_observability decorator pattern
-
-# =============================================================================
-# SLO Prometheus Integration
-# =============================================================================
-from obskit.slo.prometheus import expose_slo_metrics, update_slo_metrics
-
-# =============================================================================
-# Batch Operation Tracking
-# =============================================================================
-from obskit.batch import (
-    BatchTracker,
-    BatchContext,
-    BatchResult,
-    track_batch,
-)
-
-# =============================================================================
-# Cache Instrumentation
-# =============================================================================
-from obskit.cache import (
-    CacheTracker,
-    RedisCacheTracker,
-    cached,
-)
-
-# =============================================================================
-# Business Metrics
-# =============================================================================
-from obskit.business import (
-    BusinessMetrics,
-    BusinessEvent,
-    FunnelTracker,
-)
-
-# =============================================================================
-# Performance Budgets
-# =============================================================================
-from obskit.budgets import (
-    PerformanceBudget,
-    BudgetStatus,
-    BudgetManager,
-    budget,
-    get_budget_manager,
-)
-
-# =============================================================================
-# Correlation ID Manager
-# =============================================================================
-from obskit.correlation import (
-    CorrelationManager,
-    CorrelatedTask,
-    generate_correlation_id,
-    with_correlation,
-    create_correlated_task,
-)
-
-# =============================================================================
-# Grafana Annotations
-# =============================================================================
-from obskit.annotations import (
-    GrafanaAnnotator,
-    Annotation,
-    AnnotationType as GrafanaAnnotationType,
-    AnnotationSeverity,
-    configure_annotator,
-    get_annotator,
-)
-
-# =============================================================================
-# Cost Attribution
-# =============================================================================
-from obskit.cost import (
-    CostTracker,
-    ResourceUsage,
-    track_cost,
-)
-
-# =============================================================================
-# Schema Validation
-# =============================================================================
-from obskit.validation import (
-    ValidationTracker,
-    ValidationResult,
-    ValidationError as SchemaValidationError,
-    ValidationException,
-    validate_required,
-    validate_type,
-    validate_range,
-)
-
-# =============================================================================
-# Debug / Request Replay
-# =============================================================================
-from obskit.debug import (
-    RequestCapture,
-    CapturedRequest,
-    FileStorage,
-    MemoryStorage,
-)
-
-# =============================================================================
-# Connection Pool Metrics (NEW v1.2)
-# =============================================================================
-from obskit.pools import (
-    ConnectionPoolTracker,
-    PoolType,
-    PoolStats,
-    get_pool_tracker,
-    get_all_pool_stats,
-    check_all_pools_healthy,
-    wrap_psycopg2_pool,
-    wrap_redis_pool,
-)
-
-# =============================================================================
-# Dead Letter Queue Metrics (NEW v1.2)
-# =============================================================================
-from obskit.dlq import (
-    DLQTracker,
-    DLQReason,
-    DLQMessage,
-    DLQStats,
-    get_dlq_tracker,
-    get_all_dlq_stats,
-)
-
-# =============================================================================
-# External API SLA Tracking (NEW v1.2)
-# =============================================================================
-from obskit.external import (
-    ExternalAPISLATracker,
-    SLADefinition,
-    SLAComplianceReport,
-    get_external_api_tracker,
-    get_all_api_compliance,
-)
-
-# =============================================================================
-# Thread Pool Executor Metrics (NEW v1.2)
-# =============================================================================
-from obskit.executor import (
-    ExecutorTracker,
-    TrackedExecutor,
-    ExecutorStats,
-    get_executor_tracker,
-    wrap_executor,
-    create_tracked_executor,
-    get_all_executor_stats,
-)
-
-# =============================================================================
-# Consumer Lag Tracking (NEW v1.2)
-# =============================================================================
-from obskit.consumer_lag import (
-    ConsumerLagTracker,
-    QueueType,
-    ConsumerLagStats,
-    get_consumer_lag_tracker,
-    get_all_consumer_lag_stats,
-)
-
-# =============================================================================
-# Circuit Breaker Dashboard (NEW v1.2)
-# =============================================================================
-from obskit.circuit_dashboard import (
-    CircuitBreakerDashboard,
-    CircuitState,
-    CircuitBreakerStatus,
-    DashboardData,
-    get_circuit_dashboard,
-    register_circuit_breaker,
-    get_all_circuit_states,
-)
-
-# =============================================================================
-# Error Fingerprinting (NEW v1.2)
-# =============================================================================
-from obskit.fingerprint import (
-    ErrorFingerprinter,
-    ErrorGroup,
-    FingerprintResult,
-    get_error_fingerprinter,
-    get_error_group,
-    get_fingerprint,
-)
-
-# =============================================================================
-# Latency Breakdown (NEW v1.2)
-# =============================================================================
-from obskit.breakdown import (
-    LatencyBreakdown,
-    PhaseRecord,
-    BreakdownSummary,
-    track_breakdown,
-)
-
-# =============================================================================
-# Distributed Locking (NEW v1.2)
-# =============================================================================
-from obskit.locking import (
-    DistributedLock,
-    LeaderElection,
-    LockInfo,
-    create_distributed_lock,
-    create_leader_election,
-)
-
-# =============================================================================
-# Memory/GC Metrics (NEW v1.2)
-# =============================================================================
-from obskit.memory import (
-    MemoryTracker,
-    MemoryStats,
-    GCStats,
-    ObjectStats,
-    start_memory_tracking,
-    stop_memory_tracking,
-    get_memory_tracker,
-)
-
-# =============================================================================
-# Alert Deduplication (NEW v1.2)
-# =============================================================================
-from obskit.alert_dedup import (
-    AlertDeduplicator,
-    AlertRecord,
-    DeduplicationConfig,
-    get_alert_deduplicator,
-    should_alert,
+from obskit.self_healing import (
+    HealingResult,
+    HealingTrigger,
+    SelfHealingEngine,
+    get_self_healing_engine,
 )
 
 # =============================================================================
@@ -764,15 +946,53 @@ from obskit.shedding import (
 )
 
 # =============================================================================
-# Tenant Quota Tracking (NEW v1.2)
+# Shutdown Management
 # =============================================================================
-from obskit.quota import (
-    QuotaTracker,
-    QuotaPeriod,
-    QuotaLimit,
-    TenantUsage,
-    QuotaReport,
-    get_quota_tracker,
+from obskit.shutdown import (
+    GracefulShutdown,
+    get_graceful_shutdown,
+    register_shutdown_hook,
+    shutdown,
+)
+
+# =============================================================================
+# SLA Breach Predictor (NEW v1.3)
+# =============================================================================
+from obskit.sla_predictor import (
+    RiskAssessment,
+    SLAPredictor,
+    get_sla_predictor,
+)
+
+# =============================================================================
+# SLO Alertmanager Integration
+# =============================================================================
+from obskit.slo.alertmanager import AlertmanagerWebhook, SyncAlertmanagerWebhook
+
+# =============================================================================
+# Observability Annotations (decorators)
+# =============================================================================
+# Note: These decorators are defined in the decorators module
+# The observable, traced, metered, slo, circuit_breaker, rate_limited, observed
+# decorators are provided through the @with_observability decorator pattern
+# =============================================================================
+# SLO Prometheus Integration
+# =============================================================================
+from obskit.slo.prometheus import expose_slo_metrics, update_slo_metrics
+
+# =============================================================================
+# Testing Utilities
+# =============================================================================
+from obskit.testing import (
+    MockCircuitBreaker,
+    MockHealthChecker,
+    MockMetrics,
+    MockSLOTracker,
+    MockTracer,
+    ObskitTestCase,
+    ObskitTestContext,
+    disable_observability,
+    mock_observability,
 )
 
 # =============================================================================
@@ -783,227 +1003,20 @@ from obskit.tracing.tracer import (
     inject_trace_context,
     trace_context,
 )
-
-# =============================================================================
-# Flame Graph Profiler (NEW v1.3)
-# =============================================================================
-from obskit.flamegraph import (
-    FlameGraphProfiler,
-    ProfileResult,
-    profile_function,
-    get_flamegraph_profiler,
+from obskit.validation import (
+    ValidationError as SchemaValidationError,
 )
 
 # =============================================================================
-# Query Plan Analyzer (NEW v1.3)
+# Schema Validation
 # =============================================================================
-from obskit.query_analyzer import (
-    QueryAnalyzer,
-    QueryAnalysis,
-    QueryType,
-    get_query_analyzer,
-)
-
-# =============================================================================
-# Dependency Graph (NEW v1.3)
-# =============================================================================
-from obskit.dependency_graph import (
-    DependencyGraph,
-    DependencyNode,
-    DependencyType as DepGraphDependencyType,
-    GraphVisualization,
-    get_dependency_graph,
-)
-
-# =============================================================================
-# Root Cause Analyzer (NEW v1.3)
-# =============================================================================
-from obskit.root_cause import (
-    RootCauseAnalyzer,
-    RootCauseResult,
-    Anomaly,
-    AnomalySeverity,
-    get_root_cause_analyzer,
-)
-
-# =============================================================================
-# Chaos Engineering (NEW v1.3)
-# =============================================================================
-from obskit.chaos import (
-    ChaosEngine,
-    ChaosExperiment,
-    InjectionType,
-    chaos_injection,
-    get_chaos_engine,
-    enable_chaos,
-    disable_chaos,
-)
-
-# =============================================================================
-# Failover Coordinator (NEW v1.3)
-# =============================================================================
-from obskit.failover import (
-    FailoverCoordinator,
-    FailoverState,
-    FailoverEvent,
-    get_failover_coordinator,
-)
-
-# =============================================================================
-# Graceful Degradation (NEW v1.3)
-# =============================================================================
-from obskit.degradation import (
-    DegradationManager,
-    DegradationLevel,
-    DegradationState,
-    Feature,
-    get_degradation_manager,
-)
-
-# =============================================================================
-# Self-Healing (NEW v1.3)
-# =============================================================================
-from obskit.self_healing import (
-    SelfHealingEngine,
-    HealingTrigger,
-    HealingResult,
-    get_self_healing_engine,
-)
-
-# =============================================================================
-# Adaptive Sampling (NEW v1.3)
-# =============================================================================
-from obskit.adaptive_sampling import (
-    AdaptiveSampler,
-    SamplingConfig as AdaptiveSamplingConfig,
-    SamplingStats,
-    get_adaptive_sampler,
-)
-
-# =============================================================================
-# Hot Path Detector (NEW v1.3)
-# =============================================================================
-from obskit.hot_path import (
-    HotPathDetector,
-    HotPath,
-    PathStats,
-    track_path,
-    get_hot_path_detector,
-)
-
-# =============================================================================
-# Resource Predictor (NEW v1.3)
-# =============================================================================
-from obskit.resource_predictor import (
-    ResourcePredictor,
-    Forecast,
-    TrendAnalysis,
-    get_resource_predictor,
-)
-
-# =============================================================================
-# Auto-Scaling Metrics (NEW v1.3)
-# =============================================================================
-from obskit.autoscaling import (
-    AutoScalingMetrics,
-    ScalingRecommendation,
-    ScalingConfig,
-    get_autoscaling_metrics,
-)
-
-# =============================================================================
-# Audit Trail (NEW v1.3)
-# =============================================================================
-from obskit.audit import (
-    AuditTrail,
-    AuditEntry,
-    AuditAction,
-    AuditResult as AuditResultType,
-    get_audit_trail,
-)
-
-# =============================================================================
-# Secrets Detection (NEW v1.3)
-# =============================================================================
-from obskit.secrets_detector import (
-    SecretsDetector,
-    DetectionResult,
-    SecretType,
-    redact_secrets,
-    scan_for_secrets,
-    get_secrets_detector,
-)
-
-# =============================================================================
-# Compliance Reporter (NEW v1.3)
-# =============================================================================
-from obskit.compliance_reporter import (
-    ComplianceReporter,
-    ComplianceReport,
-    ComplianceFramework,
-    ComplianceCheck,
-    get_compliance_reporter,
-)
-
-# =============================================================================
-# Runbook Integration (NEW v1.3)
-# =============================================================================
-from obskit.runbook import (
-    RunbookManager,
-    Runbook,
-    RunbookExecution,
-    get_runbook_manager,
-)
-
-# =============================================================================
-# Incident Timeline (NEW v1.3)
-# =============================================================================
-from obskit.incident_timeline import (
-    IncidentTimeline,
-    IncidentManager,
-    IncidentStatus,
-    TimelineEvent,
-    get_incident_manager,
-)
-
-# =============================================================================
-# SLA Breach Predictor (NEW v1.3)
-# =============================================================================
-from obskit.sla_predictor import (
-    SLAPredictor,
-    RiskAssessment,
-    get_sla_predictor,
-)
-
-# =============================================================================
-# Capacity Planner (NEW v1.3)
-# =============================================================================
-from obskit.capacity import (
-    CapacityPlanner,
-    CapacityPlan,
-    CapacityProjection,
-    Resource as CapacityResource,
-    get_capacity_planner,
-)
-
-# =============================================================================
-# Feature Flags (NEW v1.3)
-# =============================================================================
-from obskit.feature_flags import (
-    FeatureFlagTracker,
-    FlagMetrics,
-    get_feature_flag_tracker,
-)
-
-# =============================================================================
-# Deployment Tracking (NEW v1.3)
-# =============================================================================
-from obskit.deployment import (
-    DeploymentTracker,
-    Deployment,
-    DeploymentType,
-    DeploymentStatus,
-    get_deployment_tracker,
+from obskit.validation import (
+    ValidationException,
+    ValidationResult,
+    ValidationTracker,
+    validate_range,
+    validate_required,
+    validate_type,
 )
 
 # Try to import optional queue instrumentation

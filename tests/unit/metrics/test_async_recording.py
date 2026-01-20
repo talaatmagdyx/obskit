@@ -16,7 +16,10 @@ shutdown_async_recording = async_recording_module.shutdown_async_recording
 
 def reset_module_state():
     """Reset module global state."""
-    if async_recording_module._metric_worker_task and not async_recording_module._metric_worker_task.done():
+    if (
+        async_recording_module._metric_worker_task
+        and not async_recording_module._metric_worker_task.done()
+    ):
         async_recording_module._metric_worker_task.cancel()
     async_recording_module._metric_queue = None
     async_recording_module._metric_worker_task = None

@@ -131,7 +131,7 @@ def get_tracer() -> Tracer | None:
     Thread Safety
     -------------
     This function is thread-safe using double-checked locking pattern.
-    
+
     Note:
         This function no longer calls configure_tracing() automatically
         to avoid blocking. If tracing hasn't been configured yet, it

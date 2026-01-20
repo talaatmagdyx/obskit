@@ -31,17 +31,18 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from enum import Enum
-from typing import Any, Dict, List, Optional
+from typing import Any
 
+from obskit.health import HealthChecker, get_health_checker
 from obskit.logging import get_logger
-from obskit.health import get_health_checker, HealthChecker
-from obskit.slo import get_slo_tracker, SLOTracker
+from obskit.slo import SLOTracker, get_slo_tracker
 
 logger = get_logger("obskit.health.slo_check")
 
 
 class SLOHealthStatus(Enum):
     """SLO health status levels."""
+
     HEALTHY = "healthy"
     WARNING = "warning"
     CRITICAL = "critical"
@@ -51,6 +52,7 @@ class SLOHealthStatus(Enum):
 @dataclass
 class SLOCheckResult:
     """Result of an SLO health check."""
+
     slo_name: str
     status: SLOHealthStatus
     healthy: bool
@@ -58,15 +60,15 @@ class SLOCheckResult:
     current_value: float
     target_value: float
     message: str
-    details: Optional[Dict[str, Any]] = None
+    details: dict[str, Any] | None = None
 
 
 class SLOReadinessCheck:
     """
     Health check based on SLO compliance.
-    
+
     Fails readiness if error budget falls below critical threshold.
-    
+
     Example
     -------
     >>> check = SLOReadinessCheck(
@@ -78,17 +80,17 @@ class SLOReadinessCheck:
     >>> if not result.healthy:
     ...     print(f"SLO failing: {result.message}")
     """
-    
+
     def __init__(
         self,
         slo_name: str,
         critical_threshold: float = 0.1,
         warning_threshold: float = 0.25,
-        slo_tracker: Optional[SLOTracker] = None,
+        slo_tracker: SLOTracker | None = None,
     ):
         """
         Initialize SLO readiness check.
-        
+
         Parameters
         ----------
         slo_name : str
@@ -104,18 +106,18 @@ class SLOReadinessCheck:
         self.critical_threshold = critical_threshold
         self.warning_threshold = warning_threshold
         self._slo_tracker = slo_tracker
-    
+
     @property
-    def slo_tracker(self) -> Optional[SLOTracker]:
+    def slo_tracker(self) -> SLOTracker | None:
         """Get SLO tracker lazily."""
         if self._slo_tracker is None:
             self._slo_tracker = get_slo_tracker()
         return self._slo_tracker
-    
+
     def check(self) -> SLOCheckResult:
         """
         Perform the SLO health check.
-        
+
         Returns
         -------
         SLOCheckResult
@@ -131,10 +133,10 @@ class SLOReadinessCheck:
                 target_value=0.0,
                 message="SLO tracker not available",
             )
-        
+
         try:
             status = self.slo_tracker.get_status(self.slo_name)
-            
+
             if status is None:
                 return SLOCheckResult(
                     slo_name=self.slo_name,
@@ -145,11 +147,11 @@ class SLOReadinessCheck:
                     target_value=0.0,
                     message=f"SLO '{self.slo_name}' not registered",
                 )
-            
+
             budget = status.error_budget_remaining
             current = status.current_value
             target = status.target.target_value
-            
+
             # Determine health status
             if budget < self.critical_threshold:
                 return SLOCheckResult(
@@ -166,7 +168,7 @@ class SLOReadinessCheck:
                         "warning_threshold": self.warning_threshold,
                     },
                 )
-            
+
             if budget < self.warning_threshold:
                 return SLOCheckResult(
                     slo_name=self.slo_name,
@@ -180,7 +182,7 @@ class SLOReadinessCheck:
                         "burn_rate": status.error_budget_burn_rate,
                     },
                 )
-            
+
             return SLOCheckResult(
                 slo_name=self.slo_name,
                 status=SLOHealthStatus.HEALTHY,
@@ -190,7 +192,7 @@ class SLOReadinessCheck:
                 target_value=target,
                 message=f"SLO healthy: {budget:.1%} error budget remaining",
             )
-            
+
         except Exception as e:
             logger.error("slo_check_failed", slo_name=self.slo_name, error=str(e))
             return SLOCheckResult(
@@ -208,11 +210,11 @@ def add_slo_readiness_check(
     slo_name: str,
     critical_threshold: float = 0.1,
     warning_threshold: float = 0.25,
-    health_checker: Optional[HealthChecker] = None,
+    health_checker: HealthChecker | None = None,
 ) -> SLOReadinessCheck:
     """
     Add an SLO-based readiness check to the health checker.
-    
+
     Parameters
     ----------
     slo_name : str
@@ -223,12 +225,12 @@ def add_slo_readiness_check(
         Error budget threshold for warning (default: 0.25).
     health_checker : HealthChecker, optional
         Health checker to add check to (defaults to global).
-        
+
     Returns
     -------
     SLOReadinessCheck
         The created check instance.
-        
+
     Example
     -------
     >>> add_slo_readiness_check("availability", critical_threshold=0.1)
@@ -240,7 +242,7 @@ def add_slo_readiness_check(
         critical_threshold=critical_threshold,
         warning_threshold=warning_threshold,
     )
-    
+
     # Create async check function
     async def check_slo():
         result = slo_check.check()
@@ -255,28 +257,28 @@ def add_slo_readiness_check(
                 },
             }
         return True
-    
+
     # Register with health checker
     checker.add_readiness_check(f"slo_{slo_name}")(check_slo)
-    
+
     logger.info(
         "slo_readiness_check_added",
         slo_name=slo_name,
         critical_threshold=critical_threshold,
         warning_threshold=warning_threshold,
     )
-    
+
     return slo_check
 
 
 def get_slo_health_status(
-    slo_names: Optional[List[str]] = None,
+    slo_names: list[str] | None = None,
     critical_threshold: float = 0.1,
     warning_threshold: float = 0.25,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Get health status for multiple SLOs.
-    
+
     Parameters
     ----------
     slo_names : list of str, optional
@@ -285,19 +287,19 @@ def get_slo_health_status(
         Threshold for critical status.
     warning_threshold : float
         Threshold for warning status.
-        
+
     Returns
     -------
     dict
         Health status summary.
-        
+
     Example
     -------
     >>> status = get_slo_health_status(["availability", "latency_p99"])
     >>> print(f"Overall healthy: {status['healthy']}")
     """
     tracker = get_slo_tracker()
-    
+
     if not tracker:
         return {
             "healthy": True,
@@ -305,18 +307,18 @@ def get_slo_health_status(
             "message": "SLO tracker not available",
             "slos": {},
         }
-    
+
     # Get all SLO names if not specified
     if slo_names is None:
         try:
-            slo_names = list(tracker._slos.keys()) if hasattr(tracker, '_slos') else []
+            slo_names = list(tracker._slos.keys()) if hasattr(tracker, "_slos") else []
         except Exception:
             slo_names = []
-    
+
     results = {}
     overall_healthy = True
     overall_status = SLOHealthStatus.HEALTHY
-    
+
     for name in slo_names:
         check = SLOReadinessCheck(
             slo_name=name,
@@ -325,7 +327,7 @@ def get_slo_health_status(
             slo_tracker=tracker,
         )
         result = check.check()
-        
+
         results[name] = {
             "status": result.status.value,
             "healthy": result.healthy,
@@ -334,15 +336,15 @@ def get_slo_health_status(
             "target_value": round(result.target_value, 4),
             "message": result.message,
         }
-        
+
         if not result.healthy:
             overall_healthy = False
-        
+
         if result.status == SLOHealthStatus.CRITICAL:
             overall_status = SLOHealthStatus.CRITICAL
         elif result.status == SLOHealthStatus.WARNING and overall_status == SLOHealthStatus.HEALTHY:
             overall_status = SLOHealthStatus.WARNING
-    
+
     return {
         "healthy": overall_healthy,
         "status": overall_status.value,

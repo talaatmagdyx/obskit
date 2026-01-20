@@ -118,12 +118,12 @@ def tenant_context(
 ) -> Generator[dict[str, Any], None, None]:
     """
     Enhanced context manager for multi-tenant operations.
-    
+
     This context manager:
     - Sets the tenant ID in context
     - Optionally sets trace attributes for distributed tracing
     - Provides a context dict with tenant info
-    
+
     Parameters
     ----------
     tenant_id : str
@@ -132,12 +132,12 @@ def tenant_context(
         Alternative company ID (some systems use company_id).
     set_trace_attribute : bool
         Whether to add tenant_id to current trace span (default: True).
-        
+
     Yields
     ------
     dict
         Context dictionary with tenant information.
-        
+
     Example
     -------
     >>> from obskit.metrics.tenant import tenant_context
@@ -149,20 +149,21 @@ def tenant_context(
     """
     # Use company_id as fallback
     tid = tenant_id or company_id
-    
+
     # Set context variable
     token = _tenant_id.set(tid)
-    
+
     # Create context dict
     ctx = {
         "tenant_id": tid,
         "company_id": company_id or tid,
     }
-    
+
     # Try to set trace attribute
     if set_trace_attribute and tid:
         try:
             from opentelemetry import trace
+
             span = trace.get_current_span()
             if span and span.is_recording():
                 span.set_attribute("tenant.id", tid)
@@ -170,7 +171,7 @@ def tenant_context(
                     span.set_attribute("company.id", company_id)
         except Exception:
             pass  # Tracing not available
-    
+
     try:
         yield ctx
     finally:
@@ -180,12 +181,12 @@ def tenant_context(
 def with_tenant(tenant_id: str):
     """
     Decorator for tenant-scoped functions.
-    
+
     Parameters
     ----------
     tenant_id : str
         The tenant ID to use.
-        
+
     Example
     -------
     >>> @with_tenant("company_123")
@@ -193,11 +194,14 @@ def with_tenant(tenant_id: str):
     ...     # All metrics/traces include tenant_id
     ...     return process(order_data)
     """
+
     def decorator(func):
         def wrapper(*args, **kwargs):
             with tenant_context(tenant_id):
                 return func(*args, **kwargs)
+
         return wrapper
+
     return decorator
 
 
@@ -207,21 +211,21 @@ def extract_tenant_from_params(
 ) -> str | None:
     """
     Extract tenant ID from a parameters dictionary.
-    
+
     Searches for common tenant ID keys in the params dict.
-    
+
     Parameters
     ----------
     params : dict
         Parameters dictionary.
     keys : list of str, optional
         Keys to search for (defaults to common keys).
-        
+
     Returns
     -------
     str or None
         Found tenant ID or None.
-        
+
     Example
     -------
     >>> params = {"company_id": "123", "user_id": "456"}
@@ -230,12 +234,12 @@ def extract_tenant_from_params(
     """
     if keys is None:
         keys = ["tenant_id", "company_id", "company_schema", "organization_id", "org_id"]
-    
+
     for key in keys:
         value = params.get(key)
         if value is not None:
             return str(value)
-    
+
     return None
 
 

@@ -494,7 +494,7 @@ class REDMetrics:
         # Normalize status: treat "error" as "failure" for consistency
         is_failure = status in ("failure", "error")
         normalized_status = "failure" if is_failure else status
-        
+
         # Always record errors (not sampled) to ensure error visibility
         if is_failure:
             error_label = error_type or "UnknownError"

@@ -25,8 +25,8 @@ Example
 from obskit.dashboards.grafana import (
     DashboardBuilder,
     generate_grafana_dashboard,
-    generate_slo_dashboard,
     generate_red_dashboard,
+    generate_slo_dashboard,
 )
 
 __all__ = [

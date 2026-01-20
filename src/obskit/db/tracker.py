@@ -15,7 +15,7 @@ from __future__ import annotations
 import time
 from collections.abc import Generator
 from contextlib import contextmanager
-from typing import Any, Dict, Optional
+from typing import Any
 
 from obskit.logging import get_logger
 from obskit.metrics.red import get_red_metrics
@@ -33,6 +33,7 @@ def _get_tracer():
     if _tracer is None:
         try:
             from obskit.tracing import get_tracer
+
             _tracer = get_tracer()
         except Exception:
             _tracer = None
@@ -45,6 +46,7 @@ def _get_slo_tracker():
     if _slo_tracker is None:
         try:
             from obskit.slo import get_slo_tracker
+
             _slo_tracker = get_slo_tracker()
         except Exception:
             _slo_tracker = None
@@ -54,7 +56,7 @@ def _get_slo_tracker():
 class DatabaseTracker:
     """
     Tracks database operations with full observability.
-    
+
     Features:
     - RED metrics (Rate, Errors, Duration)
     - Distributed tracing with OpenTelemetry
@@ -84,7 +86,7 @@ class DatabaseTracker:
     def __init__(
         self,
         database_name: str,
-        default_slo_name: Optional[str] = None,
+        default_slo_name: str | None = None,
         default_slow_threshold_ms: float = 1000.0,
     ) -> None:
         """
@@ -112,7 +114,7 @@ class DatabaseTracker:
         slow_query_threshold_ms: float | None = None,
         tenant_id: str | None = None,
         slo_name: str | None = None,
-        attributes: Dict[str, Any] | None = None,
+        attributes: dict[str, Any] | None = None,
         enable_tracing: bool = True,
         enable_slo: bool = True,
     ) -> Generator[None, None, None]:
@@ -157,7 +159,7 @@ class DatabaseTracker:
         full_operation = f"{self.database_name}.{operation}"
         threshold_ms = slow_query_threshold_ms or self.default_slow_threshold_ms
         slo = slo_name or self.default_slo_name
-        
+
         # Build span attributes
         span_attributes = {
             "db.system": self.database_name,
@@ -180,6 +182,7 @@ class DatabaseTracker:
         if tracer:
             try:
                 from obskit.tracing import trace_span
+
                 trace_context = trace_span(
                     name=f"db.{operation}",
                     component=self.database_name,
@@ -353,7 +356,7 @@ def track_query(
     slow_query_threshold_ms: float = 1000.0,
     tenant_id: str | None = None,
     slo_name: str | None = None,
-    attributes: Dict[str, Any] | None = None,
+    attributes: dict[str, Any] | None = None,
     enable_tracing: bool = True,
     enable_slo: bool = True,
 ) -> Generator[None, None, None]:

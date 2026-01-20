@@ -5,11 +5,11 @@ Provides tools for debugging observability-related issues.
 """
 
 from .replay import (
-    RequestCapture,
     CapturedRequest,
-    RequestCaptureStorage,
     FileStorage,
     MemoryStorage,
+    RequestCapture,
+    RequestCaptureStorage,
 )
 
 __all__ = [
