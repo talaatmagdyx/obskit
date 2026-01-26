@@ -55,13 +55,14 @@ from obskit.queue.tracing import (
     get_message_tracer,
     traced_message_handler,
 )
-from obskit.queue.tracker import QueueTracker, track_message_processing
+from obskit.queue.tracker import MessageContext, QueueTracker, track_message_processing
 
 try:
     from obskit.queue.kafka import instrument_kafka
     from obskit.queue.rabbitmq import instrument_rabbitmq
 
     __all__ = [
+        "MessageContext",
         "QueueTracker",
         "track_message_processing",
         "instrument_rabbitmq",
@@ -77,6 +78,7 @@ try:
     ]
 except ImportError:
     __all__ = [
+        "MessageContext",
         "QueueTracker",
         "track_message_processing",
         # Tracing
