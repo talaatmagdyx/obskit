@@ -147,6 +147,15 @@ obskit.decorators : Automatic metrics via decorators
 obskit.slo : SLO tracking with error budgets
 """
 
+from obskit.metrics.cardinality import (
+    CardinalityConfig,
+    CardinalityProtector,
+    LRUCache,
+    get_cardinality_protector,
+    protect_id,
+    protect_label,
+    reset_cardinality_protector,
+)
 from obskit.metrics.golden import GoldenSignals
 from obskit.metrics.red import REDMetrics
 from obskit.metrics.registry import get_registry, start_http_server
@@ -172,6 +181,23 @@ __all__ = [
     # USE Method (Utilization, Saturation, Errors)
     # Best for: Infrastructure monitoring
     "USEMetrics",
+    # ==========================================================================
+    # Cardinality Protection
+    # ==========================================================================
+    # Main protector class
+    "CardinalityProtector",
+    # Configuration for cardinality protection
+    "CardinalityConfig",
+    # LRU cache for tracking unique values
+    "LRUCache",
+    # Get global protector instance
+    "get_cardinality_protector",
+    # Reset global protector (for testing)
+    "reset_cardinality_protector",
+    # Convenience function for string labels
+    "protect_label",
+    # Convenience function for ID labels
+    "protect_id",
     # ==========================================================================
     # Prometheus Metric Types
     # ==========================================================================

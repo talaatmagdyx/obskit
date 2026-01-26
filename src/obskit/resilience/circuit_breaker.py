@@ -636,6 +636,228 @@ class CircuitBreaker:
 
         return wrapper
 
+    # =========================================================================
+    # Sync Support
+    # =========================================================================
+
+    def __enter__(self) -> CircuitBreaker:
+        """
+        Enter the circuit breaker context (sync version).
+
+        For synchronous code that needs circuit breaker protection.
+
+        Raises
+        ------
+        CircuitOpenError
+            If the circuit is open.
+
+        Example
+        -------
+        >>> breaker = CircuitBreaker("api")
+        >>> with breaker:
+        ...     response = requests.get("https://api.example.com")
+        """
+        allowed = self._should_allow_request_sync()
+
+        if not allowed:
+            raise CircuitOpenError(
+                breaker_name=self.name,
+                time_until_retry=self._get_time_until_retry(),
+            )
+
+        return self
+
+    def __exit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_val: BaseException | None,
+        exc_tb: Any,
+    ) -> bool:
+        """
+        Exit the circuit breaker context (sync version).
+
+        Records success or failure based on whether an exception occurred.
+        """
+        if exc_val is None:
+            self._record_success_sync()
+        else:
+            if isinstance(exc_val, Exception):
+                self._record_failure_sync(exc_val)
+
+        # Don't suppress exceptions
+        return False
+
+    def _should_allow_request_sync(self) -> bool:
+        """
+        Check if a request should be allowed through (sync version).
+
+        Returns
+        -------
+        bool
+            True if request should proceed, False to fail fast.
+        """
+        if self._state == CircuitState.CLOSED:
+            return True
+
+        if self._state == CircuitState.OPEN:
+            # Check if recovery timeout has elapsed
+            if self._last_failure_time is not None:
+                elapsed = time.time() - self._last_failure_time
+                if elapsed >= self._recovery_timeout:
+                    # Transition to half-open
+                    self._state = CircuitState.HALF_OPEN
+                    self._half_open_successes = 0
+
+                    logger.info(
+                        "circuit_breaker_half_open",
+                        breaker=self.name,
+                        elapsed_seconds=elapsed,
+                    )
+                    return True
+
+            return False
+
+        # HALF_OPEN - allow limited test requests
+        return True
+
+    def _record_success_sync(self) -> None:
+        """Record a successful call (sync version)."""
+        if self._state == CircuitState.HALF_OPEN:
+            self._half_open_successes += 1
+
+            # Check if enough successes to close
+            if self._half_open_successes >= self._half_open_requests:
+                self._state = CircuitState.CLOSED
+                self._failure_count = 0
+
+                logger.info(
+                    "circuit_breaker_closed",
+                    breaker=self.name,
+                    half_open_successes=self._half_open_successes,
+                )
+
+        elif self._state == CircuitState.CLOSED:
+            # Reset failure count on success
+            self._failure_count = 0
+
+    def _record_failure_sync(self, error: Exception) -> None:
+        """Record a failed call (sync version)."""
+        # Check if exception is excluded
+        if isinstance(error, self._excluded_exceptions):
+            logger.debug(
+                "circuit_breaker_excluded_exception",
+                breaker=self.name,
+                error_type=type(error).__name__,
+            )
+            return
+
+        self._failure_count += 1
+        self._last_failure_time = time.time()
+
+        if self._state == CircuitState.HALF_OPEN:
+            # Single failure in half-open reopens the circuit
+            self._state = CircuitState.OPEN
+
+            logger.warning(
+                "circuit_breaker_reopened",
+                breaker=self.name,
+                error=str(error),
+                error_type=type(error).__name__,
+            )
+
+        elif self._state == CircuitState.CLOSED:
+            if self._failure_count >= self._failure_threshold:
+                self._state = CircuitState.OPEN
+
+                logger.warning(
+                    "circuit_breaker_opened",
+                    breaker=self.name,
+                    failure_count=self._failure_count,
+                    threshold=self._failure_threshold,
+                    error=str(error),
+                    error_type=type(error).__name__,
+                )
+
+    def call_sync(self, func: Callable[..., T], *args: Any, **kwargs: Any) -> T:
+        """
+        Call a sync function with circuit breaker protection.
+
+        Parameters
+        ----------
+        func : Callable
+            The sync function to call.
+        *args : Any
+            Positional arguments for the function.
+        **kwargs : Any
+            Keyword arguments for the function.
+
+        Returns
+        -------
+        T
+            The result of the function call.
+
+        Raises
+        ------
+        CircuitOpenError
+            If the circuit is open.
+
+        Example
+        -------
+        >>> breaker = CircuitBreaker("api")
+        >>> result = breaker.call_sync(requests.get, "https://api.example.com")
+        """
+        with self:
+            return func(*args, **kwargs)
+
+
+def with_circuit_breaker_sync(
+    name: str,
+    failure_threshold: int | None = None,
+    recovery_timeout: float | None = None,
+    half_open_requests: int | None = None,
+) -> Callable[[Callable[..., T]], Callable[..., T]]:
+    """
+    Decorator for circuit breaker pattern for sync functions.
+
+    Parameters
+    ----------
+    name : str
+        Unique name for the circuit breaker.
+    failure_threshold : int, optional
+        Number of failures before opening circuit.
+    recovery_timeout : float, optional
+        Time to wait before testing recovery.
+    half_open_requests : int, optional
+        Requests allowed in half-open state.
+
+    Returns
+    -------
+    Callable
+        Decorator that wraps sync functions with circuit breaker.
+
+    Example
+    -------
+    >>> @with_circuit_breaker_sync("payment_api", failure_threshold=5)
+    ... def charge_payment(amount: float) -> dict:
+    ...     return payment_api.charge(amount)
+    """
+    breaker = get_circuit_breaker(
+        name=name,
+        failure_threshold=failure_threshold,
+        recovery_timeout=recovery_timeout,
+        half_open_requests=half_open_requests,
+    )
+
+    def decorator(func: Callable[..., T]) -> Callable[..., T]:
+        @wraps(func)
+        def wrapper(*args: Any, **kwargs: Any) -> T:
+            with breaker:
+                return func(*args, **kwargs)
+
+        return wrapper
+
+    return decorator
+
 
 # =============================================================================
 # Module-Level Circuit Breaker Registry

@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "obskit"
-version = "1.3.3"
+version = "1.4.0"
 description = "Production-ready observability toolkit for Python microservices with RED/Golden/USE metrics, tracing, logging, and resilience patterns"
 readme = "README.md"
 license = "MIT"

@@ -774,6 +774,18 @@ from obskit.metrics import (
 )
 
 # =============================================================================
+# Cardinality Protection
+# =============================================================================
+from obskit.metrics.cardinality import (
+    CardinalityConfig,
+    CardinalityProtector,
+    get_cardinality_protector,
+    protect_id,
+    protect_label,
+    reset_cardinality_protector,
+)
+
+# =============================================================================
 # Async Metrics
 # =============================================================================
 from obskit.metrics.async_recording import AsyncREDMetrics
@@ -860,7 +872,7 @@ from obskit.query_analyzer import (
 # =============================================================================
 # Queue Instrumentation
 # =============================================================================
-from obskit.queue import QueueTracker, track_message_processing
+from obskit.queue import MessageContext, QueueTracker, track_message_processing
 
 # =============================================================================
 # Tenant Quota Tracking (NEW v1.2)
@@ -888,6 +900,8 @@ from obskit.resilience import (
     TokenBucketRateLimiter,
     retry,
     retry_async,
+    # Sync Circuit Breaker decorator
+    with_circuit_breaker_sync,
 )
 
 # =============================================================================
@@ -1131,6 +1145,15 @@ __all__ = [
     "get_red_metrics",
     "start_http_server",
     # -------------------------------------------------------------------------
+    # Cardinality Protection
+    # -------------------------------------------------------------------------
+    "CardinalityProtector",
+    "CardinalityConfig",
+    "get_cardinality_protector",
+    "reset_cardinality_protector",
+    "protect_label",
+    "protect_id",
+    # -------------------------------------------------------------------------
     # Health Checks
     # -------------------------------------------------------------------------
     "HealthChecker",
@@ -1143,6 +1166,7 @@ __all__ = [
     # Resilience - Circuit Breaker
     # -------------------------------------------------------------------------
     "CircuitBreaker",
+    "with_circuit_breaker_sync",
     # -------------------------------------------------------------------------
     # Resilience - Retry
     # -------------------------------------------------------------------------
@@ -1283,6 +1307,7 @@ __all__ = [
     # Queue Instrumentation
     # -------------------------------------------------------------------------
     "QueueTracker",
+    "MessageContext",
     "track_message_processing",
     *_queue_instrumentation,
     # -------------------------------------------------------------------------

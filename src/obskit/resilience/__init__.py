@@ -166,6 +166,7 @@ from obskit.resilience.circuit_breaker import (
     CircuitBreaker,
     CircuitBreakerError,
     CircuitOpenError,
+    with_circuit_breaker_sync,
 )
 from obskit.resilience.combined import (
     BackoffStrategy,
@@ -203,6 +204,8 @@ __all__ = [
     "CircuitBreakerError",
     # Raised when circuit is open
     "CircuitOpenError",
+    # Decorator for sync functions
+    "with_circuit_breaker_sync",
     # ==========================================================================
     # Retry
     # ==========================================================================

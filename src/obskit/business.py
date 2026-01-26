@@ -124,9 +124,9 @@ class BusinessMetrics:
         self._events.append(business_event)
 
         logger.info(
-            "business_event",
+            "business_event_tracked",
             service=self.service_name,
-            event=event,
+            event_type=event,
             tenant_id=tenant_id,
             channel=channel,
             value=value,

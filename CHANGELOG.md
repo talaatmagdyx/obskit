@@ -5,6 +5,45 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.4.0] - 2026-01-26
+
+### Added
+
+- **Cardinality Protection** (`obskit.metrics.cardinality`)
+  - `CardinalityProtector` class to prevent high-cardinality label explosion
+  - `CardinalityConfig` for customizable limits and TTL
+  - `LRUCache` thread-safe cache for tracking unique values
+  - `get_cardinality_protector()` singleton accessor
+  - `protect_label()` and `protect_id()` convenience functions
+  - Prometheus metrics: `obskit_cardinality_rejections_total`, `obskit_cardinality_current`, `obskit_cardinality_limit`
+
+- **Sync Circuit Breaker Support** (`obskit.resilience.circuit_breaker`)
+  - `with_circuit_breaker_sync()` decorator for sync functions
+  - `CircuitBreaker.__enter__` / `__exit__` sync context manager
+  - `CircuitBreaker.call_sync()` method for one-off protected calls
+  - Internal sync methods: `_should_allow_request_sync()`, `_record_success_sync()`, `_record_failure_sync()`
+
+- **Enhanced Queue Tracking** (`obskit.queue.tracker`)
+  - `MessageContext` dataclass for rich business context (message_id, correlation_id, tenant_id, redelivered, etc.)
+  - `QueueTracker.track_message()` context manager with mutable context
+  - `QueueTracker.track_message_received()` for message receipt tracking
+  - `QueueTracker.track_message_acked()` for acknowledgment tracking
+  - `QueueTracker.track_message_nacked()` for negative acknowledgment tracking
+  - Prometheus metrics: `obskit_queue_messages_received_total`, `obskit_queue_messages_acked_total`, `obskit_queue_messages_nacked_total`
+
+### Fixed
+
+- **Business Metrics `event` Parameter Conflict**
+  - Fixed `TypeError: got multiple values for argument 'event'` in `BusinessMetrics.track_event()`
+  - Changed log event name from `"business_event"` to `"business_event_tracked"`
+  - Renamed log parameter from `event=event` to `event_type=event` to avoid structlog conflict
+
+### Documentation
+
+- Added `docs/source/features/cardinality-protection.md`
+- Added `docs/source/features/sync-circuit-breaker.md`
+- Added `docs/source/features/queue-tracking.md`
+
 ## [1.3.3] - 2026-01-20
 
 ### Fixed
