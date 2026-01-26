@@ -21,7 +21,13 @@ Example:
     >>> print(f"Error budget remaining: {status.error_budget_remaining:.2%}")
 """
 
-from obskit.slo.tracker import SLOTracker, get_slo_tracker, track_slo
+from obskit.slo.tracker import (
+    SLOTracker,
+    get_slo_tracker,
+    track_slo,
+    with_slo_tracking,
+    with_slo_tracking_sync,
+)
 from obskit.slo.types import SLOMeasurement, SLOStatus, SLOTarget, SLOType
 
 __all__ = [
@@ -32,4 +38,6 @@ __all__ = [
     "SLOStatus",
     "get_slo_tracker",
     "track_slo",
+    "with_slo_tracking",
+    "with_slo_tracking_sync",
 ]

@@ -2,11 +2,17 @@
 
 from __future__ import annotations
 
+import asyncio
+import functools
+import time
 from datetime import datetime, timedelta
-from typing import Any
+from typing import Any, Awaitable, Callable, ParamSpec, TypeVar
 
 from obskit.logging import get_logger
 from obskit.slo.types import SLOMeasurement, SLOStatus, SLOTarget, SLOType
+
+P = ParamSpec("P")
+T = TypeVar("T")
 
 logger = get_logger(__name__)
 
@@ -252,3 +258,132 @@ def reset_slo_tracker() -> None:
     """Reset global SLO tracker (for testing)."""
     global _slo_tracker
     _slo_tracker = None
+
+
+def with_slo_tracking(
+    slo_name: str,
+    track_latency: bool = False,
+    latency_slo_name: str | None = None,
+) -> Callable[[Callable[P, T]], Callable[P, T]]:
+    """
+    Decorator to automatically track SLO measurements.
+
+    Automatically records success/failure based on whether the function
+    raises an exception. Can also track latency.
+
+    Works with both sync and async functions.
+
+    Parameters
+    ----------
+    slo_name : str
+        Name of the availability/error SLO to track.
+    track_latency : bool, default=False
+        Whether to also track latency SLO.
+    latency_slo_name : str, optional
+        Name of the latency SLO. Defaults to "{slo_name}_latency".
+
+    Returns
+    -------
+    Callable
+        Decorated function with SLO tracking.
+
+    Example
+    -------
+    >>> @with_slo_tracking("api_availability")
+    ... def handle_request():
+    ...     return process()
+    ...
+    >>> @with_slo_tracking("email_processing", track_latency=True)
+    ... async def process_email():
+    ...     return await send_email()
+    """
+    def decorator(func: Callable[P, T]) -> Callable[P, T]:
+        latency_name = latency_slo_name or f"{slo_name}_latency"
+
+        @functools.wraps(func)
+        async def async_wrapper(*args: P.args, **kwargs: P.kwargs) -> T:
+            start_time = time.perf_counter()
+            success = False
+            try:
+                result = await func(*args, **kwargs)  # type: ignore
+                success = True
+                return result
+            finally:
+                duration_seconds = time.perf_counter() - start_time
+                # Record availability/error SLO
+                track_slo(slo_name, value=1.0, success=success)
+                # Record latency SLO if enabled
+                if track_latency:
+                    track_slo(latency_name, value=duration_seconds, success=success)
+
+        @functools.wraps(func)
+        def sync_wrapper(*args: P.args, **kwargs: P.kwargs) -> T:
+            start_time = time.perf_counter()
+            success = False
+            try:
+                result = func(*args, **kwargs)
+                success = True
+                return result
+            finally:
+                duration_seconds = time.perf_counter() - start_time
+                # Record availability/error SLO
+                track_slo(slo_name, value=1.0, success=success)
+                # Record latency SLO if enabled
+                if track_latency:
+                    track_slo(latency_name, value=duration_seconds, success=success)
+
+        if asyncio.iscoroutinefunction(func):
+            return async_wrapper  # type: ignore
+        return sync_wrapper  # type: ignore
+
+    return decorator
+
+
+def with_slo_tracking_sync(
+    slo_name: str,
+    track_latency: bool = False,
+    latency_slo_name: str | None = None,
+) -> Callable[[Callable[P, T]], Callable[P, T]]:
+    """
+    Decorator to track SLO measurements for synchronous functions.
+
+    This is an explicit sync version of with_slo_tracking().
+
+    Parameters
+    ----------
+    slo_name : str
+        Name of the availability/error SLO to track.
+    track_latency : bool, default=False
+        Whether to also track latency SLO.
+    latency_slo_name : str, optional
+        Name of the latency SLO.
+
+    Example
+    -------
+    >>> @with_slo_tracking_sync("email_processing", track_latency=True)
+    ... def process_message(mail, tracker):
+    ...     # Process mail
+    ...     return result
+    """
+    def decorator(func: Callable[P, T]) -> Callable[P, T]:
+        latency_name = latency_slo_name or f"{slo_name}_latency"
+
+        @functools.wraps(func)
+        def wrapper(*args: P.args, **kwargs: P.kwargs) -> T:
+            start_time = time.perf_counter()
+            success = False
+            try:
+                result = func(*args, **kwargs)
+                success = True
+                return result
+            finally:
+                duration_seconds = time.perf_counter() - start_time
+                # Record availability/error SLO
+                track_slo(slo_name, value=1.0, success=success)
+                # Record latency SLO if enabled
+                if track_latency:
+                    track_slo(latency_name, value=duration_seconds, success=success)
+
+        return wrapper
+
+    return decorator

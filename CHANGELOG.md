@@ -5,6 +5,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.5.0] - 2026-01-26
+
+### Added
+
+- **SLO Tracking Decorators** (`obskit.slo.tracker`)
+  - `with_slo_tracking()` - Flexible decorator for SLO tracking with auto-detection of sync/async
+  - `with_slo_tracking_sync()` - Synchronous decorator for SLO tracking
+  - `with_slo_tracking_async()` - Asynchronous decorator for SLO tracking
+  - Automatically records latency, availability, and error rate measurements
+  - Lazy SLO registration on first use
+
+### Exports
+
+- Added `with_slo_tracking`, `with_slo_tracking_sync`, `with_slo_tracking_async` to `obskit.slo` module
+
+---
+
 ## [1.4.0] - 2026-01-26
 
 ### Added
