@@ -148,7 +148,7 @@ jobs:
             -e packages/obskit-middleware-django \
             -e packages/obskit-middleware-grpc \
             -e packages/obskit
-          pip install pytest pytest-asyncio pytest-cov httpx fastapi starlette flask
+          pip install pytest pytest-asyncio pytest-cov httpx fastapi starlette flask prometheus-client
 
       - name: Run integration tests (no containers)
         run: pytest tests/integration/ -q --tb=short -m "not integration"
