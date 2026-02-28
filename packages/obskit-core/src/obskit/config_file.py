@@ -176,7 +176,7 @@ def configure_from_file(
 def _load_yaml(path: Path) -> dict[str, Any]:
     """Load configuration from YAML file."""
     try:
-        import yaml  # type: ignore[import-untyped]
+        import yaml
     except ImportError as e:
         raise ConfigValidationError(
             "PyYAML is required to load YAML configuration files. Install with: pip install pyyaml",
