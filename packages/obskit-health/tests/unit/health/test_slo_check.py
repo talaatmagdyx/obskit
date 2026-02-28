@@ -18,7 +18,6 @@ from obskit.health.slo_check import (
 from obskit.slo.tracker import SLOTracker, reset_slo_tracker
 from obskit.slo.types import SLOType
 
-
 # =============================================================================
 # SLOHealthStatus Tests
 # =============================================================================

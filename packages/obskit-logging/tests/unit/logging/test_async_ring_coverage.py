@@ -1,8 +1,9 @@
 """Tests for async_ring.py branch coverage."""
 from __future__ import annotations
 
-import time
 import threading
+import time
+
 from obskit.logging.async_ring import AsyncLogRing
 
 

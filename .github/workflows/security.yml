@@ -38,6 +38,10 @@ jobs:
             -e packages/obskit-middleware-flask \
             -e packages/obskit-middleware-django \
             -e packages/obskit-middleware-grpc \
+            -e packages/obskit-decorators \
+            -e packages/obskit-db \
+            -e packages/obskit-queue \
+            -e packages/obskit-dashboards \
             -e "packages/obskit[all]"
           pip install pip-audit
 

@@ -21,16 +21,15 @@ from prometheus_client import CollectorRegistry, Counter, Gauge, Histogram
 
 from obskit.metrics.openmetrics import (
     OPENMETRICS_CONTENT_TYPE,
+    PROMETHEUS_AVAILABLE,
     OpenMetricsExemplar,
     OpenMetricsRegistry,
-    PROMETHEUS_AVAILABLE,
     _format_labels,
     _format_value,
     _get_openmetrics_type,
     add_exemplar,
     generate_openmetrics,
 )
-
 
 # =============================================================================
 # Constants

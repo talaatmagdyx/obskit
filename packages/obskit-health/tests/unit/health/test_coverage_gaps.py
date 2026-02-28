@@ -472,8 +472,8 @@ class TestServerMissingBranches:
 
     def test_start_health_server_exception_cleans_up(self):
         """Lines 247-250: Exception during start clears _health_server and re-raises."""
-        from obskit.health.server import start_health_server
         import obskit.health.server as server_module
+        from obskit.health.server import start_health_server
 
         with patch("obskit.health.server.HTTPServer", side_effect=OSError("Port in use")):
             with pytest.raises(OSError):

@@ -510,6 +510,7 @@ class TestCacheMissingBranches:
         be cached (the if result is not None or not skip_none: check is False).
         """
         import asyncio
+
         from obskit.cache import CacheTracker, cached
 
         tracker = CacheTracker("test_skip_none_async")

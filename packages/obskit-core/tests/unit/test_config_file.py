@@ -1,10 +1,18 @@
 """Tests for obskit.config_file module."""
-import json, os
+import json
+import os
 from unittest.mock import patch
+
 import pytest
+
 from obskit.config_file import (
-    _flatten_config, _load_json, _load_toml, _load_yaml,
-    _restore_obskit_env_vars, _save_obskit_env_vars, configure_from_file,
+    _flatten_config,
+    _load_json,
+    _load_toml,
+    _load_yaml,
+    _restore_obskit_env_vars,
+    _save_obskit_env_vars,
+    configure_from_file,
 )
 from obskit.core.errors import ConfigFileNotFoundError, ConfigValidationError
 
@@ -71,7 +79,7 @@ class TestLoadToml:
     def test_simple(self, tmp_path):
         self._ensure_toml()
         p = tmp_path / "cfg.toml"
-        p.write_bytes('service_name = "toml-svc"'.encode())
+        p.write_bytes(b'service_name = "toml-svc"')
         assert _load_toml(p)["service_name"] == "toml-svc"
 
     def test_tool_obskit(self, tmp_path):
@@ -135,7 +143,7 @@ class TestConfigureFromFileToml:
         except ImportError:
             pytest.importorskip("tomli")
         p = tmp_path / "cfg.toml"
-        p.write_bytes('service_name = "toml-svc"'.encode())
+        p.write_bytes(b'service_name = "toml-svc"')
         assert configure_from_file(p).service_name == "toml-svc"
 
 

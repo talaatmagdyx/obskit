@@ -128,16 +128,17 @@ class TestInstrumentKafkaImportError:
     """Cover kafka.py:76-77 — except ImportError branch."""
 
     def test_import_error_handled(self):
-        import sys
         import importlib
+        import sys
         # Remove kafka-python from sys.modules to simulate ImportError
         saved = {k: v for k, v in sys.modules.items() if "kafka" in k}
         for k in list(sys.modules.keys()):
             if k.startswith("kafka"):
                 del sys.modules[k]
         try:
-            import obskit.queue.kafka as qk_mod
             import importlib
+
+            import obskit.queue.kafka as qk_mod
             with __import__("unittest.mock", fromlist=["patch"]).patch(
                 "builtins.__import__",
                 side_effect=lambda name, *a, **kw: (_ for _ in ()).throw(ImportError("no kafka"))

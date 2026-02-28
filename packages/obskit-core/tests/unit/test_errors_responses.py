@@ -487,7 +487,8 @@ class TestObservableErrorTraceCoverage:
 
     def test_get_trace_id_otel_exception(self):
         """Test _get_trace_id when OTel raises (lines 127-128)."""
-        from unittest.mock import patch, MagicMock
+        from unittest.mock import patch
+
         from obskit.errors.responses import ObservableError
 
         mock_trace = MagicMock()
@@ -500,7 +501,8 @@ class TestObservableErrorTraceCoverage:
 
     def test_get_span_id_otel_exception(self):
         """Test _get_span_id when OTel raises (lines 138-139)."""
-        from unittest.mock import patch, MagicMock
+        from unittest.mock import patch
+
         from obskit.errors.responses import ObservableError
 
         mock_trace = MagicMock()
@@ -516,7 +518,8 @@ class TestCreateErrorResponseTraceCoverage:
 
     def test_create_error_response_with_trace_id_otel_raises(self):
         """Test include_trace_id=True when OTel raises (lines 298-306)."""
-        from unittest.mock import patch, MagicMock
+        from unittest.mock import patch
+
         from obskit.errors.responses import create_error_response
 
         mock_trace = MagicMock()
@@ -530,7 +533,8 @@ class TestCreateErrorResponseTraceCoverage:
 
     def test_create_error_response_with_valid_otel_span(self):
         """Test include_trace_id=True with a valid OTel span (lines 302-306)."""
-        from unittest.mock import patch, MagicMock
+        from unittest.mock import patch
+
         from obskit.errors.responses import create_error_response
 
         mock_span = MagicMock()
@@ -554,7 +558,8 @@ class TestFormatExceptionTraceCoverage:
 
     def test_format_exception_with_valid_otel_span(self):
         """Test format_exception when OTel span has valid trace ID (lines 347-350)."""
-        from unittest.mock import patch, MagicMock
+        from unittest.mock import patch
+
         from obskit.errors.responses import format_exception
 
         mock_span = MagicMock()
@@ -573,7 +578,8 @@ class TestFormatExceptionTraceCoverage:
 
     def test_format_exception_otel_raises(self):
         """Test format_exception when OTel raises (lines 350-351)."""
-        from unittest.mock import patch, MagicMock
+        from unittest.mock import patch
+
         from obskit.errors.responses import format_exception
 
         mock_trace = MagicMock()
@@ -599,9 +605,11 @@ class TestErrorResponseMoreCoverage:
 
     def test_create_error_response_with_valid_span_has_span_id(self):
         """Test create_error_response with valid span sets span_id (line 304)."""
-        from unittest.mock import patch, MagicMock
-        from obskit.errors.responses import create_error_response
+        from unittest.mock import patch
+
         import opentelemetry.trace as otel_trace
+
+        from obskit.errors.responses import create_error_response
 
         mock_span = MagicMock()
         mock_span_ctx = MagicMock()
@@ -618,9 +626,11 @@ class TestErrorResponseMoreCoverage:
 
     def test_format_exception_includes_trace_id_from_valid_span(self):
         """Test format_exception appends trace_id when span is valid (line 349)."""
-        from unittest.mock import patch, MagicMock
-        from obskit.errors.responses import format_exception
+        from unittest.mock import patch
+
         import opentelemetry.trace as otel_trace
+
+        from obskit.errors.responses import format_exception
 
         mock_span = MagicMock()
         mock_span_ctx = MagicMock()

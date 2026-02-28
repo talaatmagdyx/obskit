@@ -8,7 +8,6 @@ import pytest
 
 from obskit.mixin import ObservabilityMixin, create_service_mixin
 
-
 # =============================================================================
 # Helpers
 # =============================================================================
@@ -708,7 +707,7 @@ class TestMixinMoreCoverageGaps:
 
     def test_get_circuit_breaker_inner_lock_already_exists(self):
         """Test circuit breaker double-check lock when CB already exists (line 406->419)."""
-        from obskit.mixin import _circuit_breakers, _circuit_breaker_lock
+        from obskit.mixin import _circuit_breaker_lock, _circuit_breakers
         from obskit.resilience import CircuitBreaker
         svc = _make_service("double_check_cb_svc")
         full_name = f"{svc._service_name}.dep_exists"
@@ -730,7 +729,7 @@ class TestMixinMoreCoverageGaps:
 
     def test_get_rate_limiter_inner_lock_already_exists(self):
         """Test rate limiter double-check lock when RL already exists (line 455->465)."""
-        from obskit.mixin import _rate_limiters, _rate_limiter_lock
+        from obskit.mixin import _rate_limiter_lock, _rate_limiters
         from obskit.resilience import TokenBucketRateLimiter
         svc = _make_service("double_check_rl_svc")
         full_name = f"{svc._service_name}.limit_exists"

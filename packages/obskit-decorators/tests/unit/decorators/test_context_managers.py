@@ -416,8 +416,9 @@ class TestObserveTrackMetricsFalseErrorPath:
         This covers branch 178->186: the False branch of if track_metrics: inside
         the observe async context manager exception handler.
         """
-        from obskit.decorators.context_managers import observe
         from unittest.mock import patch
+
+        from obskit.decorators.context_managers import observe
         with patch("obskit.decorators.context_managers.get_red_metrics") as mock_red:
             with pytest.raises(ValueError):
                 async with observe(operation="async_no_metric_fail", track_metrics=False):
@@ -427,8 +428,9 @@ class TestObserveTrackMetricsFalseErrorPath:
     @pytest.mark.asyncio
     async def test_async_observe_no_metric_still_logs_error(self):
         """observe with track_metrics=False still logs error even without metrics."""
-        from obskit.decorators.context_managers import observe
         from unittest.mock import patch
+
+        from obskit.decorators.context_managers import observe
         with patch("obskit.decorators.context_managers.log_error") as mock_log_error:
             with pytest.raises(RuntimeError):
                 async with observe(operation="async_no_metric_log", track_metrics=False):
@@ -445,8 +447,9 @@ class TestObserveSyncTrackMetricsFalseErrorPath:
         This covers branch 322->330: the False branch of if track_metrics: inside
         the observe_sync context manager exception handler.
         """
-        from obskit.decorators.context_managers import observe_sync
         from unittest.mock import patch
+
+        from obskit.decorators.context_managers import observe_sync
         with patch("obskit.decorators.context_managers.get_red_metrics") as mock_red:
             with pytest.raises(ValueError):
                 with observe_sync(operation="sync_no_metric_fail", track_metrics=False):
@@ -455,8 +458,9 @@ class TestObserveSyncTrackMetricsFalseErrorPath:
 
     def test_sync_observe_no_metric_still_logs_error(self):
         """observe_sync with track_metrics=False still calls log_error."""
-        from obskit.decorators.context_managers import observe_sync
         from unittest.mock import patch
+
+        from obskit.decorators.context_managers import observe_sync
         with patch("obskit.decorators.context_managers.log_error") as mock_log_error:
             with pytest.raises(RuntimeError):
                 with observe_sync(operation="sync_no_metric_log", track_metrics=False):

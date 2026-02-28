@@ -19,7 +19,6 @@ from obskit.resilience.factory import (
 )
 from obskit.resilience.rate_limiter import RateLimiter, TokenBucketRateLimiter
 
-
 # =============================================================================
 # CircuitBreakerPreset Tests
 # =============================================================================

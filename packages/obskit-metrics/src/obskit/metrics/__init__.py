@@ -147,11 +147,6 @@ obskit.decorators : Automatic metrics via decorators
 obskit.slo : SLO tracking with error budgets
 """
 
-from obskit.metrics.exemplar import (
-    get_trace_exemplar,
-    is_exemplar_available,
-    observe_with_exemplar,
-)
 from obskit.metrics.cardinality import (
     CardinalityConfig,
     CardinalityProtector,
@@ -160,6 +155,11 @@ from obskit.metrics.cardinality import (
     protect_id,
     protect_label,
     reset_cardinality_protector,
+)
+from obskit.metrics.exemplar import (
+    get_trace_exemplar,
+    is_exemplar_available,
+    observe_with_exemplar,
 )
 from obskit.metrics.golden import GoldenSignals
 from obskit.metrics.red import REDMetrics

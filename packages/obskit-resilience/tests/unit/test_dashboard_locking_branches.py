@@ -1,8 +1,8 @@
 """Tests to cover branch misses in circuit_dashboard.py and locking.py."""
 from __future__ import annotations
 
-import time
 import threading
+import time
 from datetime import datetime
 from unittest.mock import MagicMock
 
@@ -95,8 +95,8 @@ class TestCircuitDashboardPrivateAttrBranches:
 
     def test_get_circuit_dashboard_singleton(self):
         """Lines 361->364: get_circuit_dashboard creates singleton on first call."""
-        from obskit.circuit_dashboard import get_circuit_dashboard
         import obskit.circuit_dashboard as mod
+        from obskit.circuit_dashboard import get_circuit_dashboard
 
         # Reset the global dashboard to force recreation
         original = mod._dashboard
@@ -305,8 +305,8 @@ class TestCircuitDashboardMoreBranches:
 
     def test_get_circuit_dashboard_inner_lock_branch(self):
         """Line 361->364: inner lock branch when dashboard created concurrently."""
-        from obskit.circuit_dashboard import CircuitBreakerDashboard, get_circuit_dashboard
         import obskit.circuit_dashboard as mod
+        from obskit.circuit_dashboard import CircuitBreakerDashboard, get_circuit_dashboard
 
         original = mod._dashboard
         mod._dashboard = None

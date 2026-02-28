@@ -8,6 +8,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
+from obskit.tracing._version import __version__
 from obskit.tracing.tracer import (
     OPENTELEMETRY_AVAILABLE,
     async_trace_span,
@@ -21,8 +22,6 @@ from obskit.tracing.tracer import (
     set_baggage,
     trace_span,
 )
-from obskit.tracing._version import __version__
-
 
 # ---------------------------------------------------------------------------
 # Helpers

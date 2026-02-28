@@ -550,7 +550,7 @@ class TestValidationTrackerSchema:
 
 class TestValidationBranchCoverage:
     def test_jsonschema_general_exception(self):
-        from unittest.mock import patch, MagicMock
+        from unittest.mock import MagicMock, patch
         tracker = ValidationTracker('test')
         schema = {'type': 'object'}
         with patch('jsonschema.Draft7Validator') as mock_v:

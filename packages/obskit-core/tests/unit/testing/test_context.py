@@ -1,5 +1,6 @@
 """Tests for obskit.testing.context module."""
 import pytest
+
 from obskit.testing.context import capture_metrics, capture_traces, disable_observability
 
 
@@ -42,6 +43,7 @@ class TestDisableObservabilityContext:
 class TestDisableObservabilityNoop:
     def test_noop_span_yields_mock(self):
         from unittest.mock import patch
+
         from obskit.testing.context import disable_observability
         with disable_observability():
             # Test that trace_span patches work
@@ -120,7 +122,7 @@ class TestObskitTestContext:
 
 class TestMockObservabilityContext:
     def test_mock_observability_yields_context(self):
-        from obskit.testing.context import mock_observability, ObskitTestContext
+        from obskit.testing.context import ObskitTestContext, mock_observability
         with mock_observability() as ctx:
             assert isinstance(ctx, ObskitTestContext)
 

@@ -19,7 +19,6 @@ from obskit.slo.tracker import (
 )
 from obskit.slo.types import SLOStatus, SLOTarget, SLOType
 
-
 # =============================================================================
 # SLOTracker Extended Tests
 # =============================================================================
@@ -326,7 +325,7 @@ class TestWithSloTrackingSync:
 
         @with_slo_tracking_sync("sync_fail_dec")
         def failing_func():
-            raise IOError("IO error")
+            raise OSError("IO error")
 
         with pytest.raises(IOError):
             failing_func()
