@@ -26,8 +26,9 @@ class TestSheddingBranchCoverage:
 
     def test_evaluate_shed_rate_zero_max_queue_size(self):
         """Lines 267->270, 271->275: max_queue_size=0 and max_latency_ms=0."""
-        from obskit.shedding import LoadShedder
         from datetime import timedelta
+
+        from obskit.shedding import LoadShedder
 
         # max_queue_size=0 -> queue_load branch is False
         # max_latency_ms=0 -> latency_load branch is False
@@ -52,8 +53,8 @@ class TestSheddingBranchCoverage:
 
     def test_get_load_shedder_inner_lock_branch(self):
         """Lines 375->378: inner lock branch in get_load_shedder singleton."""
-        from obskit.shedding import get_load_shedder
         import obskit.shedding as mod
+        from obskit.shedding import get_load_shedder
 
         unique_name = "__inner_lock_shedder__"
         mod._shedders.pop(unique_name, None)
@@ -248,8 +249,9 @@ class TestFailoverRemainingBranchCoverage:
 
     def test_evaluate_state_backup_to_primary_recovery(self):
         """Lines 325->335, 328-330: auto-recover from BACKUP to PRIMARY."""
-        from obskit.failover import FailoverCoordinator, FailoverState
         from datetime import datetime
+
+        from obskit.failover import FailoverCoordinator, FailoverState
 
         coordinator = FailoverCoordinator(
             "test-recovery",
@@ -271,8 +273,9 @@ class TestFailoverRemainingBranchCoverage:
 
     def test_do_recovery_with_failover_time_set(self):
         """Line 382->390: _do_recovery when _failover_time is set logs recovery."""
-        from obskit.failover import FailoverCoordinator, FailoverState
         from datetime import datetime
+
+        from obskit.failover import FailoverCoordinator, FailoverState
 
         coordinator = FailoverCoordinator(
             "test-do-recovery",
@@ -410,8 +413,9 @@ class TestFailoverMoreBranches:
 
     def test_evaluate_state_in_failing_over_state(self):
         """Line 325->335: state is FAILING_OVER (neither PRIMARY nor BACKUP)."""
-        from obskit.failover import FailoverCoordinator, FailoverState
         from datetime import datetime
+
+        from obskit.failover import FailoverCoordinator, FailoverState
 
         coordinator = FailoverCoordinator("test-failing-over")
         coordinator.register_primary("primary")
@@ -469,9 +473,9 @@ class TestCombinedMoreBranches:
     @pytest.mark.asyncio
     async def test_execute_circuit_open_without_callback(self):
         """Line 202->204: circuit open but no on_circuit_open callback."""
-        from obskit.resilience.combined import ResilientExecutor
-        from obskit.resilience.circuit_breaker import CircuitBreaker, CircuitOpenError
         import obskit
+        from obskit.resilience.circuit_breaker import CircuitBreaker, CircuitOpenError
+        from obskit.resilience.combined import ResilientExecutor
 
         obskit.CircuitOpenError = CircuitOpenError
 

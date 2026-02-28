@@ -11,7 +11,6 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-
 # =============================================================================
 # alert_dedup.py — branches 195->214, 383->386
 # =============================================================================
@@ -413,8 +412,9 @@ class TestExternalMissingBranches:
         with patch.object(tracker, "_records") as mock_records:
             # Simulate records existing but latencies being empty
             # by making records non-empty but having no latency attributes
-            from obskit.external import APICallRecord
             from datetime import datetime
+
+            from obskit.external import APICallRecord
 
             # Patch _records to non-empty to pass the guard,
             # but patch the latency to produce empty list via side effect
@@ -673,7 +673,7 @@ class TestSLAPredictorMissingBranches:
 
     def test_calculate_trend_single_point(self):
         """Lines 376-377: Returns (0.0, "stable") with < 2 points."""
-        from obskit.sla_predictor import SLAPredictor, DataPoint
+        from obskit.sla_predictor import DataPoint, SLAPredictor
 
         predictor = SLAPredictor()
         result = predictor._calculate_trend([DataPoint(timestamp=datetime.utcnow(), value=50.0)])
@@ -681,7 +681,7 @@ class TestSLAPredictorMissingBranches:
 
     def test_calculate_trend_zero_denominator(self):
         """Lines 395-396: denominator==0 returns (0.0, "stable")."""
-        from obskit.sla_predictor import SLAPredictor, DataPoint
+        from obskit.sla_predictor import DataPoint, SLAPredictor
 
         predictor = SLAPredictor()
         ts = datetime.utcnow()
@@ -692,7 +692,7 @@ class TestSLAPredictorMissingBranches:
 
     def test_calculate_trend_improving(self):
         """Line 406: direction="improving" when slope < 0."""
-        from obskit.sla_predictor import SLAPredictor, DataPoint
+        from obskit.sla_predictor import DataPoint, SLAPredictor
 
         predictor = SLAPredictor()
         base_time = datetime.utcnow() - timedelta(hours=10)
@@ -792,6 +792,7 @@ class TestHighThroughputMissingBranches:
         We bypass SLOTarget validation with object.__new__.
         """
         from datetime import datetime
+
         from obskit.slo.high_throughput import HighThroughputSLOTracker
         from obskit.slo.types import SLOMeasurement, SLOTarget, SLOType
 
@@ -813,6 +814,7 @@ class TestHighThroughputMissingBranches:
     def test_calculate_value_throughput_single_returns_zero(self):
         """Lines 276-277: THROUGHPUT with < 2 measurements returns 0.0."""
         from datetime import datetime
+
         from obskit.slo.high_throughput import HighThroughputSLOTracker
         from obskit.slo.types import SLOMeasurement, SLOTarget, SLOType
 
@@ -824,6 +826,7 @@ class TestHighThroughputMissingBranches:
     def test_calculate_value_throughput_multiple(self):
         """Lines 278-280: THROUGHPUT calculates rps from span."""
         from datetime import datetime, timedelta
+
         from obskit.slo.high_throughput import HighThroughputSLOTracker
         from obskit.slo.types import SLOMeasurement, SLOTarget, SLOType
 
@@ -841,6 +844,7 @@ class TestHighThroughputMissingBranches:
     def test_calculate_value_throughput_zero_span(self):
         """Line 280: THROUGHPUT with span=0 returns 0.0."""
         from datetime import datetime
+
         from obskit.slo.high_throughput import HighThroughputSLOTracker
         from obskit.slo.types import SLOMeasurement, SLOTarget, SLOType
 
@@ -947,7 +951,7 @@ class TestAdditionalBranches:
             class FakeRecord:
                 latency_seconds = 0.1
                 success = True
-            
+
             # _records is truthy but the list comprehension produces empty list
             # We achieve this by making __iter__ return nothing on second call
             calls = [0]
@@ -975,13 +979,13 @@ class TestAdditionalBranches:
         We do this by pre-populating _api_trackers after the outer if check.
         """
         import obskit.external as ext_module
-        from obskit.external import get_external_api_tracker, ExternalAPISLATracker
+        from obskit.external import ExternalAPISLATracker, get_external_api_tracker
 
         unique = "dbl_chk_concurrent_sim_xyz"
         ext_module._api_trackers.pop(unique, None)
 
         original_lock = ext_module._api_lock
-        
+
         # Simulate: when we acquire the lock, _api_trackers already has the key
         # (simulating concurrent thread that set it before we got the lock)
         class MockLock:
@@ -996,7 +1000,7 @@ class TestAdditionalBranches:
             # Remove so outer check is True
             ext_module._api_trackers.pop(unique, None)
             ext_module._api_lock = MockLock()
-            
+
             t = get_external_api_tracker(unique)
             # It should return the one set by MockLock (inner if is False -> line 505->508)
             assert t is not None
@@ -1010,7 +1014,7 @@ class TestAdditionalBranches:
         because another thread set _deduplicator between outer check and lock.
         """
         import obskit.alert_dedup as dedup_module
-        from obskit.alert_dedup import get_alert_deduplicator, AlertDeduplicator
+        from obskit.alert_dedup import AlertDeduplicator, get_alert_deduplicator
 
         original = dedup_module._deduplicator
         original_lock = dedup_module._dedup_lock
@@ -1026,7 +1030,7 @@ class TestAdditionalBranches:
         try:
             dedup_module._deduplicator = None  # outer check will be True
             dedup_module._dedup_lock = MockLock()
-            
+
             d = get_alert_deduplicator()
             # Returns the one set by MockLock (inner if False -> 383->386)
             assert d is not None
@@ -1039,7 +1043,7 @@ class TestAdditionalBranches:
         Branch 498->501: Simulate inner '_predictor is None' being False.
         """
         import obskit.sla_predictor as pred_module
-        from obskit.sla_predictor import get_sla_predictor, SLAPredictor
+        from obskit.sla_predictor import SLAPredictor, get_sla_predictor
 
         original = pred_module._predictor
         original_lock = pred_module._predictor_lock
@@ -1093,7 +1097,7 @@ class TestAdditionalBranches:
         Lines 312-316: Precisely trigger the elif trend_slope < 0 branch.
         Need: comparison="greater_than", current > target, trend_slope < 0.
         """
-        from obskit.sla_predictor import SLAPredictor, DataPoint
+        from obskit.sla_predictor import DataPoint, SLAPredictor
 
         predictor = SLAPredictor()
         predictor.set_sla("neg_slope_gt", target_value=50.0, comparison="greater_than")
@@ -1117,4 +1121,3 @@ class TestAdditionalBranches:
         # slope is negative (declining) -> lines 311-316 hit
 
 
-from datetime import datetime, timedelta

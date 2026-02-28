@@ -245,9 +245,11 @@ class TestAuditTrailCoverage:
         audit = AuditTrail('cover-service-trim')
 
         # Manually add 10001 fake entries
-        from datetime import datetime
         import time
-        from obskit.audit import AuditEntry, AuditResult as AR
+        from datetime import datetime
+
+        from obskit.audit import AuditEntry
+        from obskit.audit import AuditResult as AR
 
         for i in range(10001):
             entry = AuditEntry(

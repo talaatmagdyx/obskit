@@ -401,7 +401,8 @@ class TestBatchContextCoverageGaps:
 
     def test_capture_context_with_tracing(self):
         """Test capture_context when trace headers are populated (line 138)."""
-        from unittest.mock import patch, MagicMock
+        from unittest.mock import MagicMock, patch
+
         from obskit.core.batch_context import capture_context
         from obskit.core.context import correlation_context
 

@@ -263,6 +263,7 @@ class TestASGIMiddleware:
 
     def test_non_http_scope_passes_through(self):
         import asyncio
+
         from obskit.middleware.base import ASGIMiddleware
         mock_app = AsyncMock()
         mw = ASGIMiddleware(mock_app, record_metrics=False)
@@ -279,6 +280,7 @@ class TestASGIMiddleware:
 
     def test_http_scope_processed(self):
         import asyncio
+
         from obskit.middleware.base import ASGIMiddleware
 
         async def mock_app(scope, receive, send):
@@ -386,7 +388,7 @@ class TestWSGIMiddleware:
 
 
 # =============================================================================
-# Additional coverage tests for uncovered branches  
+# Additional coverage tests for uncovered branches
 # =============================================================================
 
 
@@ -395,8 +397,8 @@ class TestCreateHeadersCoverage:
 
     def test_include_tenant_id_with_tenant_set(self):
         """Test include_tenant_id=True when tenant_id is set (line 147->148)."""
-        from obskit.middleware.base import inject_context_to_headers
         from obskit.metrics.tenant import set_tenant_id
+        from obskit.middleware.base import inject_context_to_headers
         set_tenant_id("test-tenant")
         headers = inject_context_to_headers(include_tenant_id=True)
         assert headers.get("X-Tenant-ID") == "test-tenant"
@@ -404,8 +406,8 @@ class TestCreateHeadersCoverage:
 
     def test_include_tenant_id_false(self):
         """Test include_tenant_id=False skips tenant header (line 145->151)."""
-        from obskit.middleware.base import inject_context_to_headers
         from obskit.metrics.tenant import set_tenant_id
+        from obskit.middleware.base import inject_context_to_headers
         set_tenant_id("some-tenant")
         headers = inject_context_to_headers(include_tenant_id=False)
         assert "X-Tenant-ID" not in headers
@@ -414,6 +416,7 @@ class TestCreateHeadersCoverage:
     def test_inject_trace_context_exception(self):
         """Test exception in inject_trace_context is swallowed (lines 155-156)."""
         from unittest.mock import patch
+
         from obskit.middleware.base import inject_context_to_headers
         with patch("obskit.tracing.inject_trace_context", side_effect=RuntimeError("trace error")):
             # Should not raise
@@ -427,6 +430,7 @@ class TestASGIMiddlewareCoverage:
     def test_send_wrapper_http_response_start(self):
         """Test send_wrapper captures status from http.response.start (lines 315->317)."""
         import asyncio
+
         from obskit.middleware.base import ASGIMiddleware
 
         send_messages = []
@@ -461,6 +465,7 @@ class TestASGIMiddlewareCoverage:
     def test_asgi_middleware_exception_path(self):
         """Test exception handler in ASGI middleware (lines 329-331)."""
         import asyncio
+
         from obskit.middleware.base import ASGIMiddleware
 
         async def run_test():

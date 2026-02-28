@@ -47,6 +47,10 @@ jobs:
             -e packages/obskit-health \
             -e packages/obskit-resilience \
             -e packages/obskit-slo \
+            -e packages/obskit-decorators \
+            -e packages/obskit-db \
+            -e packages/obskit-queue \
+            -e packages/obskit-dashboards \
             -e packages/obskit-middleware-fastapi \
             -e packages/obskit-middleware-flask \
             -e packages/obskit-middleware-django \
@@ -96,6 +100,14 @@ jobs:
             -e packages/obskit-health \
             -e packages/obskit-resilience \
             -e packages/obskit-slo \
+            -e packages/obskit-decorators \
+            -e packages/obskit-db \
+            -e packages/obskit-queue \
+            -e packages/obskit-dashboards \
+            -e packages/obskit-middleware-fastapi \
+            -e packages/obskit-middleware-flask \
+            -e packages/obskit-middleware-django \
+            -e packages/obskit-middleware-grpc \
             -e packages/obskit
           pip install mypy>=1.8.0
 
@@ -127,6 +139,10 @@ jobs:
             -e packages/obskit-health \
             -e packages/obskit-resilience \
             -e packages/obskit-slo \
+            -e packages/obskit-decorators \
+            -e packages/obskit-db \
+            -e packages/obskit-queue \
+            -e packages/obskit-dashboards \
             -e packages/obskit-middleware-fastapi \
             -e packages/obskit-middleware-flask \
             -e packages/obskit-middleware-django \

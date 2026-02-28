@@ -91,8 +91,8 @@ ignore = [
 known-first-party = ["obskit"]
 
 [tool.ruff.lint.per-file-ignores]
-"tests/*" = ["ARG", "SIM"]  # Allow unused args and simplify in tests
-"__init__.py" = ["F401"]    # Allow unused imports in __init__.py
+"**/tests/**" = ["ARG", "SIM", "F401", "F841", "B017", "B028", "B007", "C408", "C416", "E701", "E702", "W293", "I001"]  # Relaxed style rules in tests
+"**/__init__.py" = ["F401"]    # Allow unused imports in __init__.py
 
 [tool.bandit]
 exclude_dirs = ["tests", "benchmarks"]

@@ -74,9 +74,10 @@ class TestBreakdownLoopBranches:
 
     def test_exit_with_phases_and_zero_total_duration(self):
         """Lines 178->173 and 286->283: phases exist but total_duration is 0."""
-        from obskit.breakdown import LatencyBreakdown, PhaseRecord
-        from unittest.mock import patch
         import time
+        from unittest.mock import patch
+
+        from obskit.breakdown import LatencyBreakdown, PhaseRecord
 
         bd = LatencyBreakdown('op-zero-total', log_breakdown=False)
 

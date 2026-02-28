@@ -264,6 +264,7 @@ class TestBatchTrackerEdgeCases:
 
     def test_process_batch_fail_fast(self):
         import pytest
+
         from obskit.batch import BatchTracker
         tracker = BatchTracker("test_tracker")
         def processor(item):
@@ -296,6 +297,7 @@ class TestBatchTrackerEdgeCases:
 class TestBatchTrackerAsyncEdgeCases:
     def test_process_batch_async_with_error_and_on_error(self):
         import asyncio
+
         from obskit.batch import BatchTracker
         tracker = BatchTracker("test_tracker")
         errors = []
@@ -307,7 +309,10 @@ class TestBatchTrackerAsyncEdgeCases:
         assert len(errors) == 1
 
     def test_process_batch_async_fail_fast(self):
-        import asyncio, pytest
+        import asyncio
+
+        import pytest
+
         from obskit.batch import BatchTracker
         tracker = BatchTracker("test_tracker")
         async def processor(item):

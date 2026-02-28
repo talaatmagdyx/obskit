@@ -22,7 +22,6 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-
 # =============================================================================
 # metrics/async_recording.py gaps
 # =============================================================================
@@ -101,7 +100,7 @@ class TestAsyncRecordingGaps:
     async def test_shutdown_drains_remaining_queue_items(self):
         """Lines 274-275: Exception during shutdown drain is swallowed."""
         import obskit.metrics.async_recording as m
-        from obskit.metrics.async_recording import shutdown_async_recording, _ensure_worker_started
+        from obskit.metrics.async_recording import _ensure_worker_started, shutdown_async_recording
 
         await _ensure_worker_started()
 
@@ -115,7 +114,7 @@ class TestAsyncRecordingGaps:
     async def test_shutdown_exception_in_drain_swallowed(self):
         """Lines 274-275: Exception in method call during shutdown drain is caught."""
         import obskit.metrics.async_recording as m
-        from obskit.metrics.async_recording import shutdown_async_recording, _ensure_worker_started
+        from obskit.metrics.async_recording import _ensure_worker_started, shutdown_async_recording
 
         await _ensure_worker_started()
 
@@ -161,7 +160,7 @@ class TestCardinalityGaps:
 
     def test_get_cache_creates_new_cache_and_sets_limit_metric(self):
         """Line 212->215: _get_cache creates new cache and sets CARDINALITY_LIMIT metric."""
-        from obskit.metrics.cardinality import CardinalityProtector, CardinalityConfig
+        from obskit.metrics.cardinality import CardinalityConfig, CardinalityProtector
 
         config = CardinalityConfig(default_limit=100)
         protector = CardinalityProtector(config=config)
@@ -172,7 +171,7 @@ class TestCardinalityGaps:
 
     def test_set_limit_recreates_cache_when_exists(self):
         """Lines 229->234, 236: set_limit recreates existing cache."""
-        from obskit.metrics.cardinality import CardinalityProtector, CardinalityConfig
+        from obskit.metrics.cardinality import CardinalityConfig, CardinalityProtector
 
         config = CardinalityConfig(default_limit=100)
         protector = CardinalityProtector(config=config)
@@ -183,7 +182,7 @@ class TestCardinalityGaps:
 
     def test_protect_updates_cardinality_current_when_value_added(self):
         """Lines 287->289: CARDINALITY_CURRENT updated when new value added."""
-        from obskit.metrics.cardinality import CardinalityProtector, CardinalityConfig
+        from obskit.metrics.cardinality import CardinalityConfig, CardinalityProtector
 
         config = CardinalityConfig(default_limit=100)
         protector = CardinalityProtector(config=config)
@@ -192,7 +191,7 @@ class TestCardinalityGaps:
 
     def test_protect_increments_rejections_when_limit_reached(self):
         """Lines 292->294: CARDINALITY_REJECTIONS incremented when limit reached."""
-        from obskit.metrics.cardinality import CardinalityProtector, CardinalityConfig
+        from obskit.metrics.cardinality import CardinalityConfig, CardinalityProtector
 
         config = CardinalityConfig(default_limit=2)
         protector = CardinalityProtector(config=config)
@@ -203,7 +202,7 @@ class TestCardinalityGaps:
 
     def test_protect_returns_value_when_limit_reached_non_string(self):
         """Line 309: protect returns original value for non-string when limit exceeded."""
-        from obskit.metrics.cardinality import CardinalityProtector, CardinalityConfig
+        from obskit.metrics.cardinality import CardinalityConfig, CardinalityProtector
 
         config = CardinalityConfig(default_limit=1)
         protector = CardinalityProtector(config=config)
@@ -213,7 +212,7 @@ class TestCardinalityGaps:
 
     def test_reset_specific_label_clears_and_updates_metric(self):
         """Lines 348->exit, 350->exit: reset specific label clears cache."""
-        from obskit.metrics.cardinality import CardinalityProtector, CardinalityConfig
+        from obskit.metrics.cardinality import CardinalityConfig, CardinalityProtector
 
         config = CardinalityConfig(default_limit=100)
         protector = CardinalityProtector(config=config)
@@ -227,7 +226,7 @@ class TestCardinalityGaps:
 
     def test_reset_specific_label_not_in_caches(self):
         """Line 348->exit: False branch - label not in caches when reset called."""
-        from obskit.metrics.cardinality import CardinalityProtector, CardinalityConfig
+        from obskit.metrics.cardinality import CardinalityConfig, CardinalityProtector
 
         config = CardinalityConfig(default_limit=100)
         protector = CardinalityProtector(config=config)
@@ -236,7 +235,7 @@ class TestCardinalityGaps:
 
     def test_reset_all_labels_clears_all_and_updates_metrics(self):
         """Lines 355->353: reset None clears all caches."""
-        from obskit.metrics.cardinality import CardinalityProtector, CardinalityConfig
+        from obskit.metrics.cardinality import CardinalityConfig, CardinalityProtector
 
         config = CardinalityConfig(default_limit=100)
         protector = CardinalityProtector(config=config)
@@ -248,11 +247,11 @@ class TestCardinalityGaps:
 
     def test_get_cardinality_protector_double_checked_locking(self):
         """Lines 387->390: double-checked locking creates new protector."""
+        import obskit.metrics.cardinality as c_module
         from obskit.metrics.cardinality import (
             get_cardinality_protector,
             reset_cardinality_protector,
         )
-        import obskit.metrics.cardinality as c_module
 
         reset_cardinality_protector()
         assert c_module._cardinality_protector is None
@@ -363,7 +362,7 @@ class TestRegistryGaps:
     @patch("obskit.metrics.registry.PROMETHEUS_AVAILABLE", True)
     def test_start_http_server_no_auth_sets_server_started(self):
         """Lines 250->255: _start_http_server returns non-None result (True branch)."""
-        from obskit.metrics.registry import start_http_server, reset_registry, stop_http_server
+        from obskit.metrics.registry import reset_registry, start_http_server, stop_http_server
 
         reset_registry()
 
@@ -384,7 +383,7 @@ class TestRegistryGaps:
     @patch("obskit.metrics.registry.PROMETHEUS_AVAILABLE", True)
     def test_start_http_server_no_auth_returns_none(self):
         """Lines 250->255: False branch - _start_http_server returns None."""
-        from obskit.metrics.registry import start_http_server, reset_registry, stop_http_server
+        from obskit.metrics.registry import reset_registry, start_http_server, stop_http_server
 
         reset_registry()
 
@@ -431,8 +430,9 @@ class TestSelfMetricsGaps:
 
     def test_get_snapshot_with_none_queue_depth(self):
         """Lines 188->190: False branch - _queue_depth is None while PROMETHEUS_AVAILABLE=True."""
-        import obskit.metrics.self_metrics as sm
         from unittest.mock import patch
+
+        import obskit.metrics.self_metrics as sm
 
         # Create instance via __new__ to bypass __init__ (no Prometheus registration)
         # then patch PROMETHEUS_AVAILABLE=True so get_snapshot enters the outer if-block
@@ -451,8 +451,9 @@ class TestSelfMetricsGaps:
 
     def test_get_snapshot_with_none_queue_capacity_only(self):
         """Lines 190->195: False branch - _queue_capacity is None but _queue_depth is not."""
-        import obskit.metrics.self_metrics as sm
         from unittest.mock import MagicMock, patch
+
+        import obskit.metrics.self_metrics as sm
 
         # Create instance via __new__ to avoid registering real Prometheus Gauges,
         # inject a mock _queue_depth (value=10) with _queue_capacity=None.
@@ -553,8 +554,9 @@ class TestTenantGaps:
 
     def test_tenant_context_with_recording_span(self):
         """Lines 169-171: set_attribute called on recording span via module patch."""
-        from obskit.metrics.tenant import tenant_context
         import sys
+
+        from obskit.metrics.tenant import tenant_context
 
         mock_span = MagicMock()
         mock_span.is_recording.return_value = True
@@ -581,8 +583,9 @@ class TestTenantGaps:
 
     def test_tenant_context_exception_from_trace_is_swallowed(self):
         """Lines 172-173: exception during trace attribute setting is swallowed."""
-        from obskit.metrics.tenant import tenant_context
         import sys
+
+        from obskit.metrics.tenant import tenant_context
 
         mock_span = MagicMock()
         mock_span.is_recording.return_value = True
@@ -606,8 +609,9 @@ class TestTenantGaps:
 
     def test_tenant_context_without_company_id(self):
         """Line 170->175: False branch - company_id is None so company.id attribute not set."""
-        from obskit.metrics.tenant import tenant_context
         import sys
+
+        from obskit.metrics.tenant import tenant_context
 
         mock_span = MagicMock()
         mock_span.is_recording.return_value = True
@@ -689,6 +693,7 @@ class TestTypesGaps:
     def test_counter_exception_in_unregister_is_swallowed(self):
         """Lines 159-160: exception during counter unregistration is swallowed."""
         import prometheus_client
+
         from obskit.metrics.types import Counter
 
         registry = prometheus_client.CollectorRegistry()
@@ -712,6 +717,7 @@ class TestTypesGaps:
     def test_gauge_exception_in_unregister_is_swallowed(self):
         """Lines 280-281: exception during gauge unregistration is swallowed."""
         import prometheus_client
+
         from obskit.metrics.types import Gauge
 
         registry = prometheus_client.CollectorRegistry()
@@ -729,6 +735,7 @@ class TestTypesGaps:
     def test_histogram_exception_in_unregister_is_swallowed(self):
         """Lines 431-432: exception during histogram unregistration is swallowed."""
         import prometheus_client
+
         from obskit.metrics.types import Histogram
 
         registry = prometheus_client.CollectorRegistry()
@@ -746,6 +753,7 @@ class TestTypesGaps:
     def test_summary_exception_in_unregister_is_swallowed(self):
         """Lines 533-534: exception during summary unregistration is swallowed."""
         import prometheus_client
+
         from obskit.metrics.types import Summary
 
         registry = prometheus_client.CollectorRegistry()

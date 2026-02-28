@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import pytest
+
 import obskit.core as core_module
 
 

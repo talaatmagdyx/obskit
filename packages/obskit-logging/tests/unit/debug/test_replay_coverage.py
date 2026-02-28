@@ -365,9 +365,10 @@ class TestFileStorageCoverageExtra:
     async def test_load_tries_other_extension(self):
         """Line 165-167: when primary path doesn't exist, tries other extension."""
         import tempfile
-        from pathlib import Path
-        from obskit.debug.replay import CapturedRequest, FileStorage
         import time
+        from pathlib import Path
+
+        from obskit.debug.replay import CapturedRequest, FileStorage
 
         with tempfile.TemporaryDirectory() as tmpdir:
             # compress=False -> primary is .json, other is .json.gz
@@ -391,6 +392,7 @@ class TestFileStorageCoverageExtra:
         """Line 191: files not ending in .json or .json.gz are skipped."""
         import tempfile
         from pathlib import Path
+
         from obskit.debug.replay import FileStorage
 
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -409,6 +411,7 @@ class TestMemoryStorageCoverageExtra:
     async def test_list_captures_function_name_filter_no_match(self):
         """Lines 199-200: function_name filter skips non-matching captures."""
         import time
+
         from obskit.debug.replay import CapturedRequest, MemoryStorage
 
         storage = MemoryStorage()
@@ -434,6 +437,7 @@ class TestRequestCaptureCoverageExtra:
     async def test_capture_metadata_extractor_with_empty_args(self):
         """Lines 371-372: metadata_extractor not called when args is empty."""
         import time
+
         from obskit.debug.replay import MemoryStorage, RequestCapture
 
         storage = MemoryStorage()
@@ -457,7 +461,8 @@ class TestRequestCaptureCoverageExtra:
     async def test_list_captures_with_load_returning_none(self):
         """Lines 481-482: list_captures skips captures that can't be loaded."""
         import time
-        from unittest.mock import AsyncMock, MagicMock, patch
+        from unittest.mock import AsyncMock
+
         from obskit.debug.replay import MemoryStorage, RequestCapture
 
         storage = MemoryStorage()
@@ -482,6 +487,7 @@ class TestRequestCaptureCoverageExtra:
     async def test_wrap_async_captures_on_error(self):
         """Lines 538-541: wrapped async func captures error and re-raises."""
         import time
+
         from obskit.debug.replay import MemoryStorage, RequestCapture
 
         storage = MemoryStorage()
@@ -519,6 +525,7 @@ class TestRemainingReplayCoverage:
         """Lines 211-212: delete existing file returns True."""
         import tempfile
         import time
+
         from obskit.debug.replay import CapturedRequest, FileStorage
 
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -535,6 +542,7 @@ class TestRemainingReplayCoverage:
     async def test_memory_storage_evicts_oldest_when_at_limit(self):
         """Lines 226-227: MemoryStorage evicts oldest capture when at max_captures."""
         import time
+
         from obskit.debug.replay import CapturedRequest, MemoryStorage
 
         storage = MemoryStorage(max_captures=2)
@@ -566,6 +574,7 @@ class TestRemainingReplayCoverage:
     async def test_memory_storage_list_captures_limit_break(self):
         """Line 244: list_captures break when limit reached."""
         import time
+
         from obskit.debug.replay import CapturedRequest, MemoryStorage
 
         storage = MemoryStorage()
@@ -583,6 +592,7 @@ class TestRemainingReplayCoverage:
     async def test_memory_storage_delete_existing(self):
         """Lines 256-258: delete existing key in MemoryStorage returns True."""
         import time
+
         from obskit.debug.replay import CapturedRequest, MemoryStorage
 
         storage = MemoryStorage()
@@ -599,6 +609,7 @@ class TestRemainingReplayCoverage:
     async def test_replay_dry_run(self):
         """Lines 429-432: dry_run=True returns metadata without executing."""
         import time
+
         from obskit.debug.replay import CapturedRequest, MemoryStorage, RequestCapture
 
         storage = MemoryStorage()
@@ -619,6 +630,7 @@ class TestRemainingReplayCoverage:
     async def test_replay_async_function(self):
         """Line 446: replay calls async function."""
         import time
+
         from obskit.debug.replay import CapturedRequest, MemoryStorage, RequestCapture
 
         storage = MemoryStorage()
@@ -641,6 +653,7 @@ class TestRemainingReplayCoverage:
     async def test_list_captures_appends_valid_captures(self):
         """Lines 483-491: list_captures appends loaded captures."""
         import time
+
         from obskit.debug.replay import CapturedRequest, MemoryStorage, RequestCapture
 
         storage = MemoryStorage()
@@ -659,6 +672,7 @@ class TestRemainingReplayCoverage:
     async def test_delete_capture_delegates_to_storage(self):
         """Line 497: delete_capture delegates to storage.delete."""
         import time
+
         from obskit.debug.replay import CapturedRequest, MemoryStorage, RequestCapture
 
         storage = MemoryStorage()
@@ -676,6 +690,7 @@ class TestRemainingReplayCoverage:
     async def test_wrap_captures_slow_requests(self):
         """Line 531: wrap captures slow requests."""
         import time
+
         from obskit.debug.replay import MemoryStorage, RequestCapture
 
         storage = MemoryStorage()
@@ -719,8 +734,8 @@ class TestFinalReplayCoverage:
         import tempfile
         import time
         from pathlib import Path
+
         from obskit.debug.replay import CapturedRequest, FileStorage
-        from unittest.mock import patch
 
         with tempfile.TemporaryDirectory() as tmpdir:
             storage = FileStorage(base_path=tmpdir, compress=False)
@@ -748,6 +763,7 @@ class TestFinalReplayCoverage:
     async def test_replay_not_found_in_storage(self):
         """Line 418: capture not found in storage returns error."""
         import time
+
         from obskit.debug.replay import MemoryStorage, RequestCapture
 
         storage = MemoryStorage()
@@ -761,6 +777,7 @@ class TestFinalReplayCoverage:
     async def test_wrap_not_in_registry_via_wrap_replay(self):
         """Line 439->442 branch: func not in registry."""
         import time
+
         from obskit.debug.replay import CapturedRequest, MemoryStorage, RequestCapture
 
         storage = MemoryStorage()
@@ -782,6 +799,7 @@ class TestFinalReplayCoverage:
     async def test_wrap_async_captures_exception_and_reraises(self):
         """Lines 538-541: exception path in async_wrapper captures and re-raises."""
         import time
+
         from obskit.debug.replay import MemoryStorage, RequestCapture
 
         storage = MemoryStorage()
@@ -811,7 +829,8 @@ class TestRegistryReplayCoverage:
     async def test_replay_via_registry_found_path(self):
         """Line 439->442: func is found in registry (condition False -> skip to 442)."""
         import time
-        from obskit.debug.replay import MemoryStorage, RequestCapture, CapturedRequest
+
+        from obskit.debug.replay import CapturedRequest, MemoryStorage, RequestCapture
 
         storage = MemoryStorage()
         capture_system = RequestCapture(storage=storage, capture_sample_rate=1.0)
@@ -840,6 +859,7 @@ class TestRegistryReplayCoverage:
     def test_wrap_sync_captures_exception_and_reraises(self):
         """Lines 538-541 via sync_wrapper: wrap sync func captures error and re-raises."""
         import time
+
         from obskit.debug.replay import MemoryStorage, RequestCapture
 
         storage = MemoryStorage()

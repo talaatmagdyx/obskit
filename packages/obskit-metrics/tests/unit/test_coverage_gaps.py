@@ -12,7 +12,6 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-
 # =============================================================================
 # annotations.py gaps
 # =============================================================================
@@ -367,8 +366,9 @@ class TestAutoscalingGaps:
 
     def test_cooldown_expired_allows_scaling(self):
         """Lines 334->340: False branch - cooldown already elapsed so scaling is NOT blocked."""
-        from obskit.autoscaling import AutoScalingMetrics, ScalingConfig, ScalingDirection
         from datetime import datetime, timedelta
+
+        from obskit.autoscaling import AutoScalingMetrics, ScalingConfig, ScalingDirection
 
         config = ScalingConfig(
             min_replicas=1,
@@ -481,7 +481,7 @@ class TestDependencyGraphGaps:
         graph = DependencyGraph("no-edge-svc")
         graph.add_dependency("orphan-dep", DependencyType.SERVICE)
         # Remove the edge so the if-branch at line 313 is False
-        edge_key = f"no-edge-svc->orphan-dep"
+        edge_key = "no-edge-svc->orphan-dep"
         graph._edges.pop(edge_key, None)
         # record_call should proceed past line 313 without updating the edge
         graph.record_call("orphan-dep", latency_ms=5.0, success=True)
@@ -827,9 +827,10 @@ class TestMemoryGaps:
         We inject MagicMock objects for all prometheus metrics to avoid
         duplicate registration issues across test runs.
         """
-        import obskit.memory as memory_module
         from unittest.mock import MagicMock
-        
+
+        import obskit.memory as memory_module
+
         # Reset state
         memory_module._metrics_initialized = True  # prevent re-init attempts
         # Inject mocks for all prometheus metrics
@@ -850,8 +851,9 @@ class TestMemoryGaps:
 
     def test_metrics_init_lines_77_to_80(self):
         """Lines 77-80: _init_metrics() creates all metrics using a fresh registry."""
-        import obskit.memory as memory_module
         import prometheus_client
+
+        import obskit.memory as memory_module
 
         registry = prometheus_client.CollectorRegistry()
         original_init = memory_module._metrics_initialized
@@ -996,8 +998,9 @@ class TestMemoryGaps:
 
     def test_gc_callback_stop_phase_via_register(self):
         """Lines 311->316: gc callback stop phase via register_gc_callbacks."""
-        from obskit.memory import MemoryTracker
         import gc as gc_module
+
+        from obskit.memory import MemoryTracker
 
         tracker = MemoryTracker()
         tracker.register_gc_callbacks()
@@ -1006,8 +1009,9 @@ class TestMemoryGaps:
 
     def test_gc_callback_unknown_phase(self):
         """Line 311->exit: gc callback with unknown phase (neither start nor stop)."""
-        from obskit.memory import MemoryTracker
         import gc as gc_module
+
+        from obskit.memory import MemoryTracker
 
         tracker = MemoryTracker()
         tracker.register_gc_callbacks()
@@ -1018,8 +1022,9 @@ class TestMemoryGaps:
 
     def test_gc_callback_stop_without_start(self):
         """Line 312->exit: gc callback stop phase when generation not in _gc_start_time."""
-        from obskit.memory import MemoryTracker
         import gc as gc_module
+
+        from obskit.memory import MemoryTracker
 
         tracker = MemoryTracker()
         tracker.register_gc_callbacks()
@@ -1030,8 +1035,9 @@ class TestMemoryGaps:
 
     def test_gc_callback_stop_with_gc_duration_mock(self):
         """Line 315: GC_DURATION_SECONDS.labels().observe() is called in stop phase."""
-        from obskit.memory import MemoryTracker
         import gc as gc_module
+
+        from obskit.memory import MemoryTracker
 
         tracker = MemoryTracker()
         tracker.register_gc_callbacks()
@@ -1093,9 +1099,10 @@ class TestMemoryGaps:
 
     def test_memory_tracking_start_already_alive(self):
         """Line 367: return early when tracker already alive."""
+        import time
+
         import obskit.memory as memory_module
         from obskit.memory import start_memory_tracking, stop_memory_tracking
-        import time
 
         start_memory_tracking(interval_seconds=60.0)
         time.sleep(0.05)
@@ -1125,8 +1132,9 @@ class TestMemoryGaps:
 
     def test_memory_tracking_with_track_objects_false(self):
         """Line 379->382: tracking loop does not call collect_objects when track_objects=False."""
-        from obskit.memory import start_memory_tracking, stop_memory_tracking
         import time
+
+        from obskit.memory import start_memory_tracking, stop_memory_tracking
 
         start_memory_tracking(interval_seconds=60.0, track_objects=False)
         time.sleep(0.05)
@@ -1134,8 +1142,9 @@ class TestMemoryGaps:
 
     def test_memory_tracking_with_track_objects(self):
         """Line 380: tracking loop calls collect_objects when track_objects=True."""
-        from obskit.memory import start_memory_tracking, stop_memory_tracking
         import time
+
+        from obskit.memory import start_memory_tracking, stop_memory_tracking
 
         start_memory_tracking(interval_seconds=60.0, track_objects=True)
         time.sleep(0.05)
@@ -1143,9 +1152,10 @@ class TestMemoryGaps:
 
     def test_memory_tracking_stop_with_live_thread(self):
         """Line 405->407: stop_memory_tracking with live background tracker joins thread."""
+        import time
+
         import obskit.memory as memory_module
         from obskit.memory import start_memory_tracking, stop_memory_tracking
-        import time
 
         start_memory_tracking(interval_seconds=60.0)
         time.sleep(0.05)
@@ -1167,7 +1177,7 @@ class TestMemoryGaps:
 
     def test_get_memory_tracker(self):
         """Line 412: get_memory_tracker returns a MemoryTracker."""
-        from obskit.memory import get_memory_tracker, MemoryTracker
+        from obskit.memory import MemoryTracker, get_memory_tracker
 
         tracker = get_memory_tracker()
         assert isinstance(tracker, MemoryTracker)

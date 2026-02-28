@@ -42,7 +42,7 @@ class TestMessageContext:
         """Test to_dict filters out None values."""
         ctx = MessageContext(message_id="msg-123")
         d = ctx.to_dict()
-        
+
         assert "message_id" in d
         assert d["message_id"] == "msg-123"
         assert "correlation_id" not in d
@@ -55,7 +55,7 @@ class TestMessageContext:
             extra={"order_id": "order-456", "customer": "john"},
         )
         d = ctx.to_dict()
-        
+
         assert d["message_id"] == "msg-123"
         assert d["order_id"] == "order-456"
         assert d["customer"] == "john"
@@ -64,7 +64,7 @@ class TestMessageContext:
         """Test to_dict includes redelivered when False."""
         ctx = MessageContext(redelivered=False)
         d = ctx.to_dict()
-        
+
         assert "redelivered" in d
         assert d["redelivered"] is False
 

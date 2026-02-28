@@ -411,16 +411,18 @@ class TestGracefulShutdown:
         assert gs.is_complete is False
 
     def test_trigger_initiates_shutdown(self):
-        from obskit.shutdown import GracefulShutdown
         from unittest.mock import patch
+
+        from obskit.shutdown import GracefulShutdown
         gs = GracefulShutdown(auto_exit=False)
         with patch.object(gs, "_initiate_shutdown") as mock_init:
             gs.trigger()
             mock_init.assert_called_once()
 
     def test_initiate_shutdown_idempotent(self):
-        from obskit.shutdown import GracefulShutdown
         from unittest.mock import patch
+
+        from obskit.shutdown import GracefulShutdown
         gs = GracefulShutdown(auto_exit=False)
         gs._is_shutting_down = True
         with patch.object(gs, "_run_shutdown") as mock_run:
@@ -467,8 +469,9 @@ class TestGracefulShutdown:
         gs.wait_for_completion(timeout=0.1)
 
     def test_signal_handler_first_signal(self):
-        from obskit.shutdown import GracefulShutdown
         from unittest.mock import patch
+
+        from obskit.shutdown import GracefulShutdown
         self._reset_shutdown_state()
         gs = GracefulShutdown(auto_exit=False)
         with patch.object(gs, "_initiate_shutdown") as mock_init:
@@ -477,8 +480,9 @@ class TestGracefulShutdown:
             mock_init.assert_called_once()
 
     def test_signal_handler_second_signal(self):
-        from obskit.shutdown import GracefulShutdown
         from unittest.mock import patch
+
+        from obskit.shutdown import GracefulShutdown
         self._reset_shutdown_state()
         gs = GracefulShutdown(auto_exit=False)
         gs._shutdown_count = 1
@@ -487,8 +491,9 @@ class TestGracefulShutdown:
             assert gs._shutdown_count == 2
 
     def test_signal_handler_third_signal_force_exit(self):
-        from obskit.shutdown import GracefulShutdown
         from unittest.mock import patch
+
+        from obskit.shutdown import GracefulShutdown
         self._reset_shutdown_state()
         gs = GracefulShutdown(auto_exit=False)
         gs._shutdown_count = 2
@@ -511,7 +516,7 @@ class TestGetGracefulShutdown:
             _mod._shutdown_in_progress = False
 
     def test_creates_new_instance(self):
-        from obskit.shutdown import get_graceful_shutdown, GracefulShutdown
+        from obskit.shutdown import GracefulShutdown, get_graceful_shutdown
         gs = get_graceful_shutdown(timeout=10, exit_code=0, auto_exit=False)
         assert isinstance(gs, GracefulShutdown)
         assert gs.timeout == 10
@@ -540,7 +545,8 @@ class TestShutdownExceptions:
             _shutdown_hooks.clear()
 
     def test_setup_signal_handlers_exception(self):
-        import sys, signal
+        import signal
+        import sys
         from unittest.mock import patch
         original_modules = dict(sys.modules)
         mods_to_remove = [k for k in sys.modules if "pytest" in k.lower()]
@@ -585,8 +591,11 @@ class TestShutdownOuterException:
             _shutdown_hooks.clear()
 
     def test_shutdown_outer_exception(self):
-        import pytest, obskit.shutdown as _mod
         from unittest.mock import patch
+
+        import pytest
+
+        import obskit.shutdown as _mod
         self._reset_shutdown_state()
         # Make the logger.info ("shutdown_complete") raise to trigger outer except
         original_info = _mod.logger.info
@@ -617,9 +626,11 @@ class TestGracefulShutdownAdvanced:
             _shutdown_hooks.clear()
 
     def test_setup_signals_not_in_pytest_exception(self):
-        import sys, signal
-        from obskit.shutdown import GracefulShutdown
+        import signal
+        import sys
         from unittest.mock import patch
+
+        from obskit.shutdown import GracefulShutdown
         original_modules = dict(sys.modules)
         mods_to_remove = [k for k in list(sys.modules.keys()) if "pytest" in k.lower()]
         for m in mods_to_remove: del sys.modules[m]
@@ -642,8 +653,9 @@ class TestGracefulShutdownAdvanced:
         assert len(gs._hooks) == 1
 
     def test_initiate_shutdown_timeout_exceeded(self):
-        from obskit.shutdown import GracefulShutdown
         import time
+
+        from obskit.shutdown import GracefulShutdown
         self._reset_shutdown_state()
         gs = GracefulShutdown(timeout=0.01, auto_exit=False)
         # Register a slow hook to trigger timeout
@@ -655,8 +667,9 @@ class TestGracefulShutdownAdvanced:
         assert gs.is_complete
 
     def test_initiate_shutdown_auto_exit(self):
-        from obskit.shutdown import GracefulShutdown
         from unittest.mock import patch
+
+        from obskit.shutdown import GracefulShutdown
         self._reset_shutdown_state()
         gs = GracefulShutdown(timeout=1, auto_exit=True)
         with patch("sys.exit") as mock_exit:
@@ -682,9 +695,11 @@ class TestGracefulShutdownSetupSignals:
             _shutdown_hooks.clear()
 
     def test_setup_signals_success_path(self):
-        import sys, signal
+        import signal
+        import sys
+        from unittest.mock import MagicMock, patch
+
         from obskit.shutdown import GracefulShutdown
-        from unittest.mock import patch, MagicMock
         original_modules = dict(sys.modules)
         mods_to_remove = [k for k in list(sys.modules.keys()) if "pytest" in k.lower()]
         for m in mods_to_remove: del sys.modules[m]

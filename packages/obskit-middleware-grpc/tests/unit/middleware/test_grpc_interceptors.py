@@ -21,7 +21,6 @@ from obskit.middleware.grpc import (
     _grpc_status_to_status,
 )
 
-
 pytestmark = pytest.mark.skipif(not GRPC_AVAILABLE, reason="gRPC not installed")
 
 
@@ -299,7 +298,7 @@ class TestObskitClientInterceptorInterceptCall:
         mock_metrics = MagicMock()
         interceptor.red_metrics = mock_metrics
         details = self._make_client_call_details()
-        continuation = AsyncMock(side_effect=IOError("disk error"))
+        continuation = AsyncMock(side_effect=OSError("disk error"))
 
         with pytest.raises(IOError):
             await interceptor._intercept_call(continuation, details, MagicMock())

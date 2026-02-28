@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import asyncio
 import time
+
 import pytest
 
 
@@ -253,8 +254,8 @@ class TestCombinedBranchCoverage:
 
     def test_resilient_executor_with_circuit_breaker_instance(self):
         """Line 146: circuit_breaker is a CircuitBreaker instance."""
-        from obskit.resilience.combined import ResilientExecutor
         from obskit.resilience.circuit_breaker import CircuitBreaker
+        from obskit.resilience.combined import ResilientExecutor
 
         cb = CircuitBreaker(name="test-cb-instance")
         executor = ResilientExecutor(circuit_breaker=cb)
@@ -271,8 +272,8 @@ class TestCombinedBranchCoverage:
     @pytest.mark.asyncio
     async def test_execute_async_with_circuit_breaker_sync_func(self):
         """Line 217: sync func executed via circuit breaker in async execute."""
-        from obskit.resilience.combined import ResilientExecutor
         from obskit.resilience.circuit_breaker import CircuitBreaker
+        from obskit.resilience.combined import ResilientExecutor
 
         cb = CircuitBreaker(name="test-async-sync-cb")
         executor = ResilientExecutor(
@@ -287,9 +288,9 @@ class TestCombinedBranchCoverage:
     @pytest.mark.asyncio
     async def test_execute_circuit_open_raises(self):
         """Lines 202-209: circuit open triggers on_circuit_open and raises CircuitOpenError."""
-        from obskit.resilience.combined import ResilientExecutor
-        from obskit.resilience.circuit_breaker import CircuitBreaker, CircuitOpenError
         import obskit
+        from obskit.resilience.circuit_breaker import CircuitBreaker, CircuitOpenError
+        from obskit.resilience.combined import ResilientExecutor
 
         # Patch obskit.CircuitOpenError since combined.py does 'from obskit import CircuitOpenError'
         obskit.CircuitOpenError = CircuitOpenError
@@ -345,8 +346,8 @@ class TestCombinedBranchCoverage:
     @pytest.mark.asyncio
     async def test_execute_circuit_open_exception_reraises(self):
         """Line 231: exception with Circuit in name re-raises without retry."""
-        from obskit.resilience.combined import ResilientExecutor
         from obskit.resilience.circuit_breaker import CircuitOpenError
+        from obskit.resilience.combined import ResilientExecutor
 
         call_count = [0]
 
@@ -370,8 +371,8 @@ class TestCombinedBranchCoverage:
 
     def test_execute_sync_with_circuit_breaker(self):
         """Line 289: sync execution with circuit breaker."""
-        from obskit.resilience.combined import ResilientExecutor
         from obskit.resilience.circuit_breaker import CircuitBreaker
+        from obskit.resilience.combined import ResilientExecutor
 
         cb = CircuitBreaker(name="test-sync-cb")
         executor = ResilientExecutor(
@@ -385,8 +386,8 @@ class TestCombinedBranchCoverage:
 
     def test_execute_sync_circuit_open_reraises(self):
         """Line 299: CircuitOpenError in sync path reraises immediately."""
-        from obskit.resilience.combined import ResilientExecutor
         from obskit.resilience.circuit_breaker import CircuitOpenError
+        from obskit.resilience.combined import ResilientExecutor
 
         call_count = [0]
 
@@ -488,8 +489,8 @@ class TestFactoryBranchCoverage:
                     return False
                 return super().__contains__(key)
 
-        from obskit.resilience.rate_limiter import TokenBucketRateLimiter
         from obskit.resilience.factory import get_rate_limiter
+        from obskit.resilience.rate_limiter import TokenBucketRateLimiter
 
         existing_rl = TokenBucketRateLimiter(bucket_size=100, refill_rate=1.0)
 
@@ -508,10 +509,10 @@ class TestFactoryBranchCoverage:
 
     def test_reset_circuit_breaker_exception_returns_false(self):
         """Lines 301-302: reset raises exception, returns False."""
-        from obskit.resilience.factory import reset_circuit_breaker
-        from obskit.resilience import factory as mod
-
         from unittest.mock import MagicMock
+
+        from obskit.resilience import factory as mod
+        from obskit.resilience.factory import reset_circuit_breaker
 
         unique_name = "__reset_fail_cb__"
         mock_cb = MagicMock()
@@ -539,7 +540,7 @@ class TestAdaptiveRetryMoreBranches:
         retry = AdaptiveRetry("test-adaptive-middle", config)
         retry._max_allowed_concurrent = 10
 
-        # error_rate=0.08: 
+        # error_rate=0.08:
         # - NOT > threshold*2 (0.2) -> no decrease
         # - NOT < threshold*0.5 (0.05) -> no increase (224->230)
         retry._adapt(error_rate=0.08)

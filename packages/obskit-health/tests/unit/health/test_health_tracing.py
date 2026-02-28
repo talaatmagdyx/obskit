@@ -7,9 +7,8 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from obskit.health.checker import CheckResult, HealthResult, _get_health_trace_context
 from obskit.core.types import HealthStatus
-
+from obskit.health.checker import CheckResult, HealthResult, _get_health_trace_context
 
 # ---------------------------------------------------------------------------
 # Helper

@@ -239,9 +239,10 @@ class TestBusinessMetricsEdgeCases:
             pass
 
     def test_get_recent_events_with_since_filter(self):
-        from obskit.business import BusinessMetrics
         import time
         from datetime import datetime
+
+        from obskit.business import BusinessMetrics
         bm = BusinessMetrics("test_svc")
         bm.track_event("event1", tenant_id="test_tenant")
         time.sleep(0.05)
