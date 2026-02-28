@@ -152,7 +152,7 @@ import threading
 import time
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
-from enum import Enum
+from enum import StrEnum
 from functools import wraps
 from typing import Any, ParamSpec, TypeVar
 
@@ -167,7 +167,7 @@ T = TypeVar("T")
 logger = get_logger("obskit.circuit_breaker")
 
 
-class CircuitState(str, Enum):
+class CircuitState(StrEnum):
     """
     Circuit breaker states.
 
