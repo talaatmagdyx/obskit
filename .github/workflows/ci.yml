@@ -118,9 +118,9 @@ jobs:
       - name: Run mypy on core packages
         run: |
           mypy packages/obskit-core/src/
-          mypy packages/obskit-logging/src/
-          mypy packages/obskit-metrics/src/
-          mypy packages/obskit-tracing/src/
+          MYPYPATH=packages/obskit-logging/src mypy packages/obskit-logging/src/
+          MYPYPATH=packages/obskit-metrics/src mypy packages/obskit-metrics/src/
+          MYPYPATH=packages/obskit-tracing/src mypy packages/obskit-tracing/src/
 
   integration:
     name: Integration Tests
