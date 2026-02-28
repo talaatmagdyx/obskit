@@ -24,7 +24,6 @@ from obskit.consumer_lag import (
     get_consumer_lag_tracker,
 )
 
-
 # =============================================================================
 # QueueType enum
 # =============================================================================
@@ -545,7 +544,6 @@ class TestConsumerLagCoverageGaps:
 
     def test_calculate_velocity_zero_time_span(self):
         """Line 319: time_span <= 0 returns 0.0 when recent[0] == now."""
-        from unittest.mock import patch
         from datetime import datetime
 
         fixed_now = datetime(2025, 1, 1, 12, 0, 0)

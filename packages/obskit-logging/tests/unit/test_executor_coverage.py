@@ -45,7 +45,7 @@ class TestExecutorBranchCoverage:
 
     def test_tracked_executor_shutdown_no_shutdown_method(self):
         """Line 381->exit: shutdown when executor has no shutdown method."""
-        from obskit.executor import TrackedExecutor, ExecutorTracker
+        from obskit.executor import ExecutorTracker, TrackedExecutor
 
         class MockExecutorNoShutdown:
             def submit(self, fn, *args, **kwargs):

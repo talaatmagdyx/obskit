@@ -23,7 +23,6 @@ from obskit.health.server import (
     stop_health_server,
 )
 
-
 # =============================================================================
 # Helper: MockRequest handler for testing without real HTTP
 # =============================================================================

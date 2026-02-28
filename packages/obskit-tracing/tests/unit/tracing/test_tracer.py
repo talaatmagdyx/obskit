@@ -369,8 +369,9 @@ class TestGetTracerInnerBranch:
         condition by replacing _tracer_lock so that acquiring it sets _tracer
         before the inner if-check runs.
         """
-        import obskit.tracing.tracer as tracer_module
         from unittest.mock import MagicMock
+
+        import obskit.tracing.tracer as tracer_module
 
         # Create a sentinel tracer to act as the already-set value
         fake_tracer = MagicMock()

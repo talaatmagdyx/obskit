@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 import time
-from unittest.mock import MagicMock, patch, mock_open
+from unittest.mock import MagicMock, mock_open, patch
 
 from obskit.logging.sampling import (
     AdaptiveSampledLogger,
@@ -67,7 +67,7 @@ class TestSampledLoggerCoverage:
         old_key = "old_key"
         logger._recent_logs[old_key] = time.time() - 10.0  # 10 seconds ago
 
-        # Add new entries  
+        # Add new entries
         new_key = "new_key"
         logger._recent_logs[new_key] = time.time()
 
@@ -191,6 +191,7 @@ class TestSamplingBranchCoverage:
     def test_should_log_dedupe_key_expired_goes_to_sample_rate(self):
         """Line 195->199: dedupe_key in recent_logs but time elapsed > window."""
         import time
+
         from obskit.logging.sampling import SampledLogger, SamplingConfig
 
         config = SamplingConfig(
@@ -214,10 +215,11 @@ class TestSamplingBranchCoverage:
 
     def test_cleanup_actually_triggered(self):
         """Line 237: _cleanup_recent is triggered when random returns < 0.01."""
-        import time
         import random
-        from obskit.logging.sampling import SampledLogger, SamplingConfig
+        import time
         from unittest.mock import patch
+
+        from obskit.logging.sampling import SampledLogger, SamplingConfig
 
         config = SamplingConfig(
             info_rate=1.0,
@@ -249,6 +251,7 @@ class TestSamplingBranchCoverage:
     def test_adaptive_logger_rate_adjustment_with_zero_lps(self):
         """Line 350->359: when current_lps == 0, skip rate adjustment but still reset window."""
         import time
+
         from obskit.logging.sampling import AdaptiveSampledLogger
 
         logger = AdaptiveSampledLogger(

@@ -55,7 +55,7 @@ class TestLRUCache:
         cache.put("key3", "value3")
         # Adding fourth item should evict key1 (oldest)
         cache.put("key4", "value4")
-        
+
         assert len(cache) == 3
         assert cache.get("key1") is None  # Evicted
         assert cache.get("key2") == "value2"
@@ -68,13 +68,13 @@ class TestLRUCache:
         cache.put("key1", "value1")
         cache.put("key2", "value2")
         cache.put("key3", "value3")
-        
+
         # Access key1 to make it most recently used
         cache.get("key1")
-        
+
         # Adding new item should evict key2 (now oldest)
         cache.put("key4", "value4")
-        
+
         assert cache.get("key1") == "value1"  # Still present
         assert cache.get("key2") is None  # Evicted
         assert cache.get("key3") == "value3"
@@ -84,23 +84,23 @@ class TestLRUCache:
         """Test TTL expiration."""
         cache = LRUCache(max_size=10, ttl_seconds=0.1)
         cache.put("key1", "value1")
-        
+
         assert cache.get("key1") == "value1"
-        
+
         # Wait for TTL to expire
         time.sleep(0.15)
-        
+
         assert cache.get("key1") is None
 
     def test_ttl_expiration_on_contains(self):
         """Test TTL expiration is checked in contains."""
         cache = LRUCache(max_size=10, ttl_seconds=0.1)
         cache.put("key1", "value1")
-        
+
         assert cache.contains("key1") is True
-        
+
         time.sleep(0.15)
-        
+
         assert cache.contains("key1") is False
 
     def test_clear(self):
@@ -108,9 +108,9 @@ class TestLRUCache:
         cache = LRUCache(max_size=10)
         cache.put("key1", "value1")
         cache.put("key2", "value2")
-        
+
         cache.clear()
-        
+
         assert len(cache) == 0
         assert cache.get("key1") is None
 
@@ -119,7 +119,7 @@ class TestLRUCache:
         cache = LRUCache(max_size=10)
         cache.put("key1", "value1")
         cache.put("key1", "value2")
-        
+
         assert cache.get("key1") == "value2"
         assert len(cache) == 1
 

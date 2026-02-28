@@ -28,7 +28,6 @@ from obskit.memory import (
     stop_memory_tracking,
 )
 
-
 # =============================================================================
 # MemoryStats dataclass
 # =============================================================================
@@ -382,8 +381,8 @@ class TestGetMemoryTracker:
 
 class TestInitMetrics:
     def test_init_metrics_sets_flag(self):
-        from obskit.memory import _init_metrics
         import obskit.memory as module
+        from obskit.memory import _init_metrics
         # After calling, should be marked initialized
         _init_metrics()
         assert module._metrics_initialized is True

@@ -18,7 +18,6 @@ from obskit.resilience.combined import (
     with_resilience,
 )
 
-
 # =============================================================================
 # BackoffStrategy Tests
 # =============================================================================
@@ -359,7 +358,7 @@ class TestWithResilience:
         async def flaky_async():
             call_count[0] += 1
             if call_count[0] < 2:
-                raise IOError("network error")
+                raise OSError("network error")
             return "recovered"
 
         result = await flaky_async()

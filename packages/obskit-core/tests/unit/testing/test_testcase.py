@@ -10,7 +10,6 @@ import pytest
 from obskit.testing.mocks import MockMetrics, MockSLOTracker, MockTracer
 from obskit.testing.testcase import AsyncObskitTestCase, ObskitTestCase
 
-
 # =============================================================================
 # ObskitTestCase
 # =============================================================================

@@ -18,7 +18,6 @@ from obskit.testing import (
 )
 from obskit.testing.mocks import RecordedRequest, RecordedSpan
 
-
 # ── MockMetrics ───────────────────────────────────────────────────────────────
 
 
@@ -442,10 +441,12 @@ class TestMockCircuitBreakerProperties:
         assert cb.success_count == 0
 
     def test_enter_open_state_raises(self):
-        import pytest
-        from obskit.testing.mocks import MockCircuitBreaker
-        from obskit.core.errors import CircuitOpenError
         from unittest.mock import patch
+
+        import pytest
+
+        from obskit.core.errors import CircuitOpenError
+        from obskit.testing.mocks import MockCircuitBreaker
         cb = MockCircuitBreaker("test")
         cb.set_state("open")
         # Patch the obskit namespace to include CircuitOpenError

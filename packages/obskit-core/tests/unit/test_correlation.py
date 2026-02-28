@@ -300,8 +300,13 @@ class TestCorrelationCoverageGaps:
         find key NOT in context, exercising the False branch at line 223 (223->222).
         """
         from obskit.correlation import (
-            CorrelationManager, _correlation_id, _request_id, _session_id,
-            _tenant_id, _user_id, _custom_context
+            CorrelationManager,
+            _correlation_id,
+            _custom_context,
+            _request_id,
+            _session_id,
+            _tenant_id,
+            _user_id,
         )
 
         # Reset all context vars to None to ensure clean state
@@ -358,7 +363,7 @@ class TestCorrelationCoverageGaps:
         Explicitly reset correlation_id to None before calling the decorated function,
         ensuring the generate_if_missing branch at line 318 is exercised.
         """
-        from obskit.correlation import with_correlation, get_correlation_id, _correlation_id
+        from obskit.correlation import _correlation_id, get_correlation_id, with_correlation
 
         result_holder = []
 
@@ -383,7 +388,7 @@ class TestCorrelationCoverageGaps:
         Explicitly reset correlation_id to None before calling the decorated async
         function, ensuring the generate_if_missing branch at line 327 is exercised.
         """
-        from obskit.correlation import with_correlation, get_correlation_id, _correlation_id
+        from obskit.correlation import _correlation_id, get_correlation_id, with_correlation
 
         result_holder = []
 
