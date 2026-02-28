@@ -1,7 +1,7 @@
 #!/bin/bash
 # =============================================================================
 # Documentation Build Script
-# Builds Sphinx documentation
+# Builds MkDocs documentation
 # =============================================================================
 
 set -e
@@ -44,33 +44,34 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
-cd docs
+# Check if mkdocs is installed
+if ! command -v mkdocs &> /dev/null; then
+    echo "Error: mkdocs is not installed. Install with: pip install mkdocs-material"
+    exit 1
+fi
 
 # Clean if requested
 if [ "$CLEAN" = true ]; then
-    echo "Cleaning build directory..."
-    make clean
+    echo "Cleaning site directory..."
+    rm -rf site/
     echo ""
 fi
 
-echo "Building HTML documentation..."
-echo "----------------------------------------------"
-make html
-
-echo ""
-echo "=============================================="
-echo "Documentation built successfully!"
-echo "=============================================="
-echo ""
-echo "View at: docs/_build/html/index.html"
-
-# Serve if requested
 if [ "$SERVE" = true ]; then
-    echo ""
     echo "Starting live-reload server..."
     echo "Open http://localhost:8000 in your browser"
     echo "Press Ctrl+C to stop"
     echo ""
-    sphinx-autobuild source _build/html --host 0.0.0.0 --port 8000
-fi
+    mkdocs serve
+else
+    echo "Building HTML documentation..."
+    echo "----------------------------------------------"
+    mkdocs build --strict
 
+    echo ""
+    echo "=============================================="
+    echo "Documentation built successfully!"
+    echo "=============================================="
+    echo ""
+    echo "View at: site/index.html"
+fi

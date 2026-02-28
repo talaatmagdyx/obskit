@@ -1,0 +1,165 @@
+site_name: obskit
+site_description: Production-ready observability toolkit for Python microservices
+site_url: https://talaatmagdyx.github.io/obskit/
+repo_url: https://github.com/talaatmagdyx/obskit
+repo_name: talaatmagdyx/obskit
+edit_uri: edit/main/docs/
+
+theme:
+  name: material
+  palette:
+    - scheme: default
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - scheme: slate
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  features:
+    - navigation.tabs
+    - navigation.tabs.sticky
+    - navigation.sections
+    - navigation.expand
+    - navigation.top
+    - search.highlight
+    - search.share
+    - search.suggest
+    - content.code.copy
+    - content.code.annotate
+    - content.tabs.link
+    - toc.integrate
+  icon:
+    repo: fontawesome/brands/github
+
+plugins:
+  - search
+  - mkdocstrings:
+      handlers:
+        python:
+          options:
+            docstring_style: google
+            show_source: true
+            show_root_heading: true
+            heading_level: 2
+            members_order: source
+            separate_signature: true
+            show_signature_annotations: true
+
+markdown_extensions:
+  - admonition
+  - pymdownx.details
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+  - attr_list
+  - md_in_html
+  - tables
+  - toc:
+      permalink: true
+
+nav:
+  - Home: index.md
+
+  - Getting Started:
+    - Installation: getting-started/installation.md
+    - Quick Start: getting-started/quickstart.md
+    - Your First App: getting-started/first-app.md
+    - Migrating from v1: getting-started/migration.md
+
+  - User Guide:
+    - Observability Concepts: user-guide/concepts.md
+    - Metrics (RED / Golden / USE): user-guide/metrics.md
+    - Distributed Tracing: user-guide/tracing.md
+    - Structured Logging: user-guide/logging.md
+    - Health Checks: user-guide/health-checks.md
+    - Resilience Patterns: user-guide/resilience.md
+    - SLO Tracking: user-guide/slo.md
+    - PII Redaction: user-guide/pii.md
+    - Multi-Tenancy: user-guide/multi-tenancy.md
+
+  - Packages:
+    - obskit-core: packages/core.md
+    - obskit-logging: packages/logging.md
+    - obskit-metrics: packages/metrics.md
+    - obskit-tracing: packages/tracing.md
+    - obskit-health: packages/health.md
+    - obskit-resilience: packages/resilience.md
+    - obskit-slo: packages/slo.md
+    - Middleware:
+      - FastAPI: packages/middleware-fastapi.md
+      - Flask: packages/middleware-flask.md
+      - Django: packages/middleware-django.md
+      - gRPC: packages/middleware-grpc.md
+
+  - Guides:
+    - Trace-Log Correlation: guides/trace-log-correlation.md
+    - Trace Exemplars: guides/trace-exemplars.md
+    - Health Check Tracing: guides/health-tracing.md
+    - Docker Compose Stack: guides/docker-compose.md
+    - Diagnose CLI: guides/diagnose.md
+
+  - Examples & Tutorials:
+    - FastAPI Integration: examples/fastapi.md
+    - Flask Integration: examples/flask.md
+    - Kubernetes Deployment: examples/kubernetes.md
+
+  - Technical Reference:
+    - Configuration: tech-docs/configuration.md
+    - Kubernetes Deployment: tech-docs/kubernetes.md
+    - Security Guide: tech-docs/security.md
+    - Troubleshooting: tech-docs/troubleshooting.md
+    - Production Checklist: tech-docs/production.md
+
+  - Migration:
+    - v1.x → v2.0.0: migration/from-v1.md
+    - From prometheus-client: migration/from-prometheus.md
+    - From OpenTelemetry: migration/from-opentelemetry.md
+    - From structlog: migration/from-structlog.md
+    - From Datadog: migration/from-datadog.md
+
+  - Reference:
+    - API Reference: reference/api.md
+    - Configuration Reference: reference/configuration.md
+    - Performance Guide: reference/performance.md
+
+  - Architecture:
+    - Overview: architecture/overview.md
+    - Decision Records:
+      - All ADRs: decisions/index.md
+      - ADR-001 Namespace Packages: decisions/adr-001-namespace-packages.md
+      - ADR-002 Setuptools: decisions/adr-002-setuptools.md
+      - ADR-003 Structlog: decisions/adr-003-structlog.md
+      - ADR-004 Sampling Strategy: decisions/adr-004-sampling-strategy.md
+      - ADR-005 Exemplar Format: decisions/adr-005-exemplar-format.md
+      - ADR-006 Coverage Pragma: decisions/adr-006-coverage-pragma.md
+
+  - Development:
+    - Contributing: contributing.md
+    - Changelog: changelog.md
+
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/talaatmagdyx/obskit
+    - icon: fontawesome/brands/python
+      link: https://pypi.org/project/obskit/
+  version:
+    provider: mike
+
+copyright: "Copyright &copy; 2024-2026 Talaat Magdy — MIT License"

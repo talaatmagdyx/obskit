@@ -8,7 +8,8 @@ which is critical for high-throughput services.
 from __future__ import annotations
 
 import uuid
-from typing import TYPE_CHECKING, Any, Generator
+from collections.abc import Generator
+from typing import TYPE_CHECKING, Any
 
 import pytest
 

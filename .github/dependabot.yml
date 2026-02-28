@@ -1,24 +1,32 @@
 version: 2
 updates:
-  # Python dependencies
+  # Python production dependencies — daily so security patches land quickly
   - package-ecosystem: "pip"
     directory: "/"
     schedule:
-      interval: "weekly"
-      day: "monday"
-    open-pull-requests-limit: 10
+      interval: "daily"
+    open-pull-requests-limit: 15
     labels:
       - "dependencies"
       - "python"
     commit-message:
       prefix: "deps"
+    # Auto-group low-risk dev/test tooling to reduce noise
     groups:
-      dev-dependencies:
+      dev-tooling:
         patterns:
           - "pytest*"
           - "mypy"
           - "ruff"
           - "pre-commit"
+          - "bandit*"
+          - "pip-audit"
+          - "pip-licenses"
+          - "safety"
+          - "cyclonedx*"
+          - "sigstore"
+          - "types-*"
+          - "asciinema"
         update-types:
           - "minor"
           - "patch"
@@ -30,8 +38,11 @@ updates:
         update-types:
           - "minor"
           - "patch"
+    # Never auto-group core production deps — each gets its own PR
+    # so security advisories are clearly visible
+    ignore: []
 
-  # GitHub Actions
+  # GitHub Actions — weekly is fine; pin to commit SHAs for supply-chain safety
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
@@ -43,4 +54,3 @@ updates:
       - "github-actions"
     commit-message:
       prefix: "ci"
-

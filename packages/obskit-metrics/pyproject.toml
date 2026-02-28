@@ -1,0 +1,66 @@
+[project]
+name = "obskit-metrics"
+version = "2.0.0"
+description = "Prometheus metrics for obskit: RED, Golden Signals, USE, cardinality protection"
+readme = "README.md"
+license = "MIT"
+requires-python = ">=3.11"
+authors = [
+    { name = "Talaat Magdy", email = "talaatmagdy75@gmail.com" },
+]
+keywords = ["observability", "metrics", "tracing", "logging", "prometheus", "opentelemetry", "microservices"]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Intended Audience :: Developers",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: System :: Monitoring",
+    "Typing :: Typed",
+]
+dependencies = [
+    "obskit-core>=2.0.0",
+]
+
+[project.optional-dependencies]
+prometheus = ["prometheus-client>=0.19.0,<1.0.0"]
+otlp = [
+    "opentelemetry-api>=1.20.0,<2.0.0",
+    "opentelemetry-sdk>=1.20.0,<2.0.0",
+    "opentelemetry-exporter-otlp-proto-grpc>=1.20.0,<2.0.0",
+]
+pushgateway = ["prometheus-client>=0.19.0,<1.0.0"]
+dev = [
+    "pytest>=8.0.0,<10.0.0",
+    "pytest-asyncio>=0.23.0,<2.0.0",
+    "pytest-cov>=4.1.0,<8.0.0",
+    "pytest-mock>=3.12.0",
+    "mypy>=1.8.0,<2.0.0",
+    "ruff>=0.3.0,<1.0.0",
+]
+
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+namespaces = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+addopts = "-v --cov=src/obskit --cov-report=term-missing"
+
+[tool.coverage.run]
+source = ["src/obskit"]
+branch = true
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
+warn_return_any = true
+warn_unused_configs = true
+ignore_missing_imports = true

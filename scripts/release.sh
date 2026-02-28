@@ -1,7 +1,7 @@
 #!/bin/bash
 # =============================================================================
 # Release Build Script
-# Builds and validates the package for release
+# Builds and validates all packages in the monorepo for release
 # =============================================================================
 
 set -e
@@ -12,7 +12,7 @@ PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
 cd "$PROJECT_ROOT"
 
 echo "=============================================="
-echo "Building Release Package"
+echo "Building Release Packages"
 echo "=============================================="
 echo ""
 
@@ -31,38 +31,71 @@ pip install --quiet build twine
 echo "   Done!"
 echo ""
 
+# All packages in dependency order
+PACKAGES=(
+    "obskit-core"
+    "obskit-logging"
+    "obskit-metrics"
+    "obskit-tracing"
+    "obskit-health"
+    "obskit-resilience"
+    "obskit-slo"
+    "obskit-middleware-fastapi"
+    "obskit-middleware-flask"
+    "obskit-middleware-django"
+    "obskit-middleware-grpc"
+    "obskit-dashboards"
+    "obskit-db"
+    "obskit-queue"
+    "obskit-decorators"
+    "obskit"
+)
+
 # Clean previous builds
 echo "2. Cleaning previous builds..."
 echo "----------------------------------------------"
-rm -rf dist/ build/ *.egg-info src/*.egg-info
+for pkg in "${PACKAGES[@]}"; do
+    rm -rf "packages/$pkg/dist/" "packages/$pkg/build/"
+done
 echo "   Done!"
 echo ""
 
-# Build package
-echo "3. Building package..."
+# Build each package
+echo "3. Building packages..."
 echo "----------------------------------------------"
-python -m build
+for pkg in "${PACKAGES[@]}"; do
+    echo "   Building $pkg..."
+    python -m build "packages/$pkg/" --outdir "packages/$pkg/dist/"
+done
 echo "   Done!"
 echo ""
 
-# Validate package
-echo "4. Validating package..."
+# Validate all packages
+echo "4. Validating packages..."
 echo "----------------------------------------------"
-twine check dist/*
+for pkg in "${PACKAGES[@]}"; do
+    if [ -d "packages/$pkg/dist/" ]; then
+        twine check "packages/$pkg/dist/"*
+    fi
+done
 echo "   Done!"
 echo ""
 
 # Show built files
 echo "=============================================="
-echo "Release package built successfully!"
+echo "All release packages built successfully!"
 echo "=============================================="
 echo ""
-echo "Built files:"
-ls -la dist/
+echo "Built packages:"
+for pkg in "${PACKAGES[@]}"; do
+    if [ -d "packages/$pkg/dist/" ]; then
+        echo "  packages/$pkg/dist/"
+        ls "packages/$pkg/dist/" | sed 's/^/    /'
+    fi
+done
 echo ""
 echo "To upload to TestPyPI:"
-echo "  twine upload --repository testpypi dist/*"
+echo "  for pkg in packages/*/dist/; do twine upload --repository testpypi \"\$pkg\"*; done"
 echo ""
 echo "To upload to PyPI:"
-echo "  twine upload dist/*"
-
+echo "  for pkg in packages/*/dist/; do twine upload \"\$pkg\"*; done"

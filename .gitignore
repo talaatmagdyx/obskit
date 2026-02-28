@@ -109,6 +109,12 @@ venv.bak/
 # mkdocs documentation
 /site
 
+# Build artifacts
+dist/
+htmlcov/
+coverage.json
+coverage.xml
+
 # mypy
 .mypy_cache/
 .dmypy.json
@@ -139,3 +145,5 @@ Thumbs.db
 codeql-analysis-*/
 codeql-analysis-*.tgz
 codeql-db/
+
+.claude/

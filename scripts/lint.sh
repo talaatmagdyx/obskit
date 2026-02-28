@@ -24,13 +24,13 @@ fi
 
 echo "1. Running ruff linter..."
 echo "----------------------------------------------"
-ruff check src/ tests/
+ruff check packages/ tests/
 echo "   Linting passed!"
 echo ""
 
 echo "2. Checking code formatting..."
 echo "----------------------------------------------"
-ruff format --check src/ tests/
+ruff format --check packages/ tests/
 echo "   Formatting check passed!"
 echo ""
 

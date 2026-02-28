@@ -25,7 +25,7 @@ repos:
           - types-redis
           - pydantic
           - pydantic-settings
-        files: ^src/
+        files: ^(src|packages/.+/src)/
 
   # General pre-commit hooks
   - repo: https://github.com/pre-commit/pre-commit-hooks
@@ -65,14 +65,14 @@ repos:
       - id: commitizen
         stages: [commit-msg]
 
-  # Security scanning
+  # Security scanning — MEDIUM+ only (-ll), consistent with CI
   - repo: https://github.com/PyCQA/bandit
     rev: 1.8.0
     hooks:
       - id: bandit
-        args: [-c, pyproject.toml]
+        args: [-c, pyproject.toml, -ll]
         additional_dependencies: ["bandit[toml]"]
-        files: ^src/
+        files: ^(src|packages/.+/src)/
 
 # CI settings
 ci:

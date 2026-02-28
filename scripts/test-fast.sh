@@ -8,7 +8,7 @@ echo "💡 Tip: If tests seem stuck, try: WORKERS=4 $0 (limits parallel workers)
 echo ""
 
 WORKERS=${WORKERS:-auto}
-python -m pytest tests/ \
+python -m pytest packages/ tests/ \
     -q \
     -n "$WORKERS" \
     --dist=worksteal \

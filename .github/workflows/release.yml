@@ -6,76 +6,196 @@ on:
   workflow_call:
 
 permissions:
-  contents: read
-  id-token: write
+  contents: write   # needed to upload release assets (SBOM, signatures)
+  id-token: write   # needed for OIDC PyPI publish and Sigstore signing
 
+# All 17 packages published on every release (in dependency order)
 jobs:
   build:
-    name: Build Package
+    name: Build (${{ matrix.package }})
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        package:
+          - obskit-core
+          - obskit-logging
+          - obskit-metrics
+          - obskit-tracing
+          - obskit-health
+          - obskit-resilience
+          - obskit-slo
+          - obskit-decorators
+          - obskit-db
+          - obskit-queue
+          - obskit-dashboards
+          - obskit-middleware-fastapi
+          - obskit-middleware-flask
+          - obskit-middleware-django
+          - obskit-middleware-grpc
+          - obskit
+
     steps:
-      - uses: actions/checkout@v6
-      
+      - uses: actions/checkout@v4
+
       - name: Set up Python
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@v5
         with:
           python-version: "3.11"
-      
+
       - name: Install build tools
         run: |
           python -m pip install --upgrade pip
           pip install build twine
-      
-      - name: Build package
-        run: python -m build
-      
-      - name: Check package
-        run: twine check dist/*
-      
-      - name: Upload build artifact
-        uses: actions/upload-artifact@v6
-        with:
-          name: dist
-          path: dist/
 
-  publish-pypi:
-    name: Publish to PyPI
+      - name: Build ${{ matrix.package }}
+        run: python -m build packages/${{ matrix.package }}
+
+      - name: Check ${{ matrix.package }}
+        run: twine check packages/${{ matrix.package }}/dist/*
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist-${{ matrix.package }}
+          path: packages/${{ matrix.package }}/dist/
+
+  sbom:
+    name: Generate SBOM
     runs-on: ubuntu-latest
     needs: build
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install all packages + SBOM tool
+        run: |
+          python -m pip install --upgrade pip
+          pip install \
+            -e "packages/obskit-core" \
+            -e "packages/obskit-logging" \
+            -e "packages/obskit-metrics" \
+            -e "packages/obskit-tracing" \
+            -e "packages/obskit-health" \
+            -e "packages/obskit-resilience" \
+            -e "packages/obskit-slo" \
+            -e "packages/obskit-decorators" \
+            -e "packages/obskit-db" \
+            -e "packages/obskit-queue" \
+            -e "packages/obskit-dashboards" \
+            -e "packages/obskit-middleware-fastapi" \
+            -e "packages/obskit-middleware-flask" \
+            -e "packages/obskit-middleware-django" \
+            -e "packages/obskit-middleware-grpc" \
+            -e "packages/obskit[all]" \
+            cyclonedx-bom
+
+      - name: Generate CycloneDX SBOM
+        run: cyclonedx-py environment -o sbom.json --format json
+
+      - name: Upload SBOM artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: sbom
+          path: sbom.json
+
+      - name: Attach SBOM to GitHub Release
+        if: github.event_name == 'release'
+        uses: softprops/action-gh-release@v2
+        with:
+          files: sbom.json
+
+  publish-pypi:
+    name: Publish to PyPI (${{ matrix.package }})
+    runs-on: ubuntu-latest
+    needs: [build, sbom]
+    strategy:
+      # Publish in dependency order — core first, meta last
+      max-parallel: 1
+      matrix:
+        package:
+          - obskit-core
+          - obskit-logging
+          - obskit-metrics
+          - obskit-tracing
+          - obskit-health
+          - obskit-resilience
+          - obskit-slo
+          - obskit-decorators
+          - obskit-db
+          - obskit-queue
+          - obskit-dashboards
+          - obskit-middleware-fastapi
+          - obskit-middleware-flask
+          - obskit-middleware-django
+          - obskit-middleware-grpc
+          - obskit
     environment:
       name: pypi
-      url: https://pypi.org/project/obskit/
-    
+      url: https://pypi.org/project/${{ matrix.package }}/
+
     steps:
       - name: Download build artifact
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v4
         with:
-          name: dist
+          name: dist-${{ matrix.package }}
           path: dist/
-      
-      - name: Publish to PyPI
-        # Uses trusted publishing (OIDC)
-        # Configure at: https://pypi.org/manage/project/obskit/settings/publishing/
+
+      - name: Publish ${{ matrix.package }} to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
 
+      - name: Sign release artifacts with Sigstore
+        uses: sigstore/gh-action-sigstore-python@v3
+        with:
+          inputs: dist/*.whl dist/*.tar.gz
+
+      - name: Upload Sigstore signatures to release
+        if: github.event_name == 'release'
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*.sigstore.json
+
   publish-testpypi:
-    name: Publish to TestPyPI
+    name: Publish to TestPyPI (${{ matrix.package }})
     runs-on: ubuntu-latest
     needs: build
     if: github.event_name == 'release' && github.event.release.prerelease == true
+    strategy:
+      max-parallel: 1
+      matrix:
+        package:
+          - obskit-core
+          - obskit-logging
+          - obskit-metrics
+          - obskit-tracing
+          - obskit-health
+          - obskit-resilience
+          - obskit-slo
+          - obskit-decorators
+          - obskit-db
+          - obskit-queue
+          - obskit-dashboards
+          - obskit-middleware-fastapi
+          - obskit-middleware-flask
+          - obskit-middleware-django
+          - obskit-middleware-grpc
+          - obskit
     environment:
       name: testpypi
-      url: https://test.pypi.org/project/obskit/
-    
+      url: https://test.pypi.org/project/${{ matrix.package }}/
+
     steps:
       - name: Download build artifact
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v4
         with:
-          name: dist
+          name: dist-${{ matrix.package }}
           path: dist/
-      
-      - name: Publish to TestPyPI
+
+      - name: Publish ${{ matrix.package }} to TestPyPI
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
           repository-url: https://test.pypi.org/legacy/
-

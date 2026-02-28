@@ -14,13 +14,20 @@ python -m venv .venv
 source .venv/bin/activate
 
 # Install development dependencies
-pip install -e ".[all,dev,docs]"
+pip install -e "packages/obskit-core" \
+            -e "packages/obskit-logging" \
+            -e "packages/obskit-metrics" \
+            -e "packages/obskit-tracing" \
+            -e "packages/obskit-health" \
+            -e "packages/obskit-resilience" \
+            -e "packages/obskit-slo" \
+            -e "packages/obskit"
 
 # Run tests
-pytest tests/ -v
+pytest packages/ tests/ -v
 
 # Run linting
-ruff check src/ tests/
+ruff check packages/ tests/
 ```
 
 ## Development Workflow
@@ -47,7 +54,7 @@ ruff check src/ tests/
 
 # Individual checks
 ./scripts/lint.sh
-./scripts/typecheck.sh
+mypy packages/
 ./scripts/test.sh
 ```
 
@@ -79,7 +86,7 @@ refactor: code refactoring
 
 ## Full Guide
 
-See [docs/source/contributing.md](docs/source/contributing.md) for the complete contribution guide.
+See the [Contributing Guide](https://talaatmagdyx.github.io/obskit/contributing/) for full details.
 
 ## License
 

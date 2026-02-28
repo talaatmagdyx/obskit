@@ -1,8 +1,6 @@
 [run]
-source = src/obskit
+source_pkgs = obskit
 omit =
-    */tests/*
-    */test_*.py
     */__pycache__/*
     */site-packages/*
 

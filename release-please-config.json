@@ -9,7 +9,8 @@
       "changelog-path": "CHANGELOG.md",
       "extra-files": [
         "pyproject.toml",
-        "src/obskit/_version.py"
+        "packages/obskit-core/src/obskit/_version.py",
+        "packages/obskit-tracing/src/obskit/tracing/_version.py"
       ]
     }
   },
