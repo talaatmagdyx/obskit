@@ -65,7 +65,7 @@ namespaces = true
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 asyncio_mode = "auto"
-addopts = "-v --cov=src/obskit --cov-report=term-missing"
+addopts = "-v --cov=src/obskit --cov-report=term-missing --import-mode=importlib"
 
 [tool.coverage.run]
 source = ["src/obskit"]
