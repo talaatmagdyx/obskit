@@ -42,7 +42,7 @@ Enums provide type-safe options with IDE autocomplete:
 
 from __future__ import annotations
 
-from enum import Enum
+from enum import StrEnum
 from typing import Literal, NewType
 
 # MetricsMethod lives in config.py (the lowest-level module with no obskit
@@ -74,7 +74,7 @@ ErrorType = NewType("ErrorType", str)
 # =============================================================================
 
 
-class Status(str, Enum):
+class Status(StrEnum):
     """
     Operation status enumeration.
 
@@ -127,7 +127,7 @@ StatusLiteral = Literal["success", "failure"]
 # =============================================================================
 
 
-class LogLevel(str, Enum):
+class LogLevel(StrEnum):
     """
     Log level enumeration.
 
@@ -179,7 +179,7 @@ LogLevelLiteral = Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]
 # =============================================================================
 
 
-class HealthStatus(str, Enum):
+class HealthStatus(StrEnum):
     """
     Health check status enumeration.
 
@@ -227,7 +227,7 @@ class HealthStatus(str, Enum):
 # =============================================================================
 
 
-class CircuitState(str, Enum):
+class CircuitState(StrEnum):
     """
     Circuit breaker state enumeration.
 
@@ -298,7 +298,7 @@ class CircuitState(str, Enum):
 # =============================================================================
 
 
-class SLOType(str, Enum):
+class SLOType(StrEnum):
     """
     Service Level Objective type enumeration.
 

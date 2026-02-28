@@ -110,7 +110,7 @@ from __future__ import annotations
 
 import threading
 import warnings
-from enum import Enum
+from enum import StrEnum
 from typing import Literal
 
 from pydantic import Field
@@ -119,7 +119,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 # Define MetricsMethod locally to avoid circular imports
 # (obskit.core.types triggers obskit/__init__.py which causes import cycle)
-class MetricsMethod(str, Enum):
+class MetricsMethod(StrEnum):
     """Metrics methodology enumeration."""
 
     RED = "red"
