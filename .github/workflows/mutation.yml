@@ -1,0 +1,80 @@
+name: Mutation Testing
+
+on:
+  # Run weekly — mutation tests are slow (~10-30 min)
+  schedule:
+    - cron: "0 2 * * 6"  # Saturday 02:00 UTC
+  workflow_dispatch:
+    inputs:
+      module:
+        description: "Module to mutate (default: all v2 modules)"
+        required: false
+        default: "all"
+
+permissions:
+  contents: read
+
+jobs:
+  mutmut:
+    name: mutmut — ${{ matrix.module }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - module: tracer
+            path: packages/obskit-tracing/src/obskit/tracing/tracer.py
+            tests: packages/obskit-tracing/tests
+          - module: trace_correlation
+            path: packages/obskit-logging/src/obskit/logging/trace_correlation.py
+            tests: packages/obskit-logging/tests
+          - module: exemplar
+            path: packages/obskit-metrics/src/obskit/metrics/exemplar.py
+            tests: packages/obskit-metrics/tests
+          - module: health_checker
+            path: packages/obskit-health/src/obskit/health/checker.py
+            tests: packages/obskit-health/tests
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install packages + mutmut
+        run: |
+          pip install --upgrade pip
+          pip install \
+            -e packages/obskit-core \
+            -e packages/obskit-logging \
+            -e packages/obskit-metrics \
+            -e packages/obskit-tracing \
+            -e packages/obskit-health
+          pip install mutmut pytest pytest-asyncio
+
+      - name: Run mutmut on ${{ matrix.module }}
+        run: |
+          mutmut run \
+            --paths-to-mutate "${{ matrix.path }}" \
+            --runner "python -m pytest ${{ matrix.tests }} -x -q --no-header --tb=no" \
+            --no-progress || true
+
+      - name: Show mutation results
+        run: |
+          mutmut results
+          SURVIVED=$(mutmut results | grep -c "survived" || true)
+          echo "Survived mutants: $SURVIVED"
+          if [ "$SURVIVED" -gt 5 ]; then
+            echo "❌ Too many survived mutants ($SURVIVED). Add more targeted tests."
+            exit 1
+          fi
+          echo "✅ Mutation score acceptable"
+
+      - name: Upload mutation report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: mutation-report-${{ matrix.module }}
+          path: .mutmut-cache/

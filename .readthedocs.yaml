@@ -3,23 +3,15 @@
 
 version: 2
 
-# Set the OS, Python version
 build:
   os: ubuntu-22.04
   tools:
     python: "3.11"
 
-# Build documentation in the "docs/" directory with Sphinx
-sphinx:
-  configuration: docs/source/conf.py
-  builder: html
-  fail_on_warning: false
+# Build with MkDocs (primary documentation system)
+mkdocs:
+  configuration: mkdocs.yml
 
-# Optional formats
-formats:
-  - pdf
-
-# Python requirements
 python:
   install:
-    - requirements: docs/requirements.txt
+    - requirements: docs/requirements-rtd.txt

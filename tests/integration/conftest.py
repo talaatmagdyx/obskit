@@ -24,11 +24,15 @@ def pytest_configure(config):
 
 
 def pytest_collection_modifyitems(config, items):
-    """Skip integration tests if testcontainers not available."""
+    """Skip tests explicitly marked @pytest.mark.integration when testcontainers is absent.
+
+    Note: we check for the marker itself, not the directory name, so that
+    cross-package integration tests (which don't need Docker) still run.
+    """
     if not TESTCONTAINERS_AVAILABLE:
         skip_integration = pytest.mark.skip(
             reason="testcontainers not installed (pip install testcontainers)"
         )
         for item in items:
-            if "integration" in item.keywords:
+            if item.get_closest_marker("integration") is not None:
                 item.add_marker(skip_integration)

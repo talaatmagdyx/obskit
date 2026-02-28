@@ -8,7 +8,8 @@ context management, which is used on every request.
 from __future__ import annotations
 
 import asyncio
-from typing import Any, Generator
+from collections.abc import Generator
+from typing import Any
 
 import pytest
 

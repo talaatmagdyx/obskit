@@ -4,7 +4,7 @@
 set -e
 
 echo "🚀 Running tests in FAST mode with verbose progress..."
-python -m pytest tests/ \
+python -m pytest packages/ tests/ \
     -v \
     -n auto \
     --dist=worksteal \

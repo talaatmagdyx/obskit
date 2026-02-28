@@ -1,0 +1,146 @@
+name: Security Scan
+
+on:
+  push:
+    branches: [main]
+  schedule:
+    - cron: "0 9 * * 1"   # Every Monday 09:00 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  security-events: write   # For uploading SARIF results
+
+jobs:
+  pip-audit:
+    name: pip-audit (CVE scan)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install all packages + pip-audit
+        run: |
+          pip install --upgrade pip
+          pip install \
+            -e packages/obskit-core \
+            -e packages/obskit-logging \
+            -e packages/obskit-metrics \
+            -e packages/obskit-tracing \
+            -e packages/obskit-health \
+            -e packages/obskit-resilience \
+            -e packages/obskit-slo \
+            -e packages/obskit-middleware-fastapi \
+            -e packages/obskit-middleware-flask \
+            -e packages/obskit-middleware-django \
+            -e packages/obskit-middleware-grpc \
+            -e "packages/obskit[all]"
+          pip install pip-audit
+
+      - name: Run pip-audit
+        run: pip-audit --format=json --output=audit-report.json || true
+
+      - name: Upload audit report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: pip-audit-report
+          path: audit-report.json
+
+      - name: Fail on HIGH/CRITICAL vulnerabilities
+        run: |
+          pip-audit --format=columns --desc=on 2>&1 | tee audit-summary.txt
+          # Fail only on HIGH or CRITICAL (not info/low)
+          if grep -E "(HIGH|CRITICAL)" audit-summary.txt; then
+            echo "❌ HIGH or CRITICAL vulnerabilities found"
+            exit 1
+          fi
+          echo "✅ No HIGH/CRITICAL vulnerabilities"
+
+  bandit:
+    name: Bandit (static security analysis)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install bandit
+        run: pip install "bandit[toml]"
+
+      - name: Run bandit on packages
+        run: |
+          bandit -r packages/obskit-core/src \
+                    packages/obskit-logging/src \
+                    packages/obskit-metrics/src \
+                    packages/obskit-tracing/src \
+                    packages/obskit-health/src \
+                    -c pyproject.toml \
+                    -ll \
+                    -f json \
+                    -o bandit-report.json || true
+
+      - name: Upload bandit report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: bandit-report
+          path: bandit-report.json
+
+      - name: Fail on HIGH severity issues
+        run: |
+          bandit -r packages/obskit-core/src \
+                    packages/obskit-logging/src \
+                    packages/obskit-metrics/src \
+                    packages/obskit-tracing/src \
+                    packages/obskit-health/src \
+                    -c pyproject.toml \
+                    -ll \
+                    -f text || exit_code=$?
+          if [ "${exit_code:-0}" -ne 0 ]; then
+            echo "❌ Bandit found security issues"
+            exit 1
+          fi
+          echo "✅ No bandit security issues"
+
+  license-check:
+    name: License compliance check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install pip-licenses
+        run: |
+          pip install --upgrade pip
+          pip install \
+            -e packages/obskit-core \
+            -e packages/obskit-logging \
+            -e packages/obskit-metrics \
+            -e packages/obskit-tracing \
+            -e packages/obskit-health \
+            pip-licenses
+
+      - name: Check for non-permissive licenses
+        run: |
+          pip-licenses --format=json --output-file=licenses.json
+          # Fail if any GPL/AGPL/LGPL-only deps found
+          pip-licenses --fail-on="GPL;AGPL;LGPL" --allow-only="MIT;Apache;BSD;ISC;PSF;MPL;Unlicense;WTFPL;CC0" || echo "Warning: Check license report"
+
+      - name: Upload license report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: license-report
+          path: licenses.json

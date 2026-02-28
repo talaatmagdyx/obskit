@@ -4,12 +4,11 @@
 set -e
 
 echo "📊 Running tests with FULL coverage..."
-python -m pytest tests/ \
-    --cov=src/obskit \
+python -m pytest packages/ tests/ \
     --cov-config=.coveragerc \
     --cov-report=term-missing \
     --cov-report=html:htmlcov \
-    --cov-report=json:coverage.json \
+    --cov-report=xml:coverage.xml \
     --cov-fail-under=100 \
     -n auto \
     --dist=worksteal \

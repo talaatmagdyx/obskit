@@ -58,8 +58,8 @@ echo "Coverage threshold: ${COVERAGE_THRESHOLD}%"
 echo "----------------------------------------------"
 echo ""
 
-pytest tests/ $VERBOSE $PARALLEL \
-    --cov=src/obskit \
+pytest packages/ tests/ $VERBOSE $PARALLEL \
+    --cov-config=.coveragerc \
     --cov-report=term-missing \
     --cov-report=html:htmlcov \
     --cov-report=xml:coverage.xml \

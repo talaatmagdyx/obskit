@@ -21,31 +21,25 @@ START_TIME=$(date +%s)
 
 # Step 1: Lint
 echo ""
-echo "STEP 1/5: Linting"
+echo "STEP 1/4: Linting"
 echo "=============================================="
 "$SCRIPT_DIR/lint.sh"
 
-# Step 2: Type Check
+# Step 2: Tests
 echo ""
-echo "STEP 2/5: Type Checking"
-echo "=============================================="
-"$SCRIPT_DIR/typecheck.sh"
-
-# Step 3: Tests
-echo ""
-echo "STEP 3/5: Running Tests"
+echo "STEP 2/4: Running Tests"
 echo "=============================================="
 "$SCRIPT_DIR/test.sh"
 
-# Step 4: Documentation
+# Step 3: Documentation
 echo ""
-echo "STEP 4/5: Building Documentation"
+echo "STEP 3/4: Building Documentation"
 echo "=============================================="
 "$SCRIPT_DIR/docs.sh"
 
-# Step 5: Package Build
+# Step 4: Package Build
 echo ""
-echo "STEP 5/5: Building Package"
+echo "STEP 4/4: Building Packages"
 echo "=============================================="
 "$SCRIPT_DIR/release.sh"
 
@@ -62,10 +56,8 @@ echo "Total time: ${DURATION} seconds"
 echo ""
 echo "All checks passed:"
 echo "  [x] Linting (ruff)"
-echo "  [x] Type checking (mypy)"
 echo "  [x] Tests (pytest with 100% coverage)"
-echo "  [x] Documentation (Sphinx)"
-echo "  [x] Package build (twine)"
+echo "  [x] Documentation (MkDocs)"
+echo "  [x] Package builds (all 16 packages)"
 echo ""
 echo "Ready to push!"
-

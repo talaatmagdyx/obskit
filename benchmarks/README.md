@@ -152,6 +152,21 @@ Add to your CI pipeline:
     output-file-path: benchmarks.json
 ```
 
-## Full Documentation
+## Benchmark Files
 
-See [Performance Benchmarks Guide](../docs/source/performance/benchmarks.md) for complete documentation.
+| File | Type | Run with |
+|------|------|---------|
+| `bench_metrics.py` | pytest-benchmark | `pytest benchmarks/bench_metrics.py ...` |
+| `bench_circuit_breaker.py` | pytest-benchmark | `pytest benchmarks/bench_circuit_breaker.py ...` |
+| `bench_context.py` | pytest-benchmark | `pytest benchmarks/bench_context.py ...` |
+| `bench_logging.py` | pytest-benchmark | `pytest benchmarks/bench_logging.py ...` |
+| `bench_slo.py` | pytest-benchmark | `pytest benchmarks/bench_slo.py ...` |
+| `bench_observability.py` | pytest-benchmark | `pytest benchmarks/bench_observability.py ...` |
+| `bench_memory.py` | standalone tracemalloc | `python benchmarks/bench_memory.py` |
+| `macro_runner.py` | standalone p50/p95/p99 | `python benchmarks/macro_runner.py` |
+
+## Further Reading
+
+- **[BENCHMARKING_STRATEGY.md](BENCHMARKING_STRATEGY.md)** — why each benchmark was designed the way it was: data distributions, warmup rationale, CPU isolation, statistics methodology, A/B comparison guide
+- **[PROFILING_PLAYBOOK.md](PROFILING_PLAYBOOK.md)** — when to use cProfile vs py-spy vs scalene, how to interpret results, likely optimisations
+- **[go_no_go.md](go_no_go.md)** — metrics checklist + fillable go/no-go threshold table for every scenario

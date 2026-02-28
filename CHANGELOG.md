@@ -5,6 +5,179 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.0.0] - 2026-02-27
+
+### Breaking Changes
+
+- **Monorepo split** — obskit is now a collection of focused packages. Each can be installed
+  independently, and `pip install obskit` still installs everything as before.
+
+  | Package | Contains |
+  |---------|----------|
+  | `obskit-core` | config, errors, interfaces, middleware base |
+  | `obskit-logging` | structured logging, sampling, debug replay |
+  | `obskit-metrics` | RED/Golden/USE metrics, Prometheus, fingerprint |
+  | `obskit-tracing` | OpenTelemetry distributed tracing |
+  | `obskit-health` | health-check framework |
+  | `obskit-resilience` | circuit breaker, load shedding, failover |
+  | `obskit-slo` | SLO tracking, alerting rules, error budgets |
+  | `obskit-middleware-fastapi` | FastAPI ASGI middleware |
+  | `obskit-middleware-flask` | Flask WSGI middleware |
+  | `obskit-middleware-django` | Django middleware |
+  | `obskit-middleware-grpc` | gRPC server/client interceptors |
+  | `obskit` | meta-package (installs all of the above) |
+
+  All existing `from obskit.X import Y` imports continue to work **unchanged** — namespace
+  packages are used so Python merges all sub-packages into one `obskit.*` namespace.
+
+- **13 out-of-scope modules removed** — the following modules have been permanently
+  deleted because they belong in separate tools, not an observability toolkit:
+
+  | Removed module | Domain |
+  |---------------|--------|
+  | `obskit.chaos` | Chaos engineering |
+  | `obskit.capacity` | Capacity planning |
+  | `obskit.compliance_reporter` | Compliance governance |
+  | `obskit.compliance.pii` | PII / compliance tooling |
+  | `obskit.runbook` | Incident runbooks |
+  | `obskit.incident_timeline` | Incident management |
+  | `obskit.secrets_detector` | Security scanning |
+  | `obskit.feature_flags` | Platform engineering |
+  | `obskit.deployment` | Platform engineering |
+  | `obskit.resource_predictor` | AIOps / ML |
+  | `obskit.root_cause` | AIOps / ML |
+  | `obskit.self_healing` | AIOps / ML |
+  | `obskit.flamegraph` | Profiling |
+
+- **Build system changed** — sub-packages use `setuptools` (with `namespaces = true`)
+  instead of hatchling. No end-user impact; only relevant if building from source.
+
+### Added
+
+- `packages/` directory with 12 independently installable packages.
+- `pkgutil.extend_path` in `obskit/__init__.py` and `obskit/middleware/__init__.py`
+  to enable namespace-package merging across sub-packages.
+
+### Fixed
+
+- **`ConsumerLagTracker` deadlock** (`packages/obskit-queue/src/obskit/consumer_lag.py`)
+  - `get_stats()` held `self._lock` (non-reentrant `threading.Lock`) while calling
+    `_calculate_growth_rate()` and `_calculate_velocity()`, which also attempted to
+    acquire `self._lock` — causing a permanent deadlock on any `get_stats()` or
+    `is_healthy()` call. All 51 consumer-lag tests hung indefinitely before this fix.
+  - Fixed by changing `threading.Lock()` to `threading.RLock()` (reentrant lock).
+
+### Migration Guide
+
+```bash
+# Before (monolith)
+pip install obskit
+
+# After (same — meta-package installs everything)
+pip install obskit
+
+# After (focused — only what you need)
+pip install obskit-metrics obskit-logging
+pip install obskit-middleware-fastapi
+```
+
+No import changes required. All `from obskit.X import Y` statements continue to work.
+
+---
+
+## [1.6.1] - 2026-02-27
+
+### Security
+
+- **MD5 — explicit non-security intent** (`alert_dedup.py`, `cache.py`, `fingerprint.py`, `logging/sampling.py`, `query_analyzer.py`)
+  - Added `usedforsecurity=False` to all `hashlib.md5()` calls used for fingerprinting/cache-key generation
+  - Silences bandit B324 (CWE-327); documents clearly these hashes are not used for cryptographic purposes
+
+- **Health server: default bind address** (`health/server.py`)
+  - `start_health_server()` now defaults to `host="127.0.0.1"` instead of `"0.0.0.0"`
+  - Prevents `/health`, `/metrics`, and custom handler endpoints from being inadvertently exposed externally
+  - Callers who need external binding must now opt-in explicitly
+
+- **Timing-safe token comparison** (`metrics/auth.py`)
+  - Replaced `token != self.auth_token` with `hmac.compare_digest()` to prevent timing-based token oracle attacks on the metrics endpoint
+
+- **Thread safety: in-memory cache decorator** (`cache.py`)
+  - Added `threading.Lock()` protecting all reads, writes, and deletes on the shared `_cache` dict
+  - Eliminates TOCTOU race conditions (check-then-use) in multi-threaded deployments
+
+- **Thread safety: custom health handler registry** (`health/server.py`)
+  - `_custom_handlers` is now snapshot under `_server_lock` before dispatch, eliminating the check-then-call race condition
+
+- **PII decorator: silent no-op removed** (`compliance/pii.py`)
+  - `@redact_pii_decorator` now emits `UserWarning` at decoration time so callers know it performs no redaction
+  - Prevents false confidence in automatic PII masking
+
+- **`FileStorage` hardcoded `/tmp` removed** (`debug/replay.py`)
+  - Default path changed from `/tmp/obskit_captures` to `Path(tempfile.gettempdir()) / "obskit_captures"`
+  - Cross-platform; avoids world-readable directories on shared Linux systems
+
+### Added
+
+- **`.pre-commit-config.yaml` — bandit severity gate aligned with CI**
+  - Bandit pre-commit hook now runs with `-ll` (MEDIUM+ only), matching the CI security job
+  - Prevents false failures from the 34 intentional LOW findings (non-crypto `random.random()` for sampling)
+
+- **CI: `security` job** (`.github/workflows/ci.yml`)
+  - `bandit -r src/obskit -ll` — SAST gate on every push / PR
+  - `pip-audit --desc` — CVE scan of the full dependency tree
+  - `pip-licenses --fail-on="GPL-2.0;GPL-3.0;AGPL-3.0"` — copyleft license gate
+  - `build` job now requires `security` to pass before packaging
+
+- **Release pipeline: SBOM + Sigstore** (`.github/workflows/release.yml`)
+  - `sbom` job generates CycloneDX JSON SBOM via `cyclonedx-py` and attaches it to the GitHub release
+  - `publish-pypi` signs `dist/*.whl` and `dist/*.tar.gz` with Sigstore after upload; `.sigstore.json` files are attached to the release
+  - `build` job now requires SBOM generation before packaging
+
+- **Dependabot hardened** (`.github/dependabot.yml`)
+  - Pip schedule changed from `weekly` to `daily` for faster security-patch delivery
+  - Dev/test tooling batched into a single `dev-tooling` group to reduce noise
+  - Production core dependencies (`structlog`, `pydantic-settings`, `PyYAML`, `opentelemetry-*`) left ungrouped so each advisory appears as a distinct PR
+
+- **Dev dependencies** (`pyproject.toml`)
+  - `pip-licenses>=5.0.0,<7.0.0` — license scanning
+  - `cyclonedx-bom>=4.0.0,<6.0.0` — SBOM generation
+  - `sigstore>=3.0.0,<4.0.0` — release artifact signing
+
+---
+
+## [1.6.0] - 2026-02-27
+
+### Added
+
+- **`observe` / `observe_sync` context managers** (`obskit.decorators.context_managers`)
+  - `observe(...)` — async context manager that also works as an `@observe(...)` decorator on async functions
+  - `observe_sync(...)` — sync context manager that also works as an `@observe_sync(...)` decorator on sync functions
+  - Both support all standard parameters: `component`, `operation`, `threshold_ms`, `track_metrics`, `log_start`, `sample_rate`, `high_throughput`, plus arbitrary `**context` kwargs
+  - Standard path mirrors `with_observability` (correlation context, RED metrics, structured logging)
+  - High-throughput path routes through the `_HTPipeline` singleton for ~100 ns overhead
+  - When `sample_rate < 1.0`, applies probabilistic sampling gate before pipeline entry
+
+- **`_HTPipeline.configure()` — optional integrations for the HT pipeline** (`obskit.decorators.ht_runtime`)
+  - `configure(statsd=..., slo_tracker=...)` — must be called before the first `high_throughput=True` invocation
+  - Issues a `RuntimeWarning` if called after the pipeline has already started
+  - **StatsD integration**: aggregated request counts and timings are emitted via `emit_counter` / `emit_timing` on every flush cycle (~1 s)
+  - **SLO tracker integration**: every `record()` call posts a lock-free measurement to the attached `HighThroughputSLOTracker` (~100 ns overhead)
+
+- **`configure_ht_pipeline()` module-level convenience function** (`obskit.decorators.ht_runtime`)
+  - Wraps `_ht_pipeline.configure()` for ergonomic use without importing internal module paths
+
+### Exports
+
+- Added `observe`, `observe_sync`, `with_observability_sync` to top-level `obskit` package
+- Added full HT pipeline API to top-level `obskit` package — no internal imports needed:
+  - `configure_ht_pipeline` — attach StatsD / SLO tracker before first decorated call
+  - `get_ht_pipeline` — access the singleton (e.g. to inspect state in tests)
+  - `reset_ht_pipeline` — stop and replace the singleton (test teardown)
+  - `StatsDEmitter` — parameter type for `configure_ht_pipeline(statsd=...)`
+  - `HighThroughputSLOTracker` — parameter type for `configure_ht_pipeline(slo_tracker=...)`
+
+---
+
 ## [1.5.0] - 2026-01-26
 
 ### Added

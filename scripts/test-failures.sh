@@ -8,7 +8,7 @@ echo "💡 This may take a moment - tests run in parallel"
 echo ""
 
 WORKERS=${WORKERS:-auto}
-python -m pytest tests/ \
+python -m pytest packages/ tests/ \
     -n "$WORKERS" \
     --dist=worksteal \
     --no-cov \
@@ -21,5 +21,5 @@ python -m pytest tests/ \
 
 echo ""
 echo "💡 For detailed failure messages, run:"
-echo "   pytest tests/ -v --tb=short --no-cov"
+echo "   pytest packages/ tests/ -v --tb=short --no-cov"
 
