@@ -26,6 +26,10 @@ jobs:
           - obskit-middleware-flask
           - obskit-middleware-django
           - obskit-middleware-grpc
+          - obskit-decorators
+          - obskit-db
+          - obskit-queue
+          - obskit-dashboards
           - obskit
 
     steps:
