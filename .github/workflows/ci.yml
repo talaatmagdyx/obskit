@@ -65,7 +65,7 @@ jobs:
         run: pip install -e "packages/${{ matrix.package }}[dev]"
 
       - name: Run tests for ${{ matrix.package }}
-        run: pytest packages/${{ matrix.package }}/tests/ -q --tb=short
+        run: pytest packages/${{ matrix.package }}/tests/ -q --tb=short --no-cov
 
   lint:
     name: Lint
