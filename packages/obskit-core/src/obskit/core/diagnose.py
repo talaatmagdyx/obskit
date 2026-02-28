@@ -164,7 +164,7 @@ def _check_health() -> PackageInfo:
     integrations: list[IntegrationInfo] = []
     if ver is not None:
         try:
-            from obskit.health.checker import _OTEL_AVAILABLE  # type: ignore[attr-defined]
+            from obskit.health.checker import _OTEL_AVAILABLE
             integrations.append(
                 IntegrationInfo("health-tracing", _OTEL_AVAILABLE,
                                 "trace_id in /health responses" if _OTEL_AVAILABLE else "needs obskit-tracing[opentelemetry]")

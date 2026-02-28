@@ -7,7 +7,7 @@ This __init__.py lives in obskit-core and serves two purposes:
 """
 from pkgutil import extend_path
 
-__path__ = extend_path(__path__, __name__)  # type: ignore[assignment]
+__path__ = extend_path(__path__, __name__)
 
 from obskit._version import __version__, __version_info__
 

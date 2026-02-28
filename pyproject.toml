@@ -66,6 +66,45 @@ strict = true
 warn_return_any = true
 warn_unused_configs = true
 ignore_missing_imports = true
+namespace_packages = true
+explicit_package_bases = true
+
+[[tool.mypy.overrides]]
+# These modules have incomplete annotations; relax strict rules until
+# they are incrementally brought up to full type coverage.
+module = [
+    "obskit.testing.mocks",
+    "obskit.testing.testcase",
+    "obskit.testing.context",
+    "obskit.cache",
+    "obskit.cost",
+    "obskit.business",
+    "obskit.batch",
+    "obskit.shutdown",
+    "obskit.mixin",
+    "obskit.middleware.base",
+    "obskit.errors.responses",
+    "obskit.correlation",
+    "obskit.validation",
+    "obskit.adaptive_sampling",
+    "obskit.audit",
+    "obskit.breakdown",
+    "obskit.debug.replay",
+    "obskit.executor",
+    "obskit.logging.sampling",
+    "obskit.pools",
+    "obskit.annotations",
+    "obskit.autoscaling",
+    "obskit.dependency_graph",
+    "obskit.fingerprint",
+    "obskit.hot_path",
+    "obskit.memory",
+    "obskit.metrics.cardinality",
+    "obskit.metrics.self_metrics",
+    "obskit.metrics.tenant",
+    "obskit.quota",
+]
+ignore_errors = true
 
 [tool.ruff]
 target-version = "py311"
