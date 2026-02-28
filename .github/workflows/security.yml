@@ -107,7 +107,7 @@ jobs:
                     packages/obskit-health/src \
                     -c pyproject.toml \
                     -ll \
-                    -f text || exit_code=$?
+                    -f txt || exit_code=$?
           if [ "${exit_code:-0}" -ne 0 ]; then
             echo "❌ Bandit found security issues"
             exit 1
