@@ -48,7 +48,7 @@ from typing import Literal, NewType
 # MetricsMethod lives in config.py (the lowest-level module with no obskit
 # imports) to avoid a circular import: config → core → __init__ → config.
 # Re-export it here so `from obskit.core.types import MetricsMethod` still works.
-from obskit.config import MetricsMethod  # noqa: F401
+from obskit.config import MetricsMethod as MetricsMethod
 
 # =============================================================================
 # Type Aliases
