@@ -5,6 +5,74 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.1.0](https://github.com/talaatmagdyx/obskit/compare/v2.0.0...v2.1.0) (2026-02-28)
+
+
+### 🚀 Features
+
+* **slo:** add with_slo_tracking decorators for sync/async SLO measurement v1.5.0 ([234ff84](https://github.com/talaatmagdyx/obskit/commit/234ff84b536c0006bdc1b809108565bab0c3c715))
+* **v1.4.0:** Add cardinality protection, sync circuit breaker, and enhanced queue tracking ([5025155](https://github.com/talaatmagdyx/obskit/commit/5025155a40236be351659ac8cc00d4491609c3bc))
+
+
+### 🐛 Bug Fixes
+
+* add noqa comment for CollectorRegistry import used in docstrings ([a294f0f](https://github.com/talaatmagdyx/obskit/commit/a294f0f0e464845a85a9d7cb6436f154141b489e))
+* **ci:** add obskit smoke tests and missing packages to CI matrix ([f5d5579](https://github.com/talaatmagdyx/obskit/commit/f5d55792add4689f118bc384457cf86195544ae4))
+* **ci:** add prometheus-client to integration test install step ([638b147](https://github.com/talaatmagdyx/obskit/commit/638b1471ebc0b2d92cb86eb12c7d60c92411f9d7))
+* **ci:** fix all failing CI checks for v2.0.0 monorepo ([92fcfbd](https://github.com/talaatmagdyx/obskit/commit/92fcfbd2df71ef7e9ecc881ba085bce4fec4bc1a))
+* **ci:** fix bandit format flag 'text' -&gt; 'txt' in security.yml ([f2f1d89](https://github.com/talaatmagdyx/obskit/commit/f2f1d899635be5c423d5ec3a2896ac1d863ab4aa))
+* code quality improvements ([234389d](https://github.com/talaatmagdyx/obskit/commit/234389daae7d103549bb6253ed3bb75fd111e93b))
+* **deps:** add prometheus-client to dev extras and importlib mode to all packages ([01b2da0](https://github.com/talaatmagdyx/obskit/commit/01b2da043ca821f5578d6b1d6f4f02064ae544ea))
+* **lint:** replace (str, Enum) with StrEnum to fix UP042 ruff errors ([7dd0cb1](https://github.com/talaatmagdyx/obskit/commit/7dd0cb198ddc67469cf036aaa0e948bf46b10293))
+* remove unused local variables ([908959e](https://github.com/talaatmagdyx/obskit/commit/908959ebb73b920f9053492a985bae2356b40a0d))
+* remove unused TYPE_CHECKING import and fix django version check ([01639ed](https://github.com/talaatmagdyx/obskit/commit/01639edfa032347dd7411920f870a2c26c3ce880))
+* resolve additional CodeQL alerts ([a1c6e4e](https://github.com/talaatmagdyx/obskit/commit/a1c6e4ef3dfce1602eef60fcac6e95298abf7348))
+* resolve additional CodeQL alerts ([cc53984](https://github.com/talaatmagdyx/obskit/commit/cc539848551f58e148d015a6e4f1067799b68ca4))
+* resolve CI issues and add security policy ([e67e28d](https://github.com/talaatmagdyx/obskit/commit/e67e28d17ca56540f7c2e3d23c53d99e5ede0e37))
+* resolve CodeQL alerts for unused imports, variables, and type issues ([8d2730b](https://github.com/talaatmagdyx/obskit/commit/8d2730b75574aed25cf02ee872a95cb07b18b132))
+* resolve CodeQL alerts for wrong arguments and loop variables ([c373568](https://github.com/talaatmagdyx/obskit/commit/c37356805448675252b9600b0ed9c5a8e9c1a263))
+* resolve CodeQL security alerts ([defb33c](https://github.com/talaatmagdyx/obskit/commit/defb33cea96f873c28051bd56c4a4a97035ae657))
+* resolve critical circular import bug in obskit.resilience (v1.3.3) ([5c86ad5](https://github.com/talaatmagdyx/obskit/commit/5c86ad5859eea720a12b9f10858d71b19c042c29))
+* resolve import conflicts and unused imports ([4a0e1dd](https://github.com/talaatmagdyx/obskit/commit/4a0e1dd2579536c6f7045c62f82481700cf43130))
+* resolve more CodeQL alerts ([5982b00](https://github.com/talaatmagdyx/obskit/commit/5982b00a83df7e935200c70c03ec651dd29273c5))
+* resolve remaining CodeQL alerts ([d1b0c9f](https://github.com/talaatmagdyx/obskit/commit/d1b0c9f1c091816b12b460c424e5365496ca7c95))
+* resolve ruff format and mypy strict errors ([5c75cb7](https://github.com/talaatmagdyx/obskit/commit/5c75cb751d70126761bb59d5010d52cac9961403))
+* restore loggers as _logger (private convention) ([0ecaafc](https://github.com/talaatmagdyx/obskit/commit/0ecaafcddeb0e5db53577669f2a7c06d8bb67dc2))
+* simplify Read the Docs configuration ([972a070](https://github.com/talaatmagdyx/obskit/commit/972a070b767de02a9c3390438d6bad8aa79d6960))
+* **typecheck:** fix all mypy errors in CI type-check step ([5c443c0](https://github.com/talaatmagdyx/obskit/commit/5c443c0a636f3cc0ed4cbb89172710b3f7d56320))
+* use local variables instead of discarding with underscore prefix ([d102662](https://github.com/talaatmagdyx/obskit/commit/d10266204ea550d4ee937b7bf18e9a6c7816feaf))
+
+
+### 📚 Documentation
+
+* add comprehensive feature reference documentation ([68bd3e6](https://github.com/talaatmagdyx/obskit/commit/68bd3e62630280adf5c6b52762bf68eef275a53a))
+* add Read the Docs configuration ([15d803c](https://github.com/talaatmagdyx/obskit/commit/15d803ca635ff6a3166f5e412128061e6297bb9f))
+* comprehensive Sphinx documentation with tech_docs ([b5fd27e](https://github.com/talaatmagdyx/obskit/commit/b5fd27e5ecbc2643a19cfd3f34b2500386b5125e))
+* improve documentation and prepare for PyPI publishing ([fdcbf99](https://github.com/talaatmagdyx/obskit/commit/fdcbf992d55f5e399285b80c6d6e413f0d44adbc))
+* include essential documentation inline in README for PyPI ([6281c26](https://github.com/talaatmagdyx/obskit/commit/6281c269fe73f6b75f95ebe903b15fb303638e93))
+* remove staff engineer review documents ([29e9cfc](https://github.com/talaatmagdyx/obskit/commit/29e9cfcdd315b60259031ef9a20dee2f371865bd))
+* update all documentation for PyPI compatibility (v1.3.0) ([7e693d6](https://github.com/talaatmagdyx/obskit/commit/7e693d6554361969e8f3302517b5f5f3f0c8098c))
+
+
+### 🔧 CI/CD
+
+* bump actions/checkout from 4 to 6 ([3a4d1d8](https://github.com/talaatmagdyx/obskit/commit/3a4d1d846344e3bfc6b6cd4028fda221ce86cf83))
+* bump actions/checkout from 4 to 6 ([eb44016](https://github.com/talaatmagdyx/obskit/commit/eb4401697f27d5dcd5dd67b6fca250764016452d))
+* bump actions/download-artifact from 4 to 7 ([5484c25](https://github.com/talaatmagdyx/obskit/commit/5484c253dfd74c67a1439c3c81f1e48618da4531))
+* bump actions/download-artifact from 4 to 7 ([adccbe8](https://github.com/talaatmagdyx/obskit/commit/adccbe8657684629a75cb770fc6098d3c5361f67))
+* bump actions/setup-python from 5 to 6 ([6028579](https://github.com/talaatmagdyx/obskit/commit/60285794dd2da76c9eafa1155182452f2fe0dca6))
+* bump actions/setup-python from 5 to 6 ([c8ee183](https://github.com/talaatmagdyx/obskit/commit/c8ee183dc1032d0d2b08ee594c04ed602f79afee))
+* bump actions/upload-artifact from 4 to 6 ([51a68f5](https://github.com/talaatmagdyx/obskit/commit/51a68f5ee00d716adf1cb06d29f1a43fb3a728e0))
+* bump actions/upload-artifact from 4 to 6 ([3f97e8f](https://github.com/talaatmagdyx/obskit/commit/3f97e8fb18e1904dca09c611eebd122883245b3a))
+* bump actions/upload-pages-artifact from 3 to 4 ([4b35c97](https://github.com/talaatmagdyx/obskit/commit/4b35c977f30c11e8884b3ebc3214c837327c9f70))
+* bump actions/upload-pages-artifact from 3 to 4 ([15fe9ac](https://github.com/talaatmagdyx/obskit/commit/15fe9ac250928a3b8c6cf1930b86b51d345ceb58))
+* migrate release-please to googleapis/release-please-action@v4 ([4fe6a03](https://github.com/talaatmagdyx/obskit/commit/4fe6a03018e4bedb68eb0813c0345924fb9f5f9c))
+
+
+### 🔒 Security
+
+* add nosec annotations for CodeQL/bandit alerts ([16814e7](https://github.com/talaatmagdyx/obskit/commit/16814e78f066a552440c639f1be41d655bff9686))
+
 ## [2.0.0] - 2026-02-27
 
 ### Breaking Changes
