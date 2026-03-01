@@ -1,6 +1,6 @@
-# obskit-core
+# Core
 
-The foundational package for the obskit ecosystem. Every other obskit package depends on `obskit-core` for shared configuration, error types, interface protocols, correlation context management, and environment diagnostics.
+The core of the obskit toolkit. Every module in obskit depends on the core for shared configuration, error types, interface protocols, correlation context management, and environment diagnostics.
 
 ## Installation
 
@@ -182,7 +182,7 @@ from obskit.core.diagnose import PackageInfo, IntegrationInfo
 # PackageInfo — one entry per obskit package
 @dataclass
 class PackageInfo:
-    name: str                          # e.g. "obskit-tracing"
+    name: str                          # e.g. "obskit"
     installed: bool
     version: str | None
     integrations: list[IntegrationInfo]
@@ -227,29 +227,21 @@ python -m obskit.core.diagnose
 ```
 obskit environment diagnostics
 ────────────────────────────────────────────────────────────────────────
-Package                      Version      Status
+Component                    Version      Status
 ────────────────────────────────────────────────────────────────────────
-obskit-core                  2.0.0        ✅ installed
+obskit                       2.2.0        ✅ installed
   └─ pydantic-settings        2.1.0        ✅
-obskit-logging               2.0.0        ✅ installed
   └─ structlog                24.1.0       ✅
   └─ trace-correlation                     ✅ active
-obskit-metrics               2.0.0        ✅ installed
-  └─ prometheus-client        0.20.0       ✅
+prometheus-client            0.20.0       ✅ (prometheus extra)
   └─ trace-exemplars                       ✅ active
-obskit-tracing               2.0.0        ✅ installed
-  └─ opentelemetry-api        1.24.0       ✅
-  └─ opentelemetry-sdk        1.24.0       ✅
+opentelemetry-api            1.24.0       ✅ (otlp extra)
+opentelemetry-sdk            1.24.0       ✅ (otlp extra)
   └─ otlp-endpoint            http://tempo:4317  ✅
-obskit-health                2.0.0        ✅ installed
-  └─ health-tracing                        ✅ trace_id in /health responses
-obskit-resilience            2.0.0        ✅ installed
-obskit-slo                   2.0.0        ✅ installed
-obskit-middleware-fastapi    2.0.0        ✅ installed
-obskit-middleware-flask      not installed
-obskit-middleware-django     not installed
-obskit-middleware-grpc       not installed
-obskit                       2.0.0        ✅ installed
+fastapi                      0.110.0      ✅ (fastapi extra)
+sqlalchemy                   2.0.0        ✅ (sqlalchemy extra)
+flask                                     not installed
+django                                    not installed
 ────────────────────────────────────────────────────────────────────────
 Python 3.12.1  |  /usr/local/bin/python3
 ```
@@ -550,4 +542,4 @@ class MyLogger(LoggerInterface):
 ```
 
 !!! tip "Built-in adapters"
-    `obskit-logging` ships structlog and loguru adapters that implement `LoggerInterface` out of the box. You only need to implement it yourself when integrating a completely custom logging backend.
+    `obskit` ships structlog and loguru adapters that implement `LoggerInterface` out of the box. You only need to implement it yourself when integrating a completely custom logging backend.

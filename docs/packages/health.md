@@ -1,4 +1,4 @@
-# obskit-health
+# Health
 
 Kubernetes-ready health checking with liveness and readiness probes, optional trace context in responses, built-in checks for common dependencies, and a standalone HTTP server.
 
@@ -12,7 +12,7 @@ pip install obskit
 
 ## Overview
 
-obskit-health provides a structured health-checking API that maps directly to Kubernetes probe endpoints:
+obskit provides a structured health-checking API that maps directly to Kubernetes probe endpoints:
 
 | Endpoint | Probe type | Meaning |
 |---|---|---|

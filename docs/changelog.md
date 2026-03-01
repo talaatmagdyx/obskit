@@ -22,26 +22,23 @@ See the full [Migration Guide](migration/from-v1.md) for step-by-step instructio
 
 ### Added
 
-#### Monorepo split — 16 namespace packages
+#### Single package with optional extras
 
-| Package | Install | What it provides |
+| Package | What it provides | Install |
 |---|---|---|
-| `obskit-core` | `pip install obskit` | Config, errors, interfaces, correlation, test helpers |
-| `obskit-logging` | `pip install obskit` | Structured logging, adaptive sampling, OTLP export |
-| `obskit-metrics` | `pip install "obskit[prometheus]"` | RED/Golden/USE metrics, exemplars, cardinality guard |
-| `obskit-tracing` | `pip install "obskit[otlp]"` | OTel setup, `trace_span`, auto-instrumentation |
-| `obskit-health` | `pip install obskit` | Health check framework, `/health` HTTP server |
-| `obskit-resilience` | `pip install obskit` | Circuit breaker, retry, rate limiter |
-| `obskit-slo` | `pip install obskit` | SLO/SLA tracking, error budgets, alerting |
-| `obskit-decorators` | `pip install obskit` | `@with_observability` cross-cutting decorator |
-| `obskit-db` | `pip install "obskit[sqlalchemy]"` | SQLAlchemy instrumentation, query analyzer |
-| `obskit-queue` | `pip install "obskit[kafka,rabbitmq]"` | Kafka/RabbitMQ tracing, consumer-lag, DLQ |
-| `obskit-dashboards` | `pip install obskit` | Grafana dashboard generators |
-| `obskit-middleware-fastapi` | `pip install "obskit[fastapi]"` | FastAPI ASGI middleware |
-| `obskit-middleware-flask` | `pip install "obskit[flask]"` | Flask WSGI middleware |
-| `obskit-middleware-django` | `pip install "obskit[django]"` | Django middleware |
-| `obskit-middleware-grpc` | `pip install obskit` | gRPC server/client interceptors |
-| `obskit` | `pip install "obskit[all]"` | Meta-package; installs all of the above |
+| `obskit` | Core package | `pip install obskit` |
+| `obskit[prometheus]` | Prometheus metrics | `pip install "obskit[prometheus]"` |
+| `obskit[otlp]` | OpenTelemetry tracing | `pip install "obskit[otlp]"` |
+| `obskit[fastapi]` | FastAPI middleware | `pip install "obskit[fastapi]"` |
+| `obskit[flask]` | Flask middleware | `pip install "obskit[flask]"` |
+| `obskit[django]` | Django middleware | `pip install "obskit[django]"` |
+| `obskit[sqlalchemy]` | SQLAlchemy instrumentation | `pip install "obskit[sqlalchemy]"` |
+| `obskit[kafka]` | Kafka instrumentation | `pip install "obskit[kafka]"` |
+| `obskit[rabbitmq]` | RabbitMQ instrumentation | `pip install "obskit[rabbitmq]"` |
+| `obskit[redis]` | Redis instrumentation | `pip install "obskit[redis]"` |
+| `obskit[httpx]` | httpx instrumentation | `pip install "obskit[httpx]"` |
+| `obskit[loguru]` | Loguru adapter | `pip install "obskit[loguru]"` |
+| `obskit[all]` | Everything above | `pip install "obskit[all]"` |
 
 #### New APIs
 
@@ -150,7 +147,7 @@ a context manager.
 - `CardinalityGuard` — protects Prometheus from high-cardinality label attacks.
   See [Cardinality Protection guide](user-guide/metrics.md#cardinality-management).
 - Queue tracking: consumer lag metrics and DLQ monitoring for Kafka and RabbitMQ.
-  See [obskit-slo package](packages/slo.md).
+  See [obskit slo module](packages/slo.md).
 
 ### Changed
 
@@ -248,7 +245,7 @@ a context manager.
 - `USEMetrics` — Brendan Gregg's USE Method for infrastructure.
 - `obskit.metrics.golden` — pre-built Prometheus recording rules for Golden Signals.
 - `obskit.metrics.presets` — opinionated metric presets for common service types.
-- gRPC server and client interceptors (`obskit-middleware-grpc`).
+- gRPC server and client interceptors (obskit grpc middleware module).
 
 ---
 

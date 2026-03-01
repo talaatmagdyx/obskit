@@ -255,7 +255,7 @@ names, no changes to `.rules.yml` files are required.
 
 ## Migration Checklist
 
-- [ ] Install `obskit-metrics` (and `obskit-health` if using the health server)
+- [ ] Install `obskit[prometheus]` (health checks are included in the base package)
 - [ ] Replace `Counter` + `Histogram` pairs with `REDMetrics`
 - [ ] Replace manual exemplar extraction with `observe_with_exemplar()`
 - [ ] Add `CardinalityGuard` to any metric that uses user-supplied label values

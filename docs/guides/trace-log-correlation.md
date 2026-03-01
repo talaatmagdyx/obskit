@@ -15,7 +15,7 @@ Every OpenTelemetry span carries two identifiers:
   request chain.
 - **`span_id`** — a 16-hex-character identifier unique to this particular operation.
 
-When `obskit-logging` is installed alongside `obskit-tracing`, a structlog processor
+When `obskit[otlp]` is installed, a structlog processor
 (`add_trace_context`) reads those identifiers from the current OpenTelemetry context
 (stored in Python `contextvars`) and injects them into the log record *before* it is
 serialised.  The processor runs zero-cost when no span is active — it simply skips the
@@ -40,12 +40,12 @@ a clickable link to the corresponding Tempo trace.
 
 | Package | Minimum version | Role |
 |---------|-----------------|------|
-| `obskit-logging` | 2.0.0 | Provides `get_logger()` and the structlog processor |
-| `obskit-tracing` | 2.0.0 | Provides the OTel SDK configuration |
+| `obskit` | 2.2.0 | Provides `get_logger()` and the structlog processor |
+| `obskit[otlp]` | 2.2.0 | Provides the OTel SDK configuration |
 | `opentelemetry-sdk` | 1.20.0 | OTel span context storage |
 | `structlog` | 23.0.0 | Structured logging backend |
 
-`obskit-tracing` is **optional**.  When it is absent, `get_logger()` still works normally
+`obskit[otlp]` is **optional**.  When it is absent, `get_logger()` still works normally
 and logs simply omit the trace fields.
 
 ---
@@ -78,7 +78,7 @@ from obskit.logging.trace_correlation import is_trace_correlation_available
 if is_trace_correlation_available():
     print("trace_id / span_id will be injected automatically")
 else:
-    print("obskit-tracing not installed — logs will not carry trace fields")
+    print("obskit[otlp] not installed — logs will not carry trace fields")
 ```
 
 ---
@@ -310,7 +310,7 @@ Explore panel pre-filtered to that exact `trace_id`.
 from obskit.logging.trace_correlation import is_trace_correlation_available
 
 print(is_trace_correlation_available())
-# True  — obskit-tracing and opentelemetry-sdk are installed and initialised
+# True  — obskit[otlp] and opentelemetry-sdk are installed and initialised
 # False — trace context injection is disabled (logs still work normally)
 ```
 
@@ -325,13 +325,13 @@ up correctly before sending traffic.
 
 Work through the checklist in order:
 
-1. **Is `obskit-tracing` installed?**
+1. **Is `obskit[otlp]` installed?**
 
    ```bash
    python -m obskit.core.diagnose
    ```
 
-   Look for `obskit-tracing` with status `installed` and `trace-correlation: available`.
+   Look for `otlp` extra in the obskit diagnostics output and `trace-correlation: available`.
 
 2. **Has `setup_tracing()` been called before the first log statement?**
 

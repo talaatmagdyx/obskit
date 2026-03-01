@@ -56,7 +56,7 @@ setup_tracing(
 Sample debug output:
 
 ```
-[obskit-tracing] Span: POST /orders
+[obskit] Span: POST /orders
   trace_id = 4bf92f3577b34da6a3ce929d0e0e4736
   span_id  = 00f067aa0ba902b7
   duration = 42.3 ms
@@ -315,7 +315,7 @@ logger.info("outside span")      # will NOT have trace_id — this is correct
 
 ---
 
-## Issue: obskit-tracing Not Installed But Getting Import Errors
+## Issue: obskit Tracing Not Installed But Getting Import Errors
 
 ```
 ModuleNotFoundError: No module named 'obskit.tracing'
@@ -324,7 +324,7 @@ ModuleNotFoundError: No module named 'obskit.tracing'
 ### Fix
 
 ```bash
-# obskit-tracing is an optional package
+# obskit tracing requires the otlp extra
 pip install "obskit[otlp]"
 
 # Or install the meta-package which includes everything
@@ -535,13 +535,10 @@ Health
   timeout     : 5.0 s
 
 Packages installed
-  obskit-core          2.0.0          ✓
-  obskit-logging       2.0.0          ✓
-  obskit-metrics       2.0.0          ✓
-  obskit-tracing       2.0.0          ✓
-  obskit-health        2.0.0          ✓
-  obskit-resilience    2.0.0          ✓
-  obskit-slo           2.0.0          ✓
+  obskit               2.2.0          ✓
+  prometheus           ✓
+  otlp                 ✓
+  fastapi              ✓
 
 Validation   : PASS
 ```

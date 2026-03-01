@@ -1,4 +1,4 @@
-# obskit-resilience
+# Resilience
 
 Production-grade resilience primitives: circuit breakers, retries with exponential backoff, rate limiters, Redis-backed distributed circuit breakers, and adaptive retry with backpressure.
 

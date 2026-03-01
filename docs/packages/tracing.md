@@ -1,4 +1,4 @@
-# obskit-tracing
+# Tracing
 
 OpenTelemetry-based distributed tracing for obskit services. Provides zero-code auto-instrumentation, manual span creation, W3C Baggage propagation, and support for Tempo, Jaeger, Zipkin, and any generic OTLP collector.
 
@@ -55,7 +55,7 @@ print("Instrumented:", applied)
 ### Examples
 
 ```python
-# Minimal — reads everything from obskit-core settings
+# Minimal — reads everything from obskit settings
 setup_tracing()
 
 # Local development — print spans to stdout, no Tempo/Jaeger needed
@@ -237,7 +237,7 @@ trace_id = get_current_trace_id()   # "4bf92f3577b34da6a3ce929d0e0e4736" or None
 span_id  = get_current_span_id()    # "00f067aa0ba902b7" or None
 ```
 
-These are used internally by `obskit-logging` to inject `trace_id` and `span_id` into every log record automatically.
+These are used internally by obskit logging to inject `trace_id` and `span_id` into every log record automatically.
 
 ---
 
@@ -261,7 +261,7 @@ ctx = extract_trace_context(dict(request.headers))
 
 ## Environment variable configuration
 
-All settings can be overridden via environment variables through `obskit-core`:
+All settings can be overridden via environment variables:
 
 ```bash
 # Service identity

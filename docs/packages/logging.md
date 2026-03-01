@@ -1,4 +1,4 @@
-# obskit-logging
+# Logging
 
 Structured, production-ready logging for obskit services. Built on [structlog](https://www.structlog.org/) with automatic trace-log correlation, async ring-buffer for high-throughput paths, adaptive sampling, and OTLP export.
 

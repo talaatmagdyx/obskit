@@ -1,4 +1,4 @@
-# obskit-middleware-grpc
+# gRPC Middleware
 
 gRPC server and client interceptors that bring full obskit observability to gRPC services: RED metrics, structured logging, distributed trace context propagation, correlation ID management, and error tracking mapped to gRPC status codes.
 
@@ -12,7 +12,7 @@ pip install obskit
 
 ## Overview
 
-gRPC uses interceptors (the equivalent of HTTP middleware) to intercept calls before they reach the service handler. obskit-grpc provides two interceptors:
+gRPC uses interceptors (the equivalent of HTTP middleware) to intercept calls before they reach the service handler. obskit provides two gRPC interceptors:
 
 | Interceptor | Side | Use |
 |---|---|---|

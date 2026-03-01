@@ -1,14 +1,8 @@
-# obskit-metrics
+# Metrics
 
 Prometheus-native metrics for obskit services. Implements the RED method, the Four Golden Signals, the USE method, trace exemplars, multi-tenant labelling, cardinality protection, and OTLP/Pushgateway export.
 
 ## Installation
-
-```bash
-pip install "obskit[prometheus]"
-```
-
-### With Prometheus client
 
 ```bash
 pip install "obskit[prometheus]"

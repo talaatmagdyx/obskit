@@ -47,7 +47,7 @@ in v2.0.0 packages.  They were never part of the documented API.
 |---|---|---|
 | `obskit.capacity` | Unused; superseded by `USEMetrics` | `obskit.metrics.USEMetrics` |
 | `obskit.chaos` | Never stabilised | Use [chaos-monkey](https://pypi.org/project/chaosmonkey/) directly |
-| `obskit.compliance.pii` | Replaced by `obskit-core` error redaction | `obskit.errors.responses` |
+| `obskit.compliance.pii` | Replaced by obskit error redaction | `obskit.errors.responses` |
 | `obskit.compliance_reporter` | Removed in v1.3 | No replacement |
 | `obskit.deployment` | Unused | `obskit.core.context` for build metadata |
 | `obskit.feature_flags` | Scope creep | Use [flagsmith](https://pypi.org/project/flagsmith/) directly |
@@ -227,8 +227,8 @@ available.  Confirm every package your application uses shows as installed.
 | `from obskit.logging.dynamic import set_log_level` | `from obskit.logging.dynamic import set_log_level` | Unchanged |
 | `from obskit.logging.adapters.structlog_adapter import StructlogAdapter` | `from obskit.logging.adapters.structlog_adapter import StructlogAdapter` | Unchanged |
 | `from obskit.logging.adapters.loguru_adapter import LoguruAdapter` | `from obskit.logging.adapters.loguru_adapter import LoguruAdapter` | Unchanged |
-| `from obskit.adaptive_sampling import AdaptiveSampler` | `from obskit.adaptive_sampling import AdaptiveSampler` | Package: obskit-logging |
-| `from obskit.audit import AuditLogger` | `from obskit.audit import AuditLogger` | Package: obskit-logging |
+| `from obskit.adaptive_sampling import AdaptiveSampler` | `from obskit.adaptive_sampling import AdaptiveSampler` | Package: obskit |
+| `from obskit.audit import AuditLogger` | `from obskit.audit import AuditLogger` | Package: obskit |
 
 ### Metrics
 
@@ -241,7 +241,7 @@ available.  Confirm every package your application uses shows as installed.
 | `from obskit.metrics import TenantMetrics` | `from obskit.metrics import TenantMetrics` | Unchanged |
 | `from obskit.metrics.cardinality import CardinalityGuard` | `from obskit.metrics.cardinality import CardinalityGuard` | Unchanged |
 | `from obskit.metrics.exemplar import observe_with_exemplar` | `from obskit.metrics.exemplar import observe_with_exemplar` | New in v2 |
-| `from obskit.annotations import track_metric` | `from obskit.annotations import track_metric` | Package: obskit-metrics |
+| `from obskit.annotations import track_metric` | `from obskit.annotations import track_metric` | Package: obskit |
 
 ### Tracing
 
@@ -360,17 +360,12 @@ obskit Package Diagnostics
 ==========================
 Package              Version  Status
 --------------------  -------  ------
-obskit-core           2.0.0   ✓
-obskit-logging        2.0.0   ✓
-obskit-metrics        2.0.0   ✓
-obskit-tracing        2.0.0   ✓
-obskit-health         2.0.0   ✓
-obskit-resilience     2.0.0   ✓
-obskit-slo            2.0.0   ✓
-obskit-decorators     2.0.0   ✓
-obskit-db             2.0.0   ✓
-obskit-queue          2.0.0   ✓
-...
+obskit                2.2.0   ✓
+prometheus            ✓
+otlp                  ✓
+fastapi               ✓
+sqlalchemy            ✓
+kafka                 ✓
 
 Integrations:
   opentelemetry-sdk   ✓ (1.23.0)

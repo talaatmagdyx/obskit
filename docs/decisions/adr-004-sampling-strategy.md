@@ -5,7 +5,7 @@
 
 ## Context
 
-When obskit-tracing added `sample_rate` support, a decision was needed on which OTel sampler to use.
+When obskit added `sample_rate` support to its tracing module, a decision was needed on which OTel sampler to use.
 
 ## Decision
 

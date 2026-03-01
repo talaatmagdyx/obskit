@@ -439,19 +439,19 @@ Every obskit package calls `get_settings()` internally — you do not need to pa
 flowchart TD
     ENV["Environment Variables\n(.env / OS / K8s ConfigMap)"] --> OBS["ObskitSettings\nget_settings()"]
     CFG["configure(**kwargs)"] --> OBS
-    OBS --> LOG["obskit-logging\nStructuredLogger"]
-    OBS --> MET["obskit-metrics\nPrometheusMetrics"]
-    OBS --> TRC["obskit-tracing\nOTLPTracer"]
-    OBS --> HLT["obskit-health\nHealthChecker"]
-    OBS --> RES["obskit-resilience\nCircuitBreaker / Retry"]
-    OBS --> SLO["obskit-slo\nSLOTracker"]
-    OBS --> MW["obskit-middleware-*\nFastAPI / Flask / Django"]
+    OBS --> LOG["obskit.logging\nStructuredLogger"]
+    OBS --> MET["obskit[prometheus]\nPrometheusMetrics"]
+    OBS --> TRC["obskit[otlp]\nOTLPTracer"]
+    OBS --> HLT["obskit.health\nHealthChecker"]
+    OBS --> RES["obskit.resilience\nCircuitBreaker / Retry"]
+    OBS --> SLO["obskit.slo\nSLOTracker"]
+    OBS --> MW["obskit[fastapi|flask|django]\nMiddleware"]
 ```
 
 ### Example: settings consumed by logging
 
 ```python
-# obskit-logging reads settings automatically
+# obskit.logging reads settings automatically
 from obskit.logging import get_logger
 
 logger = get_logger(__name__)

@@ -1,4 +1,4 @@
-# obskit-slo
+# SLO
 
 Service Level Objective (SLO) tracking, error budget management, and Prometheus alert rule generation for obskit services.
 
@@ -12,7 +12,7 @@ pip install obskit
 
 ## Overview
 
-An SLO defines a quantitative reliability target for a service. obskit-slo tracks measurements against those targets in rolling time windows, calculates remaining error budgets, and can generate Prometheus alerting rules to fire before the budget is exhausted.
+An SLO defines a quantitative reliability target for a service. obskit slo tracking measures against those targets in rolling time windows, calculates remaining error budgets, and can generate Prometheus alerting rules to fire before the budget is exhausted.
 
 ---
 
@@ -217,7 +217,7 @@ def process_batch(items: list):
 
 ## Prometheus alert rule generation
 
-obskit-slo can generate Prometheus alerting rules for multi-window burn-rate alerts — the approach recommended by Google SRE:
+obskit can generate Prometheus alerting rules for multi-window burn-rate alerts — the approach recommended by Google SRE:
 
 ```python
 from obskit.slo.prometheus import generate_slo_alerts

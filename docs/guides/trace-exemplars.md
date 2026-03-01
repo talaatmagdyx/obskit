@@ -30,8 +30,8 @@ Histogram observation (0.045 s)
 
 | Package | Minimum version | Role |
 |---------|-----------------|------|
-| `obskit-metrics` | 2.0.0 | `observe_with_exemplar()` / `get_trace_exemplar()` |
-| `obskit-tracing` | 2.0.0 | Active OTel span context |
+| `obskit[prometheus]` | 2.2.0 | `observe_with_exemplar()` / `get_trace_exemplar()` |
+| `obskit[otlp]` | 2.2.0 | Active OTel span context |
 | `prometheus_client` | 0.16.0 | Exemplar storage and OpenMetrics exposition |
 | `opentelemetry-sdk` | 1.20.0 | OTel span context |
 
@@ -314,7 +314,7 @@ def check_observability():
     else:
         log.warning(
             "exemplars_disabled",
-            reason="prometheus_client < 0.16.0 or obskit-tracing not installed",
+            reason="prometheus_client < 0.16.0 or obskit[otlp] not installed",
         )
 ```
 

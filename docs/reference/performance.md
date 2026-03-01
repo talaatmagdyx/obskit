@@ -176,23 +176,22 @@ overhead for event loop creation.
 
 ---
 
-## Memory Footprint Per Package
+## Memory Footprint Per Component
 
-Approximate RSS increase per package at steady state (after 10,000 requests):
+Approximate RSS increase per component at steady state (after 10,000 requests):
 
-| Package | RSS delta | Dominant contributor |
+| Component | RSS delta | Dominant contributor |
 |---|---|---|
-| `obskit-core` | ~2 MB | pydantic-settings model + structlog config |
-| `obskit-logging` | ~3 MB | structlog processor chain + output buffer |
-| `obskit-metrics` | ~5–50 MB | Prometheus registry (scales with cardinality) |
-| `obskit-tracing` | ~10 MB | OTel SDK + BatchSpanProcessor queue (2,048 spans) |
-| `obskit-health` | ~1 MB | HealthChecker state + check registry |
-| `obskit-resilience` | ~1 MB | CircuitBreaker state machines |
-| `obskit-slo` | ~2–20 MB | SLO measurement windows (scales with window size) |
-| `obskit-queue` | ~2 MB | Kafka/RabbitMQ consumer metrics |
+| `obskit` (core + logging) | ~5 MB | pydantic-settings model + structlog processor chain |
+| `obskit[prometheus]` | ~5–50 MB | Prometheus registry (scales with cardinality) |
+| `obskit[otlp]` | ~10 MB | OTel SDK + BatchSpanProcessor queue (2,048 spans) |
+| `obskit` health module | ~1 MB | HealthChecker state + check registry |
+| `obskit` resilience module | ~1 MB | CircuitBreaker state machines |
+| `obskit` slo module | ~2–20 MB | SLO measurement windows (scales with window size) |
+| `obskit[kafka]` / `obskit[rabbitmq]` | ~2 MB | Kafka/RabbitMQ consumer metrics |
 
 !!! info "Prometheus cardinality dominates memory"
-    The `obskit-metrics` footprint depends almost entirely on how many unique label
+    The `obskit[prometheus]` footprint depends almost entirely on how many unique label
     combinations exist.  1,000 unique time series ≈ ~1 MB.  10,000 ≈ ~10 MB.
 
 ---
