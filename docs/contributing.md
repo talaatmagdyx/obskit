@@ -23,23 +23,8 @@ cd obskit
 uv sync
 pre-commit install
 
-# Option B — pip editable installs
-pip install -e "packages/obskit-core[dev]"
-pip install -e "packages/obskit-logging[dev]"
-pip install -e "packages/obskit-metrics[dev]"
-pip install -e "packages/obskit-tracing[dev]"
-pip install -e "packages/obskit-health[dev]"
-pip install -e "packages/obskit-resilience[dev]"
-pip install -e "packages/obskit-slo[dev]"
-pip install -e "packages/obskit-decorators[dev]"
-pip install -e "packages/obskit-db[dev]"
-pip install -e "packages/obskit-queue[dev]"
-pip install -e "packages/obskit-dashboards[dev]"
-pip install -e "packages/obskit-middleware-fastapi[dev]"
-pip install -e "packages/obskit-middleware-flask[dev]"
-pip install -e "packages/obskit-middleware-django[dev]"
-pip install -e "packages/obskit-middleware-grpc[dev]"
-pip install pre-commit
+# Option B — pip editable install
+pip install -e ".[all]"
 pre-commit install
 ```
 
@@ -57,53 +42,47 @@ All packages should show as installed and integrations should show as available.
 
 ```
 obskit/
-├── packages/                    # One directory per installable package
-│   ├── obskit-core/
-│   │   ├── pyproject.toml       # Package metadata, deps, tool config
-│   │   ├── README.md
-│   │   ├── src/
-│   │   │   └── obskit/
-│   │   │       ├── config.py    # Public modules (no __init__.py at obskit/)
-│   │   │       └── core/
-│   │   │           └── ...
-│   │   └── tests/
-│   │       ├── conftest.py
-│   │       └── unit/
-│   └── ...
-├── benchmarks/                  # Performance benchmarks
-│   ├── bench_*.py               # pytest-benchmark microbenchmarks
-│   ├── macro_runner.py          # End-to-end macro benchmarks
-│   ├── bench_memory.py          # Memory profiling
-│   ├── go_no_go.md              # Release gate thresholds
-│   └── BENCHMARKING_STRATEGY.md
-├── docs/                        # MkDocs documentation (you are here)
+├── src/
+│   └── obskit/              # Single package
+│       ├── config.py        # ObskitSettings
+│       ├── core/            # Context, diagnose, deprecation
+│       ├── logging/         # Structured logging
+│       ├── metrics/         # Prometheus metrics
+│       ├── tracing/         # OpenTelemetry
+│       ├── health/          # Health checks
+│       ├── resilience/      # Circuit breaker, retry
+│       ├── slo/             # SLO tracking
+│       ├── middleware/      # Framework middlewares
+│       └── testing/         # Test helpers
 ├── tests/
-│   └── integration/             # Cross-package integration tests
+│   └── unit/                # All unit tests
+├── benchmarks/              # Performance benchmarks
+├── docs/                    # MkDocs documentation
 ├── .github/
-│   └── workflows/               # CI/CD pipelines
+│   └── workflows/           # CI/CD pipelines
 ├── mkdocs.yml
-└── pyproject.toml               # uv workspace root + shared tool config
+└── pyproject.toml           # Package metadata + tool config
 ```
 
 ---
 
 ## Running Tests
 
-### Single package
+### Single module
 
 ```bash
-pytest packages/obskit-logging/tests -v
-pytest packages/obskit-metrics/tests -v --cov=packages/obskit-metrics/src
+pytest tests/unit/logging/ -v
+pytest tests/unit/metrics/ -v --cov=src/obskit
 ```
 
-### All packages
+### All tests
 
 ```bash
 # With uv
-uv run pytest packages/
+uv run pytest tests/unit/
 
 # With pytest directly (after installing all packages)
-pytest packages/ -v --tb=short
+pytest tests/unit/ -v --tb=short
 ```
 
 ### Integration tests
@@ -115,8 +94,8 @@ pytest tests/integration/ -v
 ### With coverage
 
 ```bash
-pytest packages/obskit-core/tests \
-  --cov=packages/obskit-core/src \
+pytest tests/unit/ \
+  --cov=src/obskit \
   --cov-report=term-missing \
   --cov-fail-under=100
 ```
@@ -150,15 +129,13 @@ obskit uses [ruff](https://docs.astral.sh/ruff/) for linting and formatting and
 
 ```bash
 # Format
-ruff format packages/
+ruff format src/ tests/
 
 # Lint (auto-fix safe issues)
-ruff check packages/ --fix
+ruff check src/ tests/ --fix
 
 # Type check
-mypy packages/obskit-core/src
-mypy packages/obskit-logging/src
-# etc.
+mypy src/
 ```
 
 All of the above run automatically in the pre-commit hooks and CI.
@@ -196,85 +173,54 @@ pre-commit run --all-files
 
 ---
 
-## Adding a New Package
+## Adding New Functionality
 
-Follow these steps to add a new package (e.g., `obskit-cache`):
+Follow these steps to add a new module (e.g., `obskit.cache`):
 
-**1. Create the package directory structure**
+**1. Create the module directory**
 
 ```bash
-mkdir -p packages/obskit-cache/src/obskit/cache
-mkdir -p packages/obskit-cache/tests/unit/cache
-touch packages/obskit-cache/src/obskit/cache/__init__.py
-touch packages/obskit-cache/tests/__init__.py
-touch packages/obskit-cache/tests/unit/__init__.py
-touch packages/obskit-cache/tests/unit/cache/__init__.py
+mkdir -p src/obskit/cache
+touch src/obskit/cache/__init__.py
+touch src/obskit/cache/py.typed
 ```
 
-**2. Write `pyproject.toml`**
+**2. Implement the module**
 
-```toml
-[project]
-name = "obskit-cache"
-version = "2.0.0"
-description = "Cache instrumentation for the obskit observability toolkit"
-readme = "README.md"
-license = "MIT"
-requires-python = ">=3.11"
-authors = [{ name = "Your Name", email = "you@example.com" }]
-dependencies = ["obskit-core>=2.0.0,<3.0.0"]
+Write your code in `src/obskit/cache/`. Add `__all__` to `__init__.py`.
 
-[project.optional-dependencies]
-dev = [
-    "pytest>=8.0.0,<10.0.0",
-    "pytest-asyncio>=0.23.0,<2.0.0",
-    "pytest-cov>=4.1.0,<8.0.0",
-    "mypy>=1.8.0,<2.0.0",
-    "ruff>=0.3.0,<1.0.0",
-]
+**3. Add tests**
 
-[build-system]
-requires = ["setuptools>=61.0"]
-build-backend = "setuptools.build_meta"
-
-[tool.setuptools.packages.find]
-where = ["src"]
-namespaces = true
-
-[tool.pytest.ini_options]
-testpaths = ["tests"]
-asyncio_mode = "auto"
-addopts = "-v --cov=src/obskit --cov-report=term-missing --cov-fail-under=100"
+```bash
+mkdir -p tests/unit/cache
+touch tests/unit/cache/__init__.py
 ```
-
-**3. Implement the package**
-
-Write your code in `packages/obskit-cache/src/obskit/cache/`.  Add
-`__all__` to `__init__.py`.
-
-**4. Write tests**
 
 Achieve 100% coverage from the start.
 
-**5. Add the package to the meta-package**
+**4. Add to extras if it needs heavy dependencies**
 
-Edit `packages/obskit/pyproject.toml` and add `obskit-cache` to `dependencies`.
+Edit `pyproject.toml` and add a new entry to `[project.optional-dependencies]`:
 
-**6. Add the package to `mkdocs.yml`**
-
-Add an entry under the `Packages:` section.
-
-**7. Write `README.md`**
-
-A short README with installation and quick-start example.
-
-**8. Write a `py.typed` marker**
-
-```bash
-touch packages/obskit-cache/src/obskit/cache/py.typed
+```toml
+cache = ["redis>=5.0.0,<8.0.0"]
 ```
 
-This tells mypy and type checkers that the package ships type stubs.
+Update the `all` extra to include it:
+
+```toml
+all = ["obskit[prometheus,otlp,...,cache]"]
+```
+
+**5. Update `mkdocs.yml`**
+
+Add an entry under the appropriate section.
+
+**6. Write a `py.typed` marker**
+
+```bash
+touch src/obskit/cache/py.typed
+```
 
 ---
 
@@ -283,7 +229,7 @@ This tells mypy and type checkers that the package ships type stubs.
 1. **Fork** the repository on GitHub.
 2. **Create a branch** named `feat/short-description` or `fix/short-description`.
 3. **Implement** the change with tests.
-4. **Run** `pre-commit run --all-files` and `pytest packages/` locally.
+4. **Run** `pre-commit run --all-files` and `pytest tests/unit/` locally.
 5. **Open a PR** against `main`.
 6. **Fill in** the PR template (summary, test plan, breaking changes).
 7. **Request review** from a maintainer.
@@ -363,13 +309,13 @@ for automated releases driven by [Conventional Commits](https://www.conventional
 | `docs.yml` | Push to main | mkdocs build → deploy to GitHub Pages |
 | `release.yml` | Release PR merge | Build wheels → publish to PyPI → sign with sigstore |
 | `security.yml` | Weekly | pip-audit → safety → bandit → detect-secrets |
-| `mutation.yml` | Weekly | mutmut mutation testing on obskit-core |
+| `mutation.yml` | Weekly | mutmut mutation testing on obskit |
 
 ### Local CI equivalent
 
 ```bash
 # Matches what CI runs
 pre-commit run --all-files
-pytest packages/ --tb=short -q
+pytest tests/unit/ --tb=short -q
 python benchmarks/macro_runner.py --requests 1000 --workers 4
 ```

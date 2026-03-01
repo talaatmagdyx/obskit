@@ -1,4 +1,4 @@
-# obskit-middleware-flask
+# Flask Middleware
 
 Automatic per-request observability for Flask applications. Provides the same correlation ID propagation, structured logging, RED metrics, and distributed tracing as the FastAPI middleware, using Flask's before/after request hooks.
 

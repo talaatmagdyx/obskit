@@ -1,4 +1,4 @@
-# obskit-middleware-django
+# Django Middleware
 
 Automatic per-request observability for Django applications. Works with both WSGI (sync) and ASGI (async) deployments, providing correlation ID propagation, structured logging, RED metrics, and distributed tracing through Django's standard middleware API.
 
@@ -78,7 +78,7 @@ def orders_view(request):
 
 ## WSGI and ASGI support
 
-obskit-django works transparently with both deployment modes:
+obskit Django middleware works transparently with both deployment modes:
 
 ```python
 # wsgi.py (Gunicorn, uWSGI)

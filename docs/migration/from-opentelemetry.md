@@ -339,12 +339,12 @@ shutdown_tracing()
 
 ## Migration Checklist
 
-- [ ] Install `obskit-tracing` and remove manual OTel setup code
+- [ ] Install `obskit[otlp]` and remove manual OTel setup code
 - [ ] Replace `TracerProvider` boilerplate with `setup_tracing()`
 - [ ] Replace `tracer.start_as_current_span()` with `trace_span()` / `async_trace_span()`
 - [ ] Remove manual instrumentor calls (or keep them with `instrument=[]`)
 - [ ] Switch from `OTEL_*` env vars to `OBSKIT_*` (or keep both — both are read)
-- [ ] Replace manual trace-log correlation with `get_logger()` from obskit-logging
-- [ ] Replace `baggage.set_baggage()` with `set_baggage()` from obskit-tracing
+- [ ] Replace manual trace-log correlation with `get_logger()` from obskit
+- [ ] Replace `baggage.set_baggage()` with `set_baggage()` from obskit.tracing
 - [ ] Replace `provider.shutdown()` with `shutdown_tracing()`
 - [ ] Verify spans appear in your tracing backend (Grafana Tempo, Jaeger, etc.)

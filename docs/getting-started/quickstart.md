@@ -8,23 +8,17 @@ Get obskit v2.0.0 wired up in a fresh service in **under five minutes**. Each st
 
 ```bash
 # Typical microservice stack
-pip install \
-  obskit-core \
-  obskit-logging \
-  obskit-metrics \
-  obskit-tracing \
-  obskit-health \
-  obskit-middleware-fastapi
+pip install "obskit[prometheus,otlp,fastapi]"
 ```
 
 !!! tip "Just want one thing?"
-    Every obskit package is standalone. `pip install obskit` is all you need for structured logging. No need to install the full stack upfront.
+    obskit uses optional extras. `pip install obskit` is all you need for structured logging, health checks, and resilience. Add extras only for what you need.
 
 ---
 
 ## Step 1 — Structured Logging with Trace Correlation
 
-obskit-logging wraps structlog under the hood and emits machine-readable JSON by default. Every log record is automatically enriched with `trace_id`, `span_id`, `service`, and `environment` when a span is active.
+obskit wraps structlog under the hood and emits machine-readable JSON by default. Every log record is automatically enriched with `trace_id`, `span_id`, `service`, and `environment` when a span is active.
 
 === "Code"
 
@@ -91,7 +85,7 @@ obskit-logging wraps structlog under the hood and emits machine-readable JSON by
 | `OBSKIT_ENVIRONMENT=production` | Sets `environment` field on every record |
 
 !!! note "Trace IDs are injected automatically"
-    When obskit-tracing is also installed, `trace_id` and `span_id` come from the active OpenTelemetry span context. If no span is active, those fields are omitted cleanly. No manual plumbing required.
+    When `obskit[otlp]` is also installed, `trace_id` and `span_id` come from the active OpenTelemetry span context. If no span is active, those fields are omitted cleanly. No manual plumbing required.
 
 ---
 
@@ -163,7 +157,7 @@ Call `setup_tracing()` **once** at application startup, before your framework is
 ### span output (debug=True)
 
 ```
-[obskit-tracing] SPAN  process_order
+[obskit] SPAN  process_order
   trace_id  : 4bf92f3577b34da6a3ce929d0e0e4736
   span_id   : 00f067aa0ba902b7
   attributes: {order_id: ord-789, user_id: u-123}
@@ -175,7 +169,7 @@ Call `setup_tracing()` **once** at application startup, before your framework is
 
 ## Step 3 — RED Metrics with Trace Exemplars
 
-obskit-metrics provides a high-level `REDMetrics` class and a low-level `observe_with_exemplar()` helper that links a Prometheus data-point to the active OTel trace — enabling metric-to-trace drill-down in Grafana.
+obskit provides a high-level `REDMetrics` class and a low-level `observe_with_exemplar()` helper that links a Prometheus data-point to the active OTel trace — enabling metric-to-trace drill-down in Grafana.
 
 === "REDMetrics (recommended)"
 
@@ -234,7 +228,7 @@ obskit-metrics provides a high-level `REDMetrics` class and a low-level `observe
 
 ## Step 4 — Health Checks
 
-obskit-health implements the Kubernetes liveness/readiness/health pattern. The `HealthChecker` reads `OBSKIT_SERVICE_NAME` and `OBSKIT_VERSION` from the environment automatically.
+obskit implements the Kubernetes liveness/readiness/health pattern. The `HealthChecker` reads `OBSKIT_SERVICE_NAME` and `OBSKIT_VERSION` from the environment automatically.
 
 === "Basic health checker"
 
@@ -306,7 +300,7 @@ obskit-health implements the Kubernetes liveness/readiness/health pattern. The `
     ```
 
 !!! note "trace_id / span_id in health responses"
-    When obskit-tracing is active, every `/health` call is automatically wrapped in a span. The `trace_id` and `span_id` fields in the JSON response let you correlate health check results with distributed traces in Grafana.
+    When `obskit[otlp]` is active, every `/health` call is automatically wrapped in a span. The `trace_id` and `span_id` fields in the JSON response let you correlate health check results with distributed traces in Grafana.
 
 ---
 
@@ -332,15 +326,14 @@ After wiring everything up, run the built-in diagnostic to confirm the full stac
 === "Expected output"
 
     ```
-    obskit v2.0.0 — Diagnostic Report
+    obskit v2.2.0 — Diagnostic Report
     ══════════════════════════════════════════════════════════════
-      Package            Version   Status
+      Component          Status
       ─────────────────────────────────────────────────────────
-      obskit-core        2.0.0     OK
-      obskit-logging     2.0.0     OK
-      obskit-metrics     2.0.0     OK
-      obskit-tracing     2.0.0     OK
-      obskit-health      2.0.0     OK
+      obskit             2.2.0     OK
+      prometheus         OK
+      otlp               OK
+      fastapi            OK
 
       Environment
       ─────────────────────────────────────────────────────────

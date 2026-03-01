@@ -9,7 +9,7 @@ obskit needs a logging library that supports structured (JSON) output, context b
 
 ## Decision
 
-Use **structlog** as the primary logging library for obskit-logging.
+Use **structlog** as the primary logging library for obskit.
 
 ## Rationale
 
@@ -26,6 +26,6 @@ The processor pipeline is what enables obskit's `add_trace_context` to inject `t
 
 ## Consequences
 
-- `structlog` is a required dependency of `obskit-logging`
+- `structlog` is a required dependency of `obskit` (always-on; not a separate optional extra)
 - Applications using stdlib `logging` directly won't get auto trace injection (they must use `get_logger()`)
 - structlog output is fully compatible with `logging` handlers when `configure()` is called with `wrapper_class=structlog.stdlib.BoundLogger`

@@ -180,7 +180,7 @@ handler.setFormatter(DatadogFormatter())
 logger.addHandler(handler)
 ```
 
-### After — obskit-logging + Loki
+### After — obskit + Loki
 
 ```python
 from obskit.logging import get_logger
@@ -282,7 +282,7 @@ metrics_generator:
 - [ ] Configure promtail or OTLP collector to ship logs to Loki
 - [ ] Set up Grafana correlations (Loki trace_id → Tempo)
 - [ ] Set up Grafana Service Graph (Tempo metrics-generator)
-- [ ] Import Grafana dashboards from `obskit-dashboards` package
+- [ ] Import Grafana dashboards from `obskit.dashboards` module
 - [ ] Migrate Datadog monitors to Alertmanager / Grafana Alerting rules
 - [ ] Remove `ddtrace` and `datadog` packages from `requirements.txt`
 - [ ] Update `DD_*` environment variables to `OBSKIT_*`

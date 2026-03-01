@@ -1,8 +1,7 @@
 # How to Use obskit Diagnose
 
 The `obskit diagnose` command inspects your Python environment and produces a
-structured report of every installed `obskit-*` package, its version, and the status of
-its optional integrations (structlog, OpenTelemetry, prometheus-client, and others).
+structured report of the obskit package, its version, and status of each installed extra (prometheus, otlp, fastapi, etc.).
 Use it whenever you need to verify a deployment, debug a missing feature, or confirm
 that a CI environment is configured correctly.
 
@@ -22,52 +21,31 @@ a formatted table to stdout.
 ```
 obskit environment diagnostics
 ────────────────────────────────────────────────────────────────────────────────
-Package                    Version    Status         Integration
+Component                  Version    Status         Notes
 ────────────────────────────────────────────────────────────────────────────────
-obskit-core                2.0.0      ✓ installed
-  └─ config-file                      ✓ available
-  └─ deprecation-warnings             ✓ enabled
+obskit                     2.2.0      ✓ installed
 
-obskit-logging             2.0.0      ✓ installed
-  └─ structlog               24.1.0   ✓ available
-  └─ trace-correlation               ✓ available
-  └─ loguru                           ✗ not installed  (optional)
-
-obskit-metrics             2.0.0      ✓ installed
-  └─ prometheus-client       0.20.0   ✓ available
+prometheus-client          0.20.0     ✓ available
   └─ trace-exemplars                  ✓ available
-  └─ statsd                           ✗ not installed  (optional)
 
-obskit-tracing             2.0.0      ✓ installed
-  └─ opentelemetry-api       1.27.0   ✓ available
-  └─ opentelemetry-sdk       1.27.0   ✓ available
-  └─ exporter-otlp-grpc      1.27.0   ✓ available
+opentelemetry-api          1.27.0     ✓ available
+opentelemetry-sdk          1.27.0     ✓ available
+exporter-otlp-grpc         1.27.0     ✓ available
   └─ endpoint                         http://localhost:4317
   └─ service-name                     order-service
 
-obskit-health              2.0.0      ✓ installed
-  └─ health-tracing                   ✓ available
+structlog                  24.1.0     ✓ available
+  └─ trace-correlation               ✓ available
+  └─ loguru                           ✗ not installed  (optional)
 
-obskit-resilience          2.0.0      ✓ installed
-  └─ redis                            ✗ not installed  (optional, for distributed locks)
+fastapi                    0.110.0    ✓ available
+starlette                  0.36.3     ✓ available
 
-obskit-slo                 2.0.0      ✓ installed
-  └─ alertmanager                     ✓ available
-
-obskit-queue               not installed
-obskit-db                  not installed
-obskit-dashboards          not installed
-obskit-decorators          not installed
-obskit-middleware-fastapi  2.0.0      ✓ installed
-  └─ fastapi                 0.110.0  ✓ available
-  └─ starlette               0.36.3   ✓ available
-obskit-middleware-django   not installed
-obskit-middleware-flask    not installed
-obskit-middleware-grpc     not installed
+redis                                 ✗ not installed  (optional)
 ────────────────────────────────────────────────────────────────────────────────
 Python                     3.12.2
 Platform                   macOS-15.0-arm64
-obskit-core                2.0.0
+obskit                     2.2.0
 ────────────────────────────────────────────────────────────────────────────────
 ```
 
@@ -79,22 +57,22 @@ obskit-core                2.0.0
 
 | Symbol | Meaning |
 |--------|---------|
-| `✓ installed` | Package is present in the current environment |
-| `not installed` | Package is absent (may or may not be expected) |
+| `✓ installed` | Component is present in the current environment |
+| `not installed` | Component is absent (may or may not be expected) |
 | `✓ available` | Optional integration dependency is installed and importable |
 | `✗ not installed (optional)` | Optional dependency is absent — feature degrades gracefully |
 | `✗ not installed` | Required dependency is absent — feature is broken |
 
 ### Integration rows
 
-Each installed obskit package lists its key dependencies as indented rows.  A
+Each installed obskit component lists its key dependencies as indented rows.  A
 dependency marked **optional** means the core package works without it, but certain
 features will be unavailable:
 
-- `obskit-logging` without `structlog` → falls back to stdlib `logging`.
-- `obskit-logging` without `trace-correlation` → logs omit `trace_id` / `span_id`.
-- `obskit-metrics` without `prometheus-client` → metrics are silently no-ops.
-- `obskit-tracing` without `exporter-otlp-grpc` → traces are not exported anywhere.
+- `obskit` without `structlog` → falls back to stdlib `logging` (install `obskit`).
+- `obskit` without `trace-correlation` → logs omit `trace_id` / `span_id` (call setup_tracing() before logging).
+- `obskit` without `prometheus-client` → metrics are silently no-ops (install `obskit[prometheus]`).
+- `obskit` without `exporter-otlp-grpc` → traces are not exported anywhere (install `obskit[otlp]`).
 
 ---
 
@@ -140,7 +118,7 @@ from obskit.core.diagnose import PackageInfo, IntegrationInfo
 
 # PackageInfo
 # -----------
-# name: str               — e.g. "obskit-logging"
+# name: str               — e.g. "obskit"
 # version: str | None     — e.g. "2.0.0", or None if not installed
 # installed: bool         — True if importable
 # integrations: list[IntegrationInfo]
@@ -208,8 +186,8 @@ Example curl output for `/diagnose/json`:
 ```json
 [
   {
-    "package": "obskit-tracing",
-    "version": "2.0.0",
+    "package": "obskit",
+    "version": "2.2.0",
     "installed": true,
     "integrations": [
       {"name": "opentelemetry-api", "version": "1.27.0", "available": true, "optional": false, "note": null},
@@ -238,7 +216,7 @@ before running tests or deploying:
         # Exit non-zero if a required package is missing
         python - <<'EOF'
         from obskit.core.diagnose import collect_diagnostics, PackageInfo
-        required = {"obskit-core", "obskit-logging", "obskit-tracing", "obskit-metrics"}
+        required = {"obskit"}
         packages = collect_diagnostics()
         installed = {p.name for p in packages if p.installed}
         missing = required - installed
@@ -258,7 +236,7 @@ before running tests or deploying:
     	python -m obskit.core.diagnose
     	python -c "
     	from obskit.core.diagnose import collect_diagnostics
-    	required = {'obskit-core', 'obskit-logging', 'obskit-tracing'}
+    	required = {'obskit'}
     	missing = {p.name for p in collect_diagnostics() if p.name in required and not p.installed}
     	assert not missing, f'Missing: {missing}'
     	print('All required obskit packages installed.')
@@ -275,13 +253,13 @@ before running tests or deploying:
     @pytest.fixture(scope="session", autouse=True)
     def assert_obskit_environment():
         """Fail the test session early if required obskit packages are absent."""
-        required = {"obskit-core", "obskit-logging", "obskit-metrics"}
+        required = {"obskit"}
         packages = {p.name: p for p in collect_diagnostics()}
         for name in required:
             pkg = packages.get(name)
             assert pkg and pkg.installed, (
                 f"Required package '{name}' is not installed. "
-                f"Run: pip install {name}"
+                f"Run: pip install obskit"
             )
     ```
 
@@ -297,10 +275,7 @@ from obskit.health import HealthChecker
 from obskit.core.diagnose import collect_diagnostics
 
 REQUIRED_PACKAGES = {
-    "obskit-core",
-    "obskit-logging",
-    "obskit-tracing",
-    "obskit-metrics",
+    "obskit",
 }
 
 
@@ -342,7 +317,7 @@ checker.add_check("obskit-environment", check_obskit_environment)
 
 ## Troubleshooting common diagnose outputs
 
-### "obskit-tracing shows as not installed"
+### "otlp extra shows as not installed"
 
 ```bash
 pip install "obskit[otlp]"
@@ -356,18 +331,12 @@ you may have multiple Python environments.  Check which Python is active:
 ```bash
 which python
 python -c "import sys; print(sys.prefix)"
-pip show obskit-tracing
+pip show obskit
 ```
 
 ### "structlog shows as unavailable"
 
-`obskit-logging` is installed but `structlog` is not.  Install it:
-
-```bash
-pip install structlog
-```
-
-Or install `obskit-logging` with the structlog extra:
+`obskit` is installed but `structlog` is not.  Install it:
 
 ```bash
 pip install obskit
@@ -375,7 +344,7 @@ pip install obskit
 
 ### "trace-correlation shows as unavailable"
 
-`obskit-tracing` is not installed, or the OTel SDK is present but `setup_tracing()`
+`obskit[otlp]` is not installed, or the OTel SDK is present but `setup_tracing()`
 has not been called.  `is_trace_correlation_available()` performs a runtime check,
 so it returns `False` until the `TracerProvider` is initialised:
 
@@ -387,7 +356,7 @@ setup_tracing(service_name="my-service", exporter_endpoint="http://localhost:431
 
 ### "endpoint shows as not configured"
 
-`obskit-tracing` is installed but no OTLP endpoint has been provided.  Set the
+`obskit[otlp]` is installed but no OTLP endpoint has been provided.  Set the
 environment variable or pass it to `setup_tracing()`:
 
 ```bash
@@ -410,7 +379,7 @@ pip install "prometheus-client>=0.16.0"
 ```
 
 Versions below 0.16.0 do not support exemplars and may cause import errors in
-`obskit-metrics`.
+`obskit[prometheus]`.
 
 ---
 
@@ -418,10 +387,10 @@ Versions below 0.16.0 do not support exemplars and may cause import errors in
 
 | Variable | Effect on diagnose output |
 |----------|--------------------------|
-| `OBSKIT_OTLP_ENDPOINT` | Shown as the `endpoint` integration note under `obskit-tracing` |
-| `OBSKIT_SERVICE_NAME` | Shown as the `service-name` note under `obskit-tracing` |
-| `OBSKIT_TRACING_ENABLED` | If set to `false`, `obskit-tracing` integrations show as disabled |
-| `OBSKIT_LOG_LEVEL` | Shown in the `obskit-logging` section |
+| `OBSKIT_OTLP_ENDPOINT` | Shown as the `endpoint` integration note in the tracing section |
+| `OBSKIT_SERVICE_NAME` | Shown as the `service-name` note in the tracing section |
+| `OBSKIT_TRACING_ENABLED` | If set to `false`, tracing integrations show as disabled |
+| `OBSKIT_LOG_LEVEL` | Shown in the logging section |
 | `OBSKIT_CONFIG_FILE` | Path to the YAML config file; shown if the file exists and is valid |
 
 ---

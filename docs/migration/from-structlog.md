@@ -1,6 +1,6 @@
-# Migrating from raw structlog to obskit-logging
+# Migrating from raw structlog to obskit
 
-obskit-logging is built on top of structlog.  If you are already using structlog
+obskit is built on top of structlog.  If you are already using structlog
 directly, the migration is minimal — you keep your existing processor pipeline and
 add obskit's trace-log correlation, OTLP export, and adaptive sampling on top.
 
@@ -8,7 +8,7 @@ add obskit's trace-log correlation, OTLP export, and adaptive sampling on top.
 
 ## Why Migrate?
 
-| Raw structlog | obskit-logging |
+| Raw structlog | obskit |
 |---|---|
 | Manual trace context extraction in every processor | Automatic `trace_id` / `span_id` injection when a span is active |
 | Manual OTLP log export setup (50+ lines of OTel SDK) | `get_logger()` enables OTLP export via `OBSKIT_OTLP_ENDPOINT` |
@@ -16,7 +16,7 @@ add obskit's trace-log correlation, OTLP export, and adaptive sampling on top.
 | `contextvars.copy_context()` must be called manually for async safety | obskit handles context propagation automatically |
 | Service name, environment, version must be added to every logger | Set once via `OBSKIT_SERVICE_NAME` / `configure()` |
 
-obskit-logging does **not** remove structlog from your dependency tree — it depends
+obskit does **not** remove structlog from your dependency tree — it depends
 on it.  You can still use all structlog APIs directly.
 
 ---

@@ -30,8 +30,8 @@ With health check tracing:
 
 | Package | Minimum version | Role |
 |---------|-----------------|------|
-| `obskit-health` | 2.0.0 | `HealthChecker`, `HealthResult`, built-in checks |
-| `obskit-tracing` | 2.0.0 | OTel span context injection |
+| `obskit` | 2.2.0 | `HealthChecker`, `HealthResult`, built-in checks |
+| `obskit[otlp]` | 2.2.0 | OTel span context injection |
 | `opentelemetry-sdk` | 1.20.0 | Active span context |
 
 ---
@@ -371,7 +371,7 @@ result = asyncio.run(checker.check_health())
 
 ### "trace_id is missing from /health response"
 
-1. **Is `obskit-tracing` installed?**
+1. **Is `obskit[otlp]` installed?**
 
    ```bash
    python -m obskit.core.diagnose

@@ -1,6 +1,6 @@
 # Migrating from v1 to v2
 
-obskit v2.0.0 splits the original monolithic package into a family of focused namespace packages. This guide covers every breaking change and gives you a step-by-step migration path so you can move incrementally without downtime.
+obskit v2.0.0 modernises the API of the original monolithic package while keeping it as a single install. This guide covers every breaking change and gives you a step-by-step migration path so you can move incrementally without downtime.
 
 ---
 
@@ -8,30 +8,25 @@ obskit v2.0.0 splits the original monolithic package into a family of focused na
 
 ```mermaid
 graph LR
-    subgraph v1["v1 — single package"]
-        A[pip install obskit<br/>~180 transitive deps]
+    subgraph v1["v1 — single package (monolithic)"]
+        A[pip install obskit<br/>~180 transitive deps<br/>chaos, capacity, compliance, etc.]
     end
-    subgraph v2["v2 — namespace packages"]
-        B[obskit-core<br/>~12 deps]
-        C[obskit-logging<br/>~8 deps]
-        D[obskit-metrics<br/>~6 deps]
-        E[obskit-tracing<br/>~15 deps]
-        F[obskit-health<br/>~5 deps]
+    subgraph v2["v2 — single package (focused)"]
+        B["pip install obskit<br/>~12 deps<br/>core + logging + health + resilience"]
+        C["pip install obskit[prometheus]<br/>+ prometheus-client"]
+        D["pip install obskit[otlp]<br/>+ opentelemetry stack"]
     end
-    A -->|monorepo split| B
-    A -->|monorepo split| C
-    A -->|monorepo split| D
-    A -->|monorepo split| E
-    A -->|monorepo split| F
+    A -->|modernised| B
+    B --> C
+    B --> D
 ```
 
 | Motivation | Details |
 |------------|---------|
-| **Smaller installs** | Install only what you use — a logging-only service no longer pulls in the OTel SDK |
+| **Smaller installs** | Install only what you use — add `[prometheus]`, `[otlp]`, `[fastapi]` only when needed |
 | **Faster Docker builds** | Fewer dependencies = smaller layer cache misses |
-| **Independent versioning** | `obskit-metrics` can ship a bug fix without bumping `obskit-tracing` |
-| **Better tree-shaking** | Static analysis tools (mypy, pyright) only see the packages you import |
-| **`py.typed` markers** | Every v2 package ships `py.typed` for first-class type checking |
+| **Better tree-shaking** | Static analysis tools (mypy, pyright) only see the modules you import |
+| **`py.typed` markers** | v2 ships `py.typed` for first-class type checking |
 
 ---
 
@@ -39,7 +34,7 @@ graph LR
 
 | Category | v1 behaviour | v2 behaviour | Severity |
 |----------|-------------|-------------|----------|
-| **Install command** | `pip install obskit` | `pip install obskit obskit-metrics …` | Low — additive change |
+| **Install command** | `pip install obskit` | `pip install "obskit[prometheus,otlp,fastapi]"` | Low — additive change |
 | **Logging API** | `configure_logging()` function call | Environment variables + `get_logger()` | **Medium** |
 | **Tracing API** | `configure_tracing()` | `setup_tracing()` | **Medium** |
 | **Metrics API** | `get_red_metrics()` factory | `REDMetrics(service=…)` constructor | **Medium** |
@@ -72,19 +67,15 @@ If you are on Python 3.9 or 3.10, upgrade your runtime first. obskit v2 uses `to
 === "After (v2) — full install"
 
     ```text
-    # Full equivalent to obskit[all]
-    obskit==2.0.0
+    # Full equivalent to obskit[all] (includes every extra)
+    "obskit[all]==2.2.0"
     ```
 
 === "After (v2) — focused install (recommended)"
 
     ```text
-    obskit-core==2.0.0
-    obskit-logging==2.0.0
-    obskit-metrics==2.0.0
-    obskit-tracing==2.0.0
-    obskit-health==2.0.0
-    obskit-middleware-fastapi==2.0.0   # if using FastAPI
+    # Focused install — only what you need
+    "obskit[prometheus,otlp,fastapi]==2.2.0"
     ```
 
 !!! tip "Discover what you actually use"
@@ -101,18 +92,18 @@ Replace all v1 top-level imports with their v2 equivalents using the table below
 
 | v1 import | v2 import | Package needed |
 |-----------|-----------|----------------|
-| `from obskit import configure_logging` | `from obskit.logging import get_logger` | `obskit-logging` |
-| `from obskit import get_logger` | `from obskit.logging import get_logger` | `obskit-logging` |
-| `from obskit import get_red_metrics` | `from obskit.metrics.red import REDMetrics` | `obskit-metrics` |
-| `from obskit import get_health_checker` | `from obskit.health import HealthChecker` | `obskit-health` |
-| `from obskit import configure_tracing` | `from obskit.tracing import setup_tracing` | `obskit-tracing` |
-| `from obskit import get_tracer` | `from obskit.tracing import trace_span` | `obskit-tracing` |
-| `from obskit import start_http_server` | Served via framework route or `prometheus_client.start_http_server` | `obskit-metrics` |
-| `from obskit.logging import ObsLogger` | `from obskit.logging import get_logger` | `obskit-logging` |
-| `from obskit.metrics import REDMetrics` | `from obskit.metrics.red import REDMetrics` | `obskit-metrics` |
-| `from obskit.tracing import Tracer` | `from obskit.tracing import trace_span, async_trace_span` | `obskit-tracing` |
-| `from obskit.health import HealthChecker` | `from obskit.health import HealthChecker` | `obskit-health` (unchanged) |
-| `from obskit.resilience import CircuitBreaker` | `from obskit.resilience import CircuitBreaker` | `obskit-resilience` (unchanged) |
+| `from obskit import configure_logging` | `from obskit.logging import get_logger` | `obskit` |
+| `from obskit import get_logger` | `from obskit.logging import get_logger` | `obskit` |
+| `from obskit import get_red_metrics` | `from obskit.metrics.red import REDMetrics` | `obskit` |
+| `from obskit import get_health_checker` | `from obskit.health import HealthChecker` | `obskit` |
+| `from obskit import configure_tracing` | `from obskit.tracing import setup_tracing` | `obskit` |
+| `from obskit import get_tracer` | `from obskit.tracing import trace_span` | `obskit` |
+| `from obskit import start_http_server` | Served via framework route or `prometheus_client.start_http_server` | `obskit` |
+| `from obskit.logging import ObsLogger` | `from obskit.logging import get_logger` | `obskit` |
+| `from obskit.metrics import REDMetrics` | `from obskit.metrics.red import REDMetrics` | `obskit` |
+| `from obskit.tracing import Tracer` | `from obskit.tracing import trace_span, async_trace_span` | `obskit` |
+| `from obskit.health import HealthChecker` | `from obskit.health import HealthChecker` | `obskit` (unchanged) |
+| `from obskit.resilience import CircuitBreaker` | `from obskit.resilience import CircuitBreaker` | `obskit` (unchanged) |
 
 #### sed One-Liners (macOS / Linux)
 
@@ -331,7 +322,7 @@ The following modules were removed from the v2 monorepo because they are out-of-
 
 === "Using obskit testing helpers"
 
-    obskit-core ships a `testing` module with helpers for unit tests:
+    obskit ships a `testing` module with helpers for unit tests:
 
     ```python
     from obskit.testing import ObskitTestCase, mock_logger, mock_tracer
@@ -385,10 +376,7 @@ Add the new packages to `requirements.txt` without removing `obskit`:
 obskit==1.5.0
 
 # NEW (add)
-obskit-logging==2.0.0
-obskit-metrics==2.0.0
-obskit-tracing==2.0.0
-obskit-health==2.0.0
+"obskit[prometheus,otlp,fastapi]==2.2.0"
 ```
 
 !!! warning "v1 and v2 packages coexist but share the obskit.* namespace"
@@ -441,11 +429,11 @@ git revert HEAD~1
 
 **My tests import from `obskit` directly. Do they break?**
 
-: Yes — any `from obskit import configure_logging` style import will break. Follow Step 8 above to update test fixtures. The obskit-core `testing` module provides mock helpers to make test setup simpler.
+: Yes — any `from obskit import configure_logging` style import will break. Follow Step 8 above to update test fixtures. The obskit `testing` module provides mock helpers to make test setup simpler.
 
 **What happened to `obskit.decorators.context_managers`?**
 
-: It moved to `obskit.decorators` in `obskit-decorators` package. Install `obskit-decorators==2.0.0` and update the import path: `from obskit.decorators import context_managers`.
+: It is at `obskit.decorators` — included in the base `obskit` package. Update the import path: `from obskit.decorators import context_managers`.
 
 **Is the `/metrics` endpoint path still `/metrics`?**
 

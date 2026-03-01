@@ -1,181 +1,123 @@
 # Architecture Overview
 
-This document describes the internal architecture of obskit v2.0.0 — the monorepo
-structure, namespace package design, dependency graph, and key data flows.
+This document describes the internal architecture of obskit v2.2.0 — the
+single-package layout, optional extras design, dependency graph, and key data flows.
 
 ---
 
-## Monorepo Structure
+## Package Structure
 
 ```
 obskit/                          # Git repository root
-├── packages/                    # All installable packages
-│   ├── obskit-core/             # Config, errors, interfaces, correlation, test helpers
-│   ├── obskit-logging/          # Structured logging, adaptive sampling, OTLP export
-│   ├── obskit-metrics/          # RED/Golden/USE, exemplars, cardinality guard
-│   ├── obskit-tracing/          # OpenTelemetry setup, trace_span, auto-instrumentation
-│   ├── obskit-health/           # Health check framework, HTTP server
-│   ├── obskit-resilience/       # Circuit breaker, retry, rate limiter
-│   ├── obskit-slo/              # SLO/SLA tracking, alerting, error budgets
-│   ├── obskit-decorators/       # @with_observability, @trace cross-cutting decorators
-│   ├── obskit-db/               # SQLAlchemy instrumentation, query analyzer
-│   ├── obskit-queue/            # Kafka/RabbitMQ tracing, consumer-lag, DLQ
-│   ├── obskit-dashboards/       # Grafana dashboard generators
-│   ├── obskit-middleware-fastapi/   # FastAPI ASGI middleware
-│   ├── obskit-middleware-flask/     # Flask WSGI middleware
-│   ├── obskit-middleware-django/    # Django middleware
-│   ├── obskit-middleware-grpc/      # gRPC server/client interceptors
-│   └── obskit/                  # Meta-package (depends on all above)
+├── src/
+│   └── obskit/                  # Single Python package
+│       ├── __init__.py
+│       ├── _version.py
+│       ├── config.py            # ObskitSettings (pydantic-settings)
+│       ├── config_file.py       # YAML config file loader
+│       ├── correlation.py       # Correlation/request/session ID management
+│       ├── errors/              # Structured exception hierarchy
+│       ├── interfaces/          # Abstract base classes (protocols)
+│       ├── core/                # Context propagation, diagnose, deprecation
+│       ├── logging/             # Structured logging, adapters, OTLP export
+│       ├── metrics/             # RED/Golden/USE, exemplars, cardinality guard
+│       ├── tracing/             # OpenTelemetry setup, trace_span, auto-instrumentation
+│       ├── health/              # Health check framework, HTTP server
+│       ├── resilience/          # Circuit breaker, retry, rate limiter
+│       ├── slo/                 # SLO/SLA tracking, alerting, error budgets
+│       ├── alerts/              # Alert rules and deduplication
+│       ├── decorators/          # @with_observability, @trace cross-cutting decorators
+│       ├── db/                  # SQLAlchemy instrumentation, query analyzer
+│       ├── queue/               # Kafka/RabbitMQ tracing, consumer-lag, DLQ
+│       ├── dashboards/          # Grafana dashboard generators
+│       ├── middleware/          # Framework middlewares (fastapi, flask, django, grpc)
+│       └── testing/             # Test helpers, mocks, ObskitTestCase
+├── tests/
+│   └── unit/                    # All unit tests (flat structure)
 ├── benchmarks/                  # pytest-benchmark + macro_runner
 ├── docs/                        # MkDocs source (this site)
-├── tests/
-│   ├── conftest.py
-│   └── integration/             # Cross-package integration tests
 ├── mkdocs.yml
-└── pyproject.toml               # uv workspace root
-```
-
-Each package under `packages/` has the same internal layout:
-
-```
-packages/obskit-logging/
-├── pyproject.toml
-├── README.md
-├── src/
-│   └── obskit/
-│       └── logging/             # Python namespace package
-│           ├── __init__.py
-│           └── ...
-└── tests/
-    ├── conftest.py
-    └── unit/
+└── pyproject.toml               # Package metadata + tool config
 ```
 
 ---
 
-## Namespace Package Design
+## Optional Extras Design
 
-obskit uses Python's [implicit namespace packages](https://peps.python.org/pep-0420/)
-(PEP 420 / PEP 402).  All packages share the top-level `obskit` namespace without
-any `__init__.py` at the `obskit/` level inside each package's `src/`.
+All functionality is in a single `obskit` package. Heavy optional dependencies are
+gated behind **extras** — users only install what they need:
 
 ```mermaid
 graph TD
-    subgraph "Python namespace: obskit"
-        A[obskit.config]
-        B[obskit.logging]
-        C[obskit.metrics]
-        D[obskit.tracing]
-        E[obskit.health]
-        F[obskit.resilience]
-        G[obskit.slo]
-        H[obskit.decorators]
-        I[obskit.db]
-        J[obskit.queue]
-        K[obskit.core]
-        L[obskit.middleware]
-        M[obskit.dashboards]
-    end
+    core["obskit (core)\nstructlog · PyYAML · pydantic-settings\nlogging · health · resilience · slo · decorators"]
 
-    subgraph "Installed packages"
-        P1[obskit-core]
-        P2[obskit-logging]
-        P3[obskit-metrics]
-        P4[obskit-tracing]
-        P5[obskit-health]
-        P6[obskit-resilience]
-        P7[obskit-slo]
-        P8[obskit-decorators]
-        P9[obskit-db]
-        P10[obskit-queue]
-        P11[obskit-middleware-fastapi]
-        P12[obskit-middleware-flask]
-        P13[obskit-middleware-django]
-        P14[obskit-middleware-grpc]
-        P15[obskit-dashboards]
-        P16[obskit meta]
-    end
+    prom["obskit[prometheus]\nprometheus-client"]
+    otlp["obskit[otlp]\nopentelemetry-api/sdk/exporter"]
+    loguru["obskit[loguru]\nloguru"]
+    fastapi["obskit[fastapi]\nfastapi · starlette"]
+    flask["obskit[flask]\nflask · werkzeug"]
+    django["obskit[django]\ndjango"]
+    sqlalchemy["obskit[sqlalchemy]\nsqlalchemy 2.0"]
+    kafka["obskit[kafka]\nkafka-python"]
+    rabbitmq["obskit[rabbitmq]\npika"]
+    redis["obskit[redis]\nredis"]
+    httpx["obskit[httpx]\nhttpx"]
 
-    P1 --> K & A
-    P2 --> B
-    P3 --> C
-    P4 --> D
-    P5 --> E
-    P6 --> F
-    P7 --> G
-    P8 --> H
-    P9 --> I
-    P10 --> J
-    P11 & P12 & P13 & P14 --> L
-    P15 --> M
-    P16 --> P1 & P2 & P3 & P4 & P5 & P6 & P7 & P8 & P9 & P10 & P11 & P12 & P13 & P14 & P15
+    core --> prom
+    core --> otlp
+    core --> loguru
+    core --> fastapi
+    core --> flask
+    core --> django
+    core --> sqlalchemy
+    core --> kafka
+    core --> rabbitmq
+    core --> redis
+    core --> httpx
 ```
 
 **Key properties:**
 
-- Any single package can be installed independently.
-- Packages that are not installed gracefully no-op (`is_tracing_available()` returns
+- Any combination of extras can be installed independently.
+- Optional dependencies that are not installed gracefully no-op (`is_tracing_available()` returns
   `False`) rather than raising `ImportError`.
-- The meta-package `obskit` (no suffix) re-exports all symbols for backward
-  compatibility.
+- All imports (`from obskit.logging import get_logger`) work regardless of which extras are installed.
 
 ---
 
-## Dependency Graph
+## Module Dependency Graph
 
 ```mermaid
 graph TD
-    core[obskit-core]
-    logging[obskit-logging]
-    metrics[obskit-metrics]
-    tracing[obskit-tracing]
-    health[obskit-health]
-    resilience[obskit-resilience]
-    slo[obskit-slo]
-    decorators[obskit-decorators]
-    db[obskit-db]
-    queue[obskit-queue]
-    dashboards[obskit-dashboards]
-    mw_fastapi[obskit-middleware-fastapi]
-    mw_flask[obskit-middleware-flask]
-    mw_django[obskit-middleware-django]
-    mw_grpc[obskit-middleware-grpc]
+    config[obskit.config]
+    core[obskit.core]
+    logging[obskit.logging]
+    metrics[obskit.metrics]
+    tracing[obskit.tracing]
+    health[obskit.health]
+    resilience[obskit.resilience]
+    slo[obskit.slo]
+    decorators[obskit.decorators]
+    db[obskit.db]
+    queue[obskit.queue]
+    dashboards[obskit.dashboards]
+    mw[obskit.middleware]
 
-    logging --> core
-    metrics --> core
-    tracing --> core
-    health --> core
-    resilience --> core
-    slo --> core
-    slo --> metrics
-    decorators --> core
-    decorators --> logging
-    decorators --> metrics
-    decorators --> resilience
-    decorators --> slo
-    db --> core
-    db --> tracing
-    queue --> core
-    queue --> tracing
-    queue --> metrics
-    dashboards --> core
-    mw_fastapi --> core
-    mw_fastapi --> tracing
-    mw_fastapi --> metrics
-    mw_flask --> core
-    mw_flask --> tracing
-    mw_flask --> metrics
-    mw_django --> core
-    mw_django --> tracing
-    mw_django --> metrics
-    mw_grpc --> core
-    mw_grpc --> tracing
+    logging --> config & core
+    metrics --> config & core
+    tracing --> config & core
+    health --> config & core & metrics
+    resilience --> config & core & logging & metrics
+    slo --> config & core & logging & metrics
+    decorators --> logging & metrics & resilience & slo
+    db --> tracing & metrics
+    queue --> tracing & metrics
+    mw --> logging & metrics & tracing
 ```
 
 **Rules:**
-- `obskit-core` has no obskit dependencies.
-- No package depends on `obskit-logging` except `obskit-decorators` — logging is
-  optional in all other packages.
+- `obskit.config` and `obskit.core` have no internal obskit dependencies.
+- Optional extras (prometheus-client, opentelemetry, etc.) are guarded with runtime availability checks.
 - No circular dependencies.
 
 ---
@@ -186,7 +128,7 @@ All optional integrations are guarded with runtime availability checks.  If an
 optional dependency is not installed, the feature degrades gracefully to a no-op.
 
 ```python
-# Inside obskit-metrics (exemplar.py)
+# Inside obskit/metrics/exemplar.py
 def _otel_available() -> bool:
     try:
         from opentelemetry import trace  # noqa: F401
@@ -222,9 +164,9 @@ sequenceDiagram
     participant DotEnv as .env File
     participant Configure as configure()
     participant Settings as ObskitSettings
-    participant Logging as obskit-logging
-    participant Metrics as obskit-metrics
-    participant Tracing as obskit-tracing
+    participant Logging as obskit.logging
+    participant Metrics as obskit.metrics
+    participant Tracing as obskit.tracing
 
     Env->>Settings: OBSKIT_* vars (highest priority)
     DotEnv->>Settings: .env file (medium priority)

@@ -1,4 +1,4 @@
-# obskit-middleware-fastapi
+# FastAPI Middleware
 
 Automatic per-request observability for FastAPI applications: correlation ID propagation, structured logging, RED metrics, distributed tracing, W3C Baggage header processing, and built-in `/health`, `/metrics`, and `/diagnose` routes.
 
@@ -71,7 +71,7 @@ app.add_middleware(
 
 ## /health endpoint
 
-The middleware package includes a pre-built FastAPI router that mounts health-check endpoints backed by `obskit-health`.
+The middleware includes a pre-built FastAPI router that mounts health-check endpoints backed by the obskit health module.
 
 ```python
 from fastapi import FastAPI
@@ -100,7 +100,7 @@ app.include_router(create_health_router(), prefix="")
 | `GET /health/live` | Liveness probe |
 | `GET /health/ready` | Readiness probe |
 
-**Example response** (with `obskit-tracing` installed):
+**Example response** (with `obskit[otlp]` installed):
 
 ```json
 {
@@ -164,8 +164,8 @@ app.include_router(create_diagnose_router(), prefix="")
 ```json
 {
   "packages": [
-    {"name": "obskit-core", "installed": true, "version": "2.0.0", "integrations": [...]},
-    {"name": "obskit-tracing", "installed": true, "version": "2.0.0", "integrations": [...]}
+    {"name": "obskit", "installed": true, "version": "2.0.0", "integrations": [...]},
+    {"name": "obskit", "installed": true, "version": "2.0.0", "integrations": [...]}
   ],
   "python": "3.12.1",
   "executable": "/usr/local/bin/python3"
