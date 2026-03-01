@@ -6,16 +6,16 @@ on:
     paths:
       - 'docs/**'
       - 'mkdocs.yml'
-      - 'packages/*/src/**/*.py'
-      - 'packages/*/README.md'
+      - 'src/**/*.py'
+      - 'README.md'
       - '.github/workflows/docs.yml'
   pull_request:
     branches: [main]
     paths:
       - 'docs/**'
       - 'mkdocs.yml'
-      - 'packages/*/src/**/*.py'
-      - 'packages/*/README.md'
+      - 'src/**/*.py'
+      - 'README.md'
 
 concurrency:
   group: "pages"
@@ -41,26 +41,10 @@ jobs:
           python-version: "3.12"
           cache: "pip"
 
-      - name: Install all obskit packages (for mkdocstrings API extraction)
+      - name: Install obskit (for mkdocstrings API extraction)
         run: |
           python -m pip install --upgrade pip
-          pip install \
-            -e packages/obskit-core \
-            -e packages/obskit-logging \
-            -e packages/obskit-metrics \
-            -e packages/obskit-tracing \
-            -e packages/obskit-health \
-            -e packages/obskit-resilience \
-            -e packages/obskit-slo \
-            -e packages/obskit-middleware-fastapi \
-            -e packages/obskit-middleware-flask \
-            -e packages/obskit-middleware-django \
-            -e packages/obskit-middleware-grpc \
-            -e packages/obskit-decorators \
-            -e packages/obskit-db \
-            -e packages/obskit-queue \
-            -e packages/obskit-dashboards \
-            -e "packages/obskit[all]"
+          pip install -e ".[all]"
 
       - name: Install MkDocs + plugins
         run: |
@@ -86,7 +70,6 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-    # Only run Sphinx if its source files changed
     steps:
       - uses: actions/checkout@v4
 
@@ -100,11 +83,7 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install \
-            -e packages/obskit-core \
-            -e packages/obskit-logging \
-            -e packages/obskit-metrics \
-            -e packages/obskit-tracing \
-            -e packages/obskit-health \
+            -e ".[all]" \
             sphinx>=7.0.0 \
             sphinx-rtd-theme \
             myst-parser \

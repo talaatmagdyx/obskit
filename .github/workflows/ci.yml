@@ -4,41 +4,26 @@ on:
   push:
     branches: [main, develop]
     paths:
-      - "packages/**"
+      - "src/**"
+      - "tests/**"
       - "pyproject.toml"
       - ".github/workflows/ci.yml"
   pull_request:
     branches: [main, develop]
     paths:
-      - "packages/**"
+      - "src/**"
+      - "tests/**"
       - "pyproject.toml"
       - ".github/workflows/ci.yml"
 
 jobs:
   test:
-    name: Test ${{ matrix.package }} / Python ${{ matrix.python-version }}
+    name: Test / Python ${{ matrix.python-version }}
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        python-version: ["3.11"]
-        package:
-          - obskit-core
-          - obskit-logging
-          - obskit-metrics
-          - obskit-tracing
-          - obskit-health
-          - obskit-resilience
-          - obskit-slo
-          - obskit-middleware-fastapi
-          - obskit-middleware-flask
-          - obskit-middleware-django
-          - obskit-middleware-grpc
-          - obskit-decorators
-          - obskit-db
-          - obskit-queue
-          - obskit-dashboards
-          - obskit
+        python-version: ["3.11", "3.12", "3.13"]
 
     steps:
       - uses: actions/checkout@v4
@@ -53,11 +38,11 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
 
-      - name: Install workspace (all packages + all extras)
-        run: uv sync --all-packages --all-extras
+      - name: Install obskit + all extras + dev tools
+        run: uv sync --all-extras
 
-      - name: Run tests for ${{ matrix.package }}
-        run: uv run pytest packages/${{ matrix.package }}/tests/ -q --tb=short --no-cov --timeout=30 --benchmark-disable
+      - name: Run unit tests
+        run: uv run pytest tests/unit/ -q --tb=short --no-cov --timeout=30 --benchmark-disable
 
   lint:
     name: Lint
@@ -71,7 +56,7 @@ jobs:
           enable-cache: true
 
       - name: Run ruff check
-        run: uv run ruff check packages/
+        run: uv run ruff check src/
 
   type-check:
     name: Type Check
@@ -88,15 +73,11 @@ jobs:
         with:
           python-version: "3.11"
 
-      - name: Install workspace (all packages + all extras)
-        run: uv sync --all-packages --all-extras
+      - name: Install obskit + all extras + dev tools
+        run: uv sync --all-extras
 
-      - name: Run mypy on core packages
-        run: |
-          uv run mypy packages/obskit-core/src/
-          MYPYPATH=packages/obskit-logging/src uv run mypy packages/obskit-logging/src/
-          MYPYPATH=packages/obskit-metrics/src uv run mypy packages/obskit-metrics/src/
-          MYPYPATH=packages/obskit-tracing/src uv run mypy packages/obskit-tracing/src/
+      - name: Run mypy
+        run: uv run mypy src/obskit/
 
   integration:
     name: Integration Tests
@@ -113,8 +94,8 @@ jobs:
         with:
           python-version: "3.11"
 
-      - name: Install workspace (all packages + all extras)
-        run: uv sync --all-packages --all-extras
+      - name: Install obskit + all extras + dev tools
+        run: uv sync --all-extras
 
       - name: Run integration tests (no containers)
         run: uv run pytest tests/integration/ -q --tb=short -m "not integration"
