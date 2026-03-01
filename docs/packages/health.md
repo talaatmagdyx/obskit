@@ -127,7 +127,7 @@ for name, check_result in result.checks.items():
 payload = result.to_dict()
 ```
 
-When `obskit-tracing[opentelemetry]` is installed and the health endpoint is served inside an instrumented request, `trace_id` and `span_id` are automatically included in the response:
+When `obskit[otlp]` is installed and the health endpoint is served inside an instrumented request, `trace_id` and `span_id` are automatically included in the response:
 
 ```json
 {
@@ -335,7 +335,7 @@ spec:
 
 ## Integration with tracing
 
-When `obskit-tracing[opentelemetry]` is installed, the active OTel span's `trace_id` and `span_id` are automatically added to every `/health` JSON response. This requires no additional configuration.
+When `obskit[otlp]` is installed, the active OTel span's `trace_id` and `span_id` are automatically added to every `/health` JSON response. This requires no additional configuration.
 
 ```python
 from obskit.health.checker import _OTEL_AVAILABLE

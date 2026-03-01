@@ -143,7 +143,7 @@ pip install "obskit[all]"
 Only install the packages you actually use.  Update imports to the new paths.
 
 ```bash
-pip install obskit obskit-logging obskit-metrics obskit-tracing obskit-health
+pip install "obskit[prometheus,otlp]"
 ```
 
 **Option C — Incremental (recommended for teams)**
@@ -164,11 +164,7 @@ sprints.  Each sub-system migration is independently verifiable.
 
     ```diff
     -obskit==1.5.0
-    +obskit-core==2.0.0
-    +obskit-logging==2.0.0
-    +obskit-metrics==2.0.0
-    +obskit-tracing==2.0.0
-    +obskit-health==2.0.0
+    +obskit[prometheus,otlp]==2.2.0
     ```
 
 === "pyproject.toml"
@@ -317,12 +313,7 @@ If you pin individual packages:
 - name: Install dependencies
   run: |
     pip install \
-      obskit-core==2.0.0 \
-      obskit-logging==2.0.0 \
-      obskit-metrics==2.0.0 \
-      obskit-tracing==2.0.0 \
-      obskit-health==2.0.0 \
-      obskit-resilience==2.0.0
+      "obskit[prometheus,otlp]==2.2.0"
 ```
 
 ### Docker
@@ -332,7 +323,7 @@ If you pin individual packages:
 RUN pip install obskit==1.5.0
 
 # After (minimal image)
-RUN pip install obskit==2.0.0 obskit-logging==2.0.0 obskit-metrics==2.0.0
+RUN pip install "obskit[prometheus,otlp]==2.2.0"
 
 # After (full)
 RUN pip install "obskit[all]==2.0.0"

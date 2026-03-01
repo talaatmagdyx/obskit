@@ -11,7 +11,7 @@ pip install "obskit[prometheus]"
 ### With Prometheus client
 
 ```bash
-pip install "obskit-metrics[prometheus]"
+pip install "obskit[prometheus]"
 ```
 
 ---

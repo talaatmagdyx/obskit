@@ -11,13 +11,13 @@ pip install "obskit[otlp]"
 ### With OpenTelemetry SDK
 
 ```bash
-pip install "obskit-tracing[opentelemetry]"
+pip install "obskit[otlp]"
 ```
 
 ### With auto-instrumentation for all common libraries
 
 ```bash
-pip install "obskit-tracing[auto]"
+pip install "obskit[otlp]"
 ```
 
 ---
@@ -130,7 +130,7 @@ with trace_span(
 ```
 
 !!! tip "Safe when tracing is unavailable"
-    If `obskit-tracing[opentelemetry]` is not installed or tracing is not configured, `trace_span` yields `None` and is otherwise a no-op. Your business logic is never interrupted.
+    If `obskit[otlp]` is not installed or tracing is not configured, `trace_span` yields `None` and is otherwise a no-op. Your business logic is never interrupted.
 
 ---
 

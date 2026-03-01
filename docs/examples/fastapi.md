@@ -44,15 +44,9 @@ uvicorn[standard]>=0.29.0
 httpx>=0.27.0
 pydantic>=2.0.0
 
-# obskit
-obskit-core>=2.0.0
-obskit-logging>=2.0.0
-obskit-metrics>=2.0.0
-obskit-tracing>=2.0.0
-obskit-health>=2.0.0
-obskit-resilience>=2.0.0
-obskit-slo>=2.0.0
-obskit-middleware-fastapi>=2.0.0
+"obskit[prometheus,otlp,fastapi]>=2.2.0"
+fastapi>=0.100.0
+uvicorn[standard]>=0.30.0
 ```
 
 ---

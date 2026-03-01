@@ -370,7 +370,7 @@ pip install structlog
 Or install `obskit-logging` with the structlog extra:
 
 ```bash
-pip install "obskit-logging[structlog]"
+pip install obskit
 ```
 
 ### "trace-correlation shows as unavailable"
