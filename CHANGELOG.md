@@ -5,6 +5,39 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.0.0](https://github.com/talaatmagdyx/obskit/compare/v2.2.0...v3.0.0) (2026-03-01)
+
+
+### ⚠ BREAKING CHANGES
+
+* consolidate 16-package monorepo into single obskit package
+
+### 🐛 Bug Fixes
+
+* **tests:** restore sys.modules properly in TestTenantGaps to prevent test pollution ([9eb58e4](https://github.com/talaatmagdyx/obskit/commit/9eb58e40f7d0055d3723309ed61f6148132eda76))
+* use patch.dict(sys.modules, {...}) which auto-restores originals on exit. ([9eb58e4](https://github.com/talaatmagdyx/obskit/commit/9eb58e40f7d0055d3723309ed61f6148132eda76))
+
+
+### 📚 Documentation
+
+* fix all remaining outdated 16-package references throughout documentation ([e21d157](https://github.com/talaatmagdyx/obskit/commit/e21d157bf52851ed282e629ebd6052e5eaf8c233))
+* fix pip install commands for consolidated single-package ([1a37c14](https://github.com/talaatmagdyx/obskit/commit/1a37c147fdf1c78b7bc302d6fc1adb7e6494d9de))
+* update install commands for consolidated package ([456035d](https://github.com/talaatmagdyx/obskit/commit/456035d93c0b3d93c194e7b98ce1f0b53f55d0f8))
+* update README to reflect single-package-with-extras model ([afea0ae](https://github.com/talaatmagdyx/obskit/commit/afea0ae788f53d19416f83e82580dde340c42bb1))
+
+
+### ♻️ Refactoring
+
+* consolidate 16-package monorepo into single obskit package ([20b8903](https://github.com/talaatmagdyx/obskit/commit/20b89038de70e5762a7a9deb5cf7caf1349933a6))
+* remove packages/ monorepo directories from git tracking ([a72ff51](https://github.com/talaatmagdyx/obskit/commit/a72ff515d373253b5e75d1129e423dd057a83507))
+
+
+### 🔧 CI/CD
+
+* add workflow_dispatch trigger to release workflow for manual PyPI publishes ([4639bf7](https://github.com/talaatmagdyx/obskit/commit/4639bf71a18a08072beb618a31c029c71771baac))
+* fix release-please version bumping for all 16 packages and cyclonedx-py SBOM command ([ea66e1b](https://github.com/talaatmagdyx/obskit/commit/ea66e1b147fcb0c8bf1afa66b455500d47afb9ad))
+* simplify workflows for single-package build and publish ([d925813](https://github.com/talaatmagdyx/obskit/commit/d9258135f3131ab2a6db63830557aa7c5a65ba2b))
+
 ## [2.2.0](https://github.com/talaatmagdyx/obskit/compare/v2.1.0...v2.2.0) (2026-03-01)
 
 
