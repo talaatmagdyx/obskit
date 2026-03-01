@@ -21,27 +21,10 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Install all packages + pip-audit
+      - name: Install obskit + pip-audit
         run: |
           pip install --upgrade pip
-          pip install \
-            -e packages/obskit-core \
-            -e packages/obskit-logging \
-            -e packages/obskit-metrics \
-            -e packages/obskit-tracing \
-            -e packages/obskit-health \
-            -e packages/obskit-resilience \
-            -e packages/obskit-slo \
-            -e packages/obskit-middleware-fastapi \
-            -e packages/obskit-middleware-flask \
-            -e packages/obskit-middleware-django \
-            -e packages/obskit-middleware-grpc \
-            -e packages/obskit-decorators \
-            -e packages/obskit-db \
-            -e packages/obskit-queue \
-            -e packages/obskit-dashboards \
-            -e "packages/obskit[all]"
-          pip install pip-audit
+          pip install -e ".[all]" pip-audit
 
       - name: Run pip-audit
         run: pip-audit --format=json --output=audit-report.json || true
@@ -80,13 +63,9 @@ jobs:
       - name: Install bandit
         run: pip install "bandit[toml]"
 
-      - name: Run bandit on packages
+      - name: Run bandit on src
         run: |
-          bandit -r packages/obskit-core/src \
-                    packages/obskit-logging/src \
-                    packages/obskit-metrics/src \
-                    packages/obskit-tracing/src \
-                    packages/obskit-health/src \
+          bandit -r src/obskit/ \
                     -c pyproject.toml \
                     -ll \
                     -f json \
@@ -101,11 +80,7 @@ jobs:
 
       - name: Fail on HIGH severity issues
         run: |
-          bandit -r packages/obskit-core/src \
-                    packages/obskit-logging/src \
-                    packages/obskit-metrics/src \
-                    packages/obskit-tracing/src \
-                    packages/obskit-health/src \
+          bandit -r src/obskit/ \
                     -c pyproject.toml \
                     -ll \
                     -f txt || exit_code=$?
@@ -128,16 +103,10 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Install pip-licenses
+      - name: Install obskit + pip-licenses
         run: |
           pip install --upgrade pip
-          pip install \
-            -e packages/obskit-core \
-            -e packages/obskit-logging \
-            -e packages/obskit-metrics \
-            -e packages/obskit-tracing \
-            -e packages/obskit-health \
-            pip-licenses
+          pip install -e ".[all]" pip-licenses
 
       - name: Check for non-permissive licenses
         run: |

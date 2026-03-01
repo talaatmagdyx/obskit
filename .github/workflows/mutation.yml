@@ -22,17 +22,17 @@ jobs:
       matrix:
         include:
           - module: tracer
-            path: packages/obskit-tracing/src/obskit/tracing/tracer.py
-            tests: packages/obskit-tracing/tests
+            path: src/obskit/tracing/tracer.py
+            tests: tests/unit/tracing
           - module: trace_correlation
-            path: packages/obskit-logging/src/obskit/logging/trace_correlation.py
-            tests: packages/obskit-logging/tests
+            path: src/obskit/logging/trace_correlation.py
+            tests: tests/unit/logging
           - module: exemplar
-            path: packages/obskit-metrics/src/obskit/metrics/exemplar.py
-            tests: packages/obskit-metrics/tests
+            path: src/obskit/metrics/exemplar.py
+            tests: tests/unit/metrics
           - module: health_checker
-            path: packages/obskit-health/src/obskit/health/checker.py
-            tests: packages/obskit-health/tests
+            path: src/obskit/health/checker.py
+            tests: tests/unit/health
 
     steps:
       - uses: actions/checkout@v4
@@ -42,15 +42,10 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Install packages + mutmut
+      - name: Install obskit + mutmut
         run: |
           pip install --upgrade pip
-          pip install \
-            -e packages/obskit-core \
-            -e packages/obskit-logging \
-            -e packages/obskit-metrics \
-            -e packages/obskit-tracing \
-            -e packages/obskit-health
+          pip install -e ".[all]"
           pip install mutmut pytest pytest-asyncio
 
       - name: Run mutmut on ${{ matrix.module }}
