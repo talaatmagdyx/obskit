@@ -4,8 +4,14 @@ on:
   release:
     types: [published]
   workflow_call:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version being published (e.g. 2.2.0) — informational only"
+        required: false
+        default: ""
 
-# All 17 packages published on every release (in dependency order)
+# All 16 packages published on every release (in dependency order)
 jobs:
   build:
     name: Build (${{ matrix.package }})
