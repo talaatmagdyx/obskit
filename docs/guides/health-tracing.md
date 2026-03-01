@@ -39,7 +39,7 @@ With health check tracing:
 ## Installation
 
 ```bash
-pip install obskit obskit-tracing
+pip install "obskit[otlp]"
 ```
 
 ---
@@ -411,7 +411,7 @@ can retrieve with `kubectl exec`.
 
 | Step | Action |
 |------|--------|
-| Install | `pip install obskit obskit-tracing` |
+| Install | `pip install "obskit[otlp]"` |
 | Initialise | Call `setup_tracing()` at startup |
 | Middleware | Add `ObservabilityMiddleware` to wrap requests in spans |
 | Endpoint | Return `result.to_dict()` from your `/health` route |

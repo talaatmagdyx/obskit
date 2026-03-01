@@ -30,7 +30,7 @@ existing Prometheus infrastructure (exporters, Alertmanager, Grafana).
 pip install "obskit[prometheus]"
 
 # With health check server
-pip install "obskit[prometheus]" obskit-health
+pip install "obskit[prometheus]"
 
 # Full stack
 pip install "obskit[all]"

@@ -11,14 +11,14 @@ pip install obskit
 ### Optional extras
 
 ```bash
-# structlog backend (default, recommended)
-pip install "obskit-logging[structlog]"
+# structlog backend (default, always included)
+pip install obskit
 
 # loguru backend
-pip install "obskit-logging[loguru]"
+pip install "obskit[loguru]"
 
 # OTLP log export
-pip install "obskit-logging[otlp]"
+pip install "obskit[otlp]"
 ```
 
 ---
@@ -146,7 +146,7 @@ except Exception as e:
 
 ## Trace-log correlation
 
-When `obskit-tracing[opentelemetry]` is installed and a span is active, every log record automatically gains `trace_id` and `span_id` fields. This enables one-click jumps from a log line in Grafana/Loki to the matching trace in Tempo.
+When `obskit[otlp]` is installed and a span is active, every log record automatically gains `trace_id` and `span_id` fields. This enables one-click jumps from a log line in Grafana/Loki to the matching trace in Tempo.
 
 ```python
 from obskit.logging.trace_correlation import (

@@ -52,13 +52,7 @@ order-service/
 === "requirements.txt"
 
     ```text
-    # obskit
-    obskit-core==2.0.0
-    obskit-logging==2.0.0
-    obskit-metrics==2.0.0
-    obskit-tracing[auto]==2.0.0
-    obskit-health==2.0.0
-    obskit-middleware-fastapi==2.0.0
+    "obskit[prometheus,otlp,fastapi]==2.2.0"
 
     # Web framework
     fastapi==0.115.0
@@ -73,12 +67,7 @@ order-service/
 
     ```bash
     pip install \
-      "obskit-core==2.0.0" \
-      "obskit-logging==2.0.0" \
-      "obskit-metrics==2.0.0" \
-      "obskit-tracing[auto]==2.0.0" \
-      "obskit-health==2.0.0" \
-      "obskit-middleware-fastapi==2.0.0" \
+      "obskit[prometheus,otlp,fastapi]==2.2.0" \
       "fastapi==0.115.0" \
       "uvicorn[standard]==0.30.0"
     ```
@@ -87,12 +76,7 @@ order-service/
 
     ```bash
     uv pip install \
-      "obskit-core==2.0.0" \
-      "obskit-logging==2.0.0" \
-      "obskit-metrics==2.0.0" \
-      "obskit-tracing[auto]==2.0.0" \
-      "obskit-health==2.0.0" \
-      "obskit-middleware-fastapi==2.0.0" \
+      "obskit[prometheus,otlp,fastapi]==2.2.0" \
       "fastapi==0.115.0" \
       "uvicorn[standard]==0.30.0"
     ```
