@@ -36,11 +36,11 @@ obskit gives you **one coherent toolkit** where metrics, logs, traces, and healt
 ```
 Without obskit                          With obskit
 ─────────────────────────────────────   ──────────────────────────────────────
-✗ Configure prometheus_client           ✓ pip install obskit-metrics
-✗ Set up structlog processors           ✓ pip install obskit-logging
-✗ Bootstrap OpenTelemetry SDK           ✓ pip install obskit-tracing
-✗ Write health endpoint from scratch    ✓ pip install obskit-health
-✗ Implement circuit breaker logic       ✓ pip install obskit-resilience
+✗ Configure prometheus_client           ✓ pip install "obskit[prometheus]"
+✗ Set up structlog processors           ✓ pip install obskit  (built-in)
+✗ Bootstrap OpenTelemetry SDK           ✓ pip install "obskit[otlp]"
+✗ Write health endpoint from scratch    ✓ pip install obskit  (built-in)
+✗ Implement circuit breaker logic       ✓ pip install obskit  (built-in)
 ✗ Wire trace IDs into every log         ✓ Automatic — zero extra code
 ✗ Correlate metrics to traces           ✓ Automatic — exemplars built in
 ```
@@ -49,34 +49,27 @@ Without obskit                          With obskit
 
 ## Package Ecosystem
 
-obskit is a **monorepo of 16 focused packages**. Install only what you need.
+obskit is a **single unified package** with optional extras. Install only what you need.
 
 ```
-┌─────────────────────────────────────────────────────────────────────────┐
-│                        obskit  (meta-package)                            │
-│              pip install "obskit[all]"  ·  pip install obskit            │
-├──────────────────┬───────────────────┬──────────────┬────────────────────┤
-│ middleware       │ obskit-decorators │  obskit-db   │   obskit-queue     │
-│ ├ fastapi        │  @observe @trace  │  SQLAlchemy  │  Kafka / RabbitMQ  │
-│ ├ flask          │  cross-cutting    │  query audit │  consumer lag      │
-│ ├ django         │  observability    │  N+1 detect  │  DLQ tracking      │
-│ └ grpc           │                   │              │                    │
-├──────────────────┴──────────┬────────┴──────────────┴────────────────────┤
-│  obskit-logging              │  obskit-metrics       │  obskit-tracing    │
-│  structlog · OTLP export     │  RED · Golden Signals │  OpenTelemetry     │
-│  adaptive sampling           │  USE · exemplars      │  W3C Baggage       │
-│  trace-log correlation       │  cardinality guard    │  auto-instrument   │
-├──────────────────────────────┴────────────┬───────────┴────────────────────┤
-│  obskit-health                             │  obskit-resilience             │
-│  liveness · readiness · /health HTTP       │  circuit breaker · retry       │
-│  Redis / DB / HTTP built-in checks         │  rate limiter · load shedding  │
-├────────────────────────────────────────────┴────────────────────────────────┤
-│  obskit-slo                                                                  │
-│  SLO / SLA targets · error budgets · burn-rate alerts · multi-window         │
+┌──────────────────────────────────────────────────────────────────────────────┐
+│                            pip install obskit                                 │
+│                       pip install "obskit[all]"  (everything)                 │
 ├──────────────────────────────────────────────────────────────────────────────┤
-│                           obskit-core  (foundation)                          │
-│           config · errors · interfaces · correlation ID · middleware base    │
-└──────────────────────────────────────────────────────────────────────────────┘
+│  Always included — no extras needed                                           │
+│  obskit.logging  ·  obskit.health  ·  obskit.resilience  ·  obskit.slo       │
+│  obskit.decorators  ·  obskit.db  ·  obskit.queue  ·  obskit.core            │
+├─────────────────────┬──────────────────┬──────────────────────────────────────┤
+│  obskit[prometheus] │   obskit[otlp]   │  obskit[fastapi|flask|django]        │
+│  Prometheus         │  OpenTelemetry   │  Framework middleware                 │
+│  RED · USE          │  distributed     │  auto metrics + traces               │
+│  Golden Signals     │  tracing (OTLP)  │  correlation IDs + access logs       │
+├─────────────────────┼──────────────────┼──────────────────────────────────────┤
+│  obskit[sqlalchemy] │  obskit[kafka]   │  obskit[rabbitmq]                    │
+│  SQLAlchemy audit   │  Kafka consumer  │  RabbitMQ tracing                    │
+│  query tracing      │  lag + DLQ       │  consumer lag tracking               │
+│  N+1 detection      │  tracking        │                                      │
+└─────────────────────┴──────────────────┴──────────────────────────────────────┘
 ```
 
 ---
@@ -84,27 +77,28 @@ obskit is a **monorepo of 16 focused packages**. Install only what you need.
 ## Installation
 
 ```bash
-# Everything — the full stack
+# Full stack — everything included
 pip install "obskit[all]"
 
-# Just what you need
-pip install obskit-core          # Foundation — config, errors, correlation
-pip install obskit-logging       # Structured logging + OTLP export
-pip install obskit-metrics       # RED / Golden Signals / USE metrics
-pip install obskit-tracing       # OpenTelemetry distributed tracing
-pip install obskit-health        # Kubernetes-style health endpoints
-pip install obskit-resilience    # Circuit breaker, retry, rate limiter
-pip install obskit-slo           # SLO tracking + error budgets
-pip install obskit-decorators    # @observe, @trace cross-cutting decorators
-pip install obskit-db            # SQLAlchemy instrumentation
-pip install obskit-queue         # Kafka / RabbitMQ tracing + consumer lag
-pip install obskit-dashboards    # Grafana dashboard generators
+# Core + built-ins only (logging, health, resilience, SLO, decorators)
+pip install obskit
+
+# Add the backends you need
+pip install "obskit[prometheus]"   # Prometheus metrics (RED / USE / Golden Signals)
+pip install "obskit[otlp]"         # OpenTelemetry distributed tracing
 
 # Framework middleware (pick yours)
-pip install obskit-middleware-fastapi
-pip install obskit-middleware-flask
-pip install obskit-middleware-django
-pip install obskit-middleware-grpc
+pip install "obskit[fastapi]"      # FastAPI middleware
+pip install "obskit[flask]"        # Flask middleware
+pip install "obskit[django]"       # Django middleware
+
+# Data stores & queues
+pip install "obskit[sqlalchemy]"   # SQLAlchemy query audit + N+1 detection
+pip install "obskit[kafka]"        # Kafka consumer lag + DLQ tracking
+pip install "obskit[rabbitmq]"     # RabbitMQ tracing + consumer lag
+
+# Combine as needed
+pip install "obskit[prometheus,otlp,fastapi]"
 ```
 
 ---
@@ -479,7 +473,7 @@ python -m obskit.core.diagnose
 obskit diagnostics
 ==================
 Core
-  version         2.0.0    ✓
+  version         2.2.0    ✓
   python          3.11.8   ✓
 Logging
   structlog       23.2.0   ✓
@@ -500,27 +494,22 @@ Resilience
 ## 🛠️ Development
 
 ```bash
-# Clone and install the entire monorepo (uv workspace)
+# Clone and install all extras + dev tools
 git clone https://github.com/talaatmagdyx/obskit.git
 cd obskit
-uv sync --all-packages --all-extras
+uv sync --all-extras
 
-# Run tests for a specific package
-uv run pytest packages/obskit-metrics/tests/ -q --tb=short --timeout=30
+# Run all unit tests
+uv run pytest tests/unit/ -q --tb=short --timeout=30 --benchmark-disable
 
-# Run all tests
-for pkg in packages/obskit-*/; do
-    uv run pytest "$pkg/tests/" -q --tb=short --timeout=30 --benchmark-disable
-done
+# Run tests for a specific area
+uv run pytest tests/unit/metrics/ -q --tb=short --timeout=30
 
 # Lint
-uv run ruff check packages/
+uv run ruff check src/
 
 # Type check
-uv run mypy packages/obskit-core/src/
-uv run mypy packages/obskit-logging/src/
-uv run mypy packages/obskit-metrics/src/
-uv run mypy packages/obskit-tracing/src/
+uv run mypy src/obskit/
 
 # Build docs
 uv run mkdocs build --strict
@@ -536,7 +525,7 @@ Full documentation at **[talaatmagdyx.github.io/obskit](https://talaatmagdyx.git
 |---|---|
 | 🚀 Getting Started | [Installation & Quick Start](https://talaatmagdyx.github.io/obskit/getting-started/installation/) |
 | 📊 Metrics Guide | [RED / Golden / USE](https://talaatmagdyx.github.io/obskit/user-guide/metrics/) |
-| 📦 Package Reference | [All 16 packages](https://talaatmagdyx.github.io/obskit/packages/core/) |
+| 📦 Package Reference | [Modules & extras](https://talaatmagdyx.github.io/obskit/packages/core/) |
 | 🔄 Migration from v1 | [Migration Guide](https://talaatmagdyx.github.io/obskit/migration/from-v1/) |
 | 📚 API Reference | [Full API docs](https://talaatmagdyx.github.io/obskit/reference/api/) |
 
@@ -569,11 +558,11 @@ Contributions are welcome! See [CONTRIBUTING.md](CONTRIBUTING.md) and the [Contr
 
 ```bash
 git clone https://github.com/talaatmagdyx/obskit.git
-cd obskit && uv sync --all-packages --all-extras
+cd obskit && uv sync --all-extras
 git checkout -b feat/my-improvement
 # make changes + add tests
-uv run pytest packages/<affected-package>/tests/ -q
-uv run ruff check packages/
+uv run pytest tests/unit/ -q
+uv run ruff check src/
 git commit -m "feat: my improvement"
 git push && gh pr create
 ```
