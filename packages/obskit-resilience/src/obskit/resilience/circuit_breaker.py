@@ -463,7 +463,7 @@ class CircuitBreaker:
             new_state=self._state.value,
         )
 
-    async def _should_allow_request(self) -> bool:
+    async def _should_allow_request(self) -> bool:  # NOSONAR
         """
         Check if a request should be allowed through.
 
@@ -505,7 +505,7 @@ class CircuitBreaker:
         elapsed = time.time() - self._last_failure_time
         return max(0.0, self._recovery_timeout - elapsed)
 
-    async def _record_success(self) -> None:
+    async def _record_success(self) -> None:  # NOSONAR
         """Record a successful call."""
         with self._lock:
             if self._state == CircuitState.HALF_OPEN:
@@ -526,7 +526,7 @@ class CircuitBreaker:
                 # Reset failure count on success
                 self._failure_count = 0
 
-    async def _record_failure(self, error: Exception) -> None:
+    async def _record_failure(self, error: Exception) -> None:  # NOSONAR
         """Record a failed call."""
         with self._lock:
             # Check if exception is excluded
@@ -744,11 +744,11 @@ class CircuitBreaker:
                 # Reset failure count on success
                 self._failure_count = 0
 
-    def _record_failure_sync(self, error: Exception) -> None:
+    def _record_failure_sync(self, error: Exception | None = None) -> None:
         """Record a failed call (sync version)."""
         with self._lock:
             # Check if exception is excluded
-            if isinstance(error, self._excluded_exceptions):
+            if error is not None and isinstance(error, self._excluded_exceptions):
                 logger.debug(
                     "circuit_breaker_excluded_exception",
                     breaker=self.name,
@@ -766,8 +766,8 @@ class CircuitBreaker:
                 logger.warning(
                     "circuit_breaker_reopened",
                     breaker=self.name,
-                    error=str(error),
-                    error_type=type(error).__name__,
+                    error=str(error) if error is not None else "",
+                    error_type=type(error).__name__ if error is not None else "Unknown",
                 )
 
             elif self._state == CircuitState.CLOSED:
@@ -779,8 +779,8 @@ class CircuitBreaker:
                         breaker=self.name,
                         failure_count=self._failure_count,
                         threshold=self._failure_threshold,
-                        error=str(error),
-                        error_type=type(error).__name__,
+                        error=str(error) if error is not None else "",
+                        error_type=type(error).__name__ if error is not None else "Unknown",
                     )
 
     def call_sync(self, func: Callable[..., T], *args: Any, **kwargs: Any) -> T:

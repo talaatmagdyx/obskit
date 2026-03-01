@@ -9,7 +9,7 @@ class TestStructlogAdapter:
     def test_init(self):
         """Test adapter initialization."""
         adapter = StructlogAdapter()
-        assert adapter is not None
+        assert isinstance(adapter, StructlogAdapter)
 
     def test_configure(self):
         """Test configure method."""

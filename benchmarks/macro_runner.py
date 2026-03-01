@@ -118,7 +118,7 @@ def _rss_kb() -> int:
                 if line.startswith("VmRSS:"):
                     return int(line.split()[1])
     except FileNotFoundError:
-        pass
+        pass  # NOSONAR
     try:
         import resource
         return resource.getrusage(resource.RUSAGE_SELF).ru_maxrss // 1024
@@ -177,7 +177,7 @@ def _run_scenario(
             try:
                 f.result()
             except Exception:
-                pass
+                pass  # NOSONAR
 
     gc.collect()
     t_start = time.perf_counter()
@@ -218,7 +218,7 @@ def _run_scenario(
 # Scenario definitions
 # ---------------------------------------------------------------------------
 
-def _bootstrap() -> None:
+def _bootstrap():
     """Import and configure obskit once before all scenarios."""
     from obskit.config import configure
     from obskit.metrics.registry import reset_registry
@@ -236,9 +236,8 @@ def _bootstrap() -> None:
     tracker = SLOTracker()
     tracker.register_slo(
         name="latency",
-        target=0.99,
-        threshold=0.200,
         slo_type=SLOType.LATENCY,
+        target_value=0.99,
     )
     return tracker
 

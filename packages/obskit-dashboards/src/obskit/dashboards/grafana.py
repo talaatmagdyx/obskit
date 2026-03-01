@@ -15,6 +15,8 @@ from obskit.logging import get_logger
 
 logger = get_logger("obskit.dashboards.grafana")
 
+_DATASOURCE_UID = "${datasource}"
+
 
 @dataclass
 class Panel:
@@ -35,7 +37,7 @@ class Panel:
             "targets": self.targets,
             "options": self.options,
             "fieldConfig": self.fieldConfig,
-            "datasource": {"type": "prometheus", "uid": "${datasource}"},
+            "datasource": {"type": "prometheus", "uid": _DATASOURCE_UID},
         }
 
 
@@ -107,7 +109,7 @@ class DashboardBuilder:
         panel = {
             "title": title,
             "type": "stat",
-            "datasource": {"type": "prometheus", "uid": "${datasource}"},
+            "datasource": {"type": "prometheus", "uid": _DATASOURCE_UID},
             "targets": [
                 {
                     "expr": query,
@@ -149,7 +151,7 @@ class DashboardBuilder:
         panel = {
             "title": title,
             "type": "gauge",
-            "datasource": {"type": "prometheus", "uid": "${datasource}"},
+            "datasource": {"type": "prometheus", "uid": _DATASOURCE_UID},
             "targets": [
                 {
                     "expr": query,
@@ -192,7 +194,7 @@ class DashboardBuilder:
         panel = {
             "title": title,
             "type": "timeseries",
-            "datasource": {"type": "prometheus", "uid": "${datasource}"},
+            "datasource": {"type": "prometheus", "uid": _DATASOURCE_UID},
             "targets": targets,
             "options": {
                 "legend": {"displayMode": "list", "placement": "bottom"},

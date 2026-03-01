@@ -22,7 +22,7 @@ class TestREDMetrics:
         """Test initialization with name."""
         name = f"test_{uuid.uuid4().hex[:8]}"
         metrics = REDMetrics(name=name)
-        assert metrics is not None
+        assert isinstance(metrics, REDMetrics)
 
     def test_observe_request_success(self):
         """Test observing successful request."""

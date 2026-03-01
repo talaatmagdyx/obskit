@@ -30,7 +30,7 @@ import threading
 import time
 from collections.abc import Callable
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from enum import Enum
 from typing import Any
 
@@ -228,7 +228,7 @@ class AuditTrail:
 
             entry = AuditEntry(
                 entry_id=entry_id,
-                timestamp=datetime.utcnow(),
+                timestamp=datetime.now(UTC),
                 service=self.service_name,
                 action=action,
                 actor=actor,
@@ -363,7 +363,7 @@ class AuditTrail:
         """Get recent activity for an actor."""
         query = AuditQuery(
             actor=actor,
-            start_time=datetime.utcnow() - timedelta(hours=hours),
+            start_time=datetime.now(UTC) - timedelta(hours=hours),
         )
         return self.query(query)
 
@@ -375,7 +375,7 @@ class AuditTrail:
         """Get history for a resource."""
         query = AuditQuery(
             resource=resource,
-            start_time=datetime.utcnow() - timedelta(hours=hours),
+            start_time=datetime.now(UTC) - timedelta(hours=hours),
         )
         return self.query(query)
 
@@ -383,7 +383,7 @@ class AuditTrail:
         """Get failed actions."""
         query = AuditQuery(
             result=AuditResult.FAILURE,
-            start_time=datetime.utcnow() - timedelta(hours=hours),
+            start_time=datetime.now(UTC) - timedelta(hours=hours),
         )
         return self.query(query)
 
@@ -391,7 +391,7 @@ class AuditTrail:
         """Get denied actions."""
         query = AuditQuery(
             result=AuditResult.DENIED,
-            start_time=datetime.utcnow() - timedelta(hours=hours),
+            start_time=datetime.now(UTC) - timedelta(hours=hours),
         )
         return self.query(query)
 

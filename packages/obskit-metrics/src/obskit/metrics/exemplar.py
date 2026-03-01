@@ -116,7 +116,7 @@ def get_trace_exemplar() -> dict[str, str]:
                 "span_id": format(ctx.span_id, "016x"),
             }
     except Exception:  # nosec B110
-        pass
+        pass  # NOSONAR
 
     return {}
 
@@ -155,9 +155,9 @@ def observe_with_exemplar(
             return
         except TypeError:
             # Older prometheus-client versions don't support `exemplar` kwarg
-            pass
+            pass  # NOSONAR
         except Exception:  # nosec B110
-            pass
+            pass  # NOSONAR
 
     # Fallback: plain observe (no exemplar)
     metric_object.observe(value)

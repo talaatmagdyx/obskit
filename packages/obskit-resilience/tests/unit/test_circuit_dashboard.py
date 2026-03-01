@@ -4,7 +4,7 @@ Tests for obskit.circuit_dashboard module.
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timezone, UTC
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -63,7 +63,7 @@ class TestCircuitBreakerStatus:
         assert d["is_healthy"] is True
 
     def test_to_dict_with_timestamps(self):
-        now = datetime.utcnow()
+        now = datetime.now(UTC)
         status = self._make_status(last_failure_time=now, last_state_change=now)
         d = status.to_dict()
         assert d["last_failure_time"] is not None
@@ -85,7 +85,7 @@ class TestCircuitBreakerStatus:
 
     def test_time_until_recovery(self):
         status = self._make_status(time_until_recovery=15.0)
-        assert status.to_dict()["time_until_recovery"] == 15.0
+        assert status.to_dict()["time_until_recovery"] == pytest.approx(15.0)
 
 
 # =============================================================================
@@ -286,7 +286,7 @@ class TestCircuitBreakerDashboard:
         breaker.failure_threshold = 5
         breaker.recovery_timeout = 30.0
         breaker.last_failure_time = None
-        breaker.opened_at = datetime.utcnow()
+        breaker.opened_at = datetime.now(UTC)
         status = self.dashboard._extract_status("test", breaker, "database")
         assert status.time_until_recovery >= 0.0
 

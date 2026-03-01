@@ -8,6 +8,7 @@ from obskit.hot_path import (
     get_hot_path_detector,
     track_path,
 )
+import pytest
 
 
 class TestHotPathDetector:
@@ -69,7 +70,7 @@ class TestHotPathDetector:
         # Cold path (not enough calls)
         for _ in range(3):
             with detector.track("cold"):
-                pass
+                pass  # NOSONAR
 
         # Hot path
         for _ in range(10):
@@ -106,7 +107,7 @@ class TestHotPathDetector:
 
         stats = detector.get_path_stats("manual-path")
         assert stats.call_count == 1
-        assert stats.total_time_ms == 50.0
+        assert stats.total_time_ms == pytest.approx(50.0)
 
     def test_get_call_graph(self):
         """Test call graph generation."""
@@ -114,7 +115,7 @@ class TestHotPathDetector:
 
         with detector.track("parent"):
             with detector.track("child"):
-                pass
+                pass  # NOSONAR
 
         graph = detector.get_call_graph()
 
@@ -126,9 +127,9 @@ class TestHotPathDetector:
         detector = HotPathDetector()
 
         with detector.track("path1"):
-            pass
+            pass  # NOSONAR
         with detector.track("path2"):
-            pass
+            pass  # NOSONAR
 
         summary = detector.get_summary()
 
@@ -140,7 +141,7 @@ class TestHotPathDetector:
         detector = HotPathDetector()
 
         with detector.track("to-clear"):
-            pass
+            pass  # NOSONAR
 
         detector.clear()
 
@@ -159,7 +160,7 @@ class TestPathStats:
             total_time_ms=1000.0,
         )
 
-        assert stats.avg_time_ms == 100.0
+        assert stats.avg_time_ms == pytest.approx(100.0)
 
     def test_error_rate(self):
         """Test error rate calculation."""
@@ -169,7 +170,7 @@ class TestPathStats:
             error_count=25,
         )
 
-        assert stats.error_rate == 0.25
+        assert stats.error_rate == pytest.approx(0.25)
 
     def test_to_dict(self):
         """Test PathStats serialization."""
@@ -181,7 +182,7 @@ class TestPathStats:
 
         data = stats.to_dict()
         assert data["path"] == "test"
-        assert data["avg_time_ms"] == 10.0
+        assert data["avg_time_ms"] == pytest.approx(10.0)
 
 
 class TestTrackPathDecorator:

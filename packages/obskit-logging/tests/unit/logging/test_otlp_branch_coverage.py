@@ -29,7 +29,7 @@ class TestOTLPBranchCoverage:
             handler.emit(record)
             handler._shutdown = True
 
-        assert handler is not None
+        assert isinstance(handler, OTLPLogHandler)
 
     def test_emit_with_record_without_dict(self):
         """Line 397->425: record with no __dict__ skips attributes loop."""

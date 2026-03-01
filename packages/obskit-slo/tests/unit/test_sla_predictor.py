@@ -1,6 +1,6 @@
 """Unit tests for SLA Breach Predictor."""
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone, UTC
 
 from obskit.sla_predictor import (
     RiskAssessment,
@@ -8,6 +8,7 @@ from obskit.sla_predictor import (
     SLAPredictor,
     get_sla_predictor,
 )
+import pytest
 
 
 class TestSLAPredictor:
@@ -27,7 +28,7 @@ class TestSLAPredictor:
         # SLA should be stored
         risk = predictor.assess_risk("response_time")
         # May return None if not enough data
-        assert risk is None or risk.target_value == 200.0
+        assert risk is None or risk.target_value == pytest.approx(200.0)
 
     def test_record_metrics(self):
         """Test recording metrics."""
@@ -73,7 +74,7 @@ class TestSLAPredictor:
         predictor.set_sla("degrading", target_value=100.0)
 
         # Record increasing values
-        base_time = datetime.utcnow() - timedelta(hours=20)
+        base_time = datetime.now(UTC) - timedelta(hours=20)
         for i in range(20):
             timestamp = base_time + timedelta(hours=i)
             predictor.record("degrading", 50.0 + i * 3, timestamp=timestamp)
@@ -90,7 +91,7 @@ class TestSLAPredictor:
         predictor.set_sla("breach_test", target_value=100.0)
 
         # Record values that will breach soon
-        base_time = datetime.utcnow() - timedelta(hours=10)
+        base_time = datetime.now(UTC) - timedelta(hours=10)
         for i in range(10):
             timestamp = base_time + timedelta(hours=i)
             predictor.record("breach_test", 80.0 + i * 3, timestamp=timestamp)
@@ -174,7 +175,7 @@ class TestRiskAssessment:
 
         data = risk.to_dict()
         assert data["sla_name"] == "test"
-        assert data["risk_score"] == 75.0
+        assert data["risk_score"] == pytest.approx(75.0)
         assert data["breach_likely"] is True
 
 

@@ -81,7 +81,7 @@ try:
 except ImportError:  # pragma: no cover
     PROMETHEUS_AVAILABLE = False
     REGISTRY = None  # type: ignore[assignment]
-    CollectorRegistry = None  # type: ignore[misc, assignment]
+    CollectorRegistry = None  # type: ignore[assignment,misc]
 
 # Logger
 logger = get_logger("obskit.metrics.registry")

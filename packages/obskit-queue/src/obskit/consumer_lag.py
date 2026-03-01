@@ -26,7 +26,7 @@ Example:
 import threading
 from collections.abc import Callable
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from enum import Enum
 from typing import Any
 
@@ -120,7 +120,7 @@ class ConsumerLagStats:
     estimated_catch_up_seconds: float = 0.0
     total_consumed: int = 0
     is_falling_behind: bool = False
-    last_updated: datetime = field(default_factory=datetime.utcnow)
+    last_updated: datetime = field(default_factory=lambda: datetime.now(UTC))
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -205,7 +205,7 @@ class ConsumerLagTracker:
         bytes : int
             Bytes behind (optional)
         """
-        now = datetime.utcnow()
+        now = datetime.now(UTC)
 
         with self._lock:
             self._current_lag = messages
@@ -260,7 +260,7 @@ class ConsumerLagTracker:
         count : int
             Number of messages consumed
         """
-        now = datetime.utcnow()
+        now = datetime.now(UTC)
 
         with self._lock:
             self._total_consumed += count
@@ -307,7 +307,7 @@ class ConsumerLagTracker:
             if not self._consumed_timestamps:
                 return 0.0
 
-            now = datetime.utcnow()
+            now = datetime.now(UTC)
             cutoff = now - timedelta(seconds=self.window_seconds)
             recent = [t for t in self._consumed_timestamps if t > cutoff]
 
@@ -325,7 +325,7 @@ class ConsumerLagTracker:
         if lag < self.lag_threshold:
             return
 
-        now = datetime.utcnow()
+        now = datetime.now(UTC)
 
         # Check cooldown
         if self._last_high_lag_alert:

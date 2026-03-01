@@ -108,7 +108,7 @@ class TestRegisterBackend:
                 return MagicMock()
 
             def configure(self, **kwargs):
-                pass
+                pass  # NOSONAR
 
         register_backend("mock_custom", MockBackend)
 

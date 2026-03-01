@@ -51,7 +51,7 @@ class TestCircuitBreakerInterface:
                 return False
 
             def reset(self):
-                pass
+                pass  # NOSONAR
 
             def get_stats(self):
                 return {}
@@ -87,7 +87,7 @@ class TestCircuitBreakerInterface:
                 return False
 
             def reset(self):
-                pass
+                pass  # NOSONAR
 
             def get_stats(self):
                 return {}
@@ -123,7 +123,7 @@ class TestCircuitBreakerInterface:
                 return False
 
             def reset(self):
-                pass
+                pass  # NOSONAR
 
             def get_stats(self):
                 return {}

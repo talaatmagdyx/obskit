@@ -110,10 +110,9 @@ def bench_slo_memory(n: int = 10_000) -> None:
     tracker = SLOTracker()
     tracker.register_slo(
         name="lat",
-        target=0.99,
-        threshold=0.100,
         slo_type=SLOType.LATENCY,
-        window_seconds=3600.0,   # 1-hour window → measurements accumulate
+        target_value=0.99,
+        window_seconds=3600,   # 1-hour window → measurements accumulate
     )
 
     gc.collect()
@@ -125,10 +124,9 @@ def bench_slo_memory(n: int = 10_000) -> None:
     tracker2 = SLOTracker()
     tracker2.register_slo(
         name="lat",
-        target=0.99,
-        threshold=0.100,
         slo_type=SLOType.LATENCY,
-        window_seconds=0.0,       # everything evicted immediately
+        target_value=0.99,
+        window_seconds=0,         # everything evicted immediately
     )
     gc.collect()
     with measure_allocs(f"SLOTracker.record_measurement × {n} (0s window, full eviction)"):

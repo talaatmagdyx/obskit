@@ -26,7 +26,7 @@ from obskit.core.context import (
 
 
 @pytest.fixture(autouse=True)
-def reset_correlation_id():
+async def reset_correlation_id():
     """Reset correlation ID before each test to prevent contamination."""
     token = set_correlation_id(None)
     yield
@@ -47,7 +47,7 @@ class TestCaptureContext:
     def test_captures_none_correlation_id_when_not_set(self):
         # Ensure no correlation ID is set
         with correlation_context("temp"):
-            pass
+            pass  # NOSONAR
         # After context exits, correlation_id is None
         ctx = capture_context()
         assert ctx.get("correlation_id") is None
@@ -62,7 +62,7 @@ class TestCaptureContext:
 
     def test_captures_batch_job_context_when_present(self):
         async def run():
-            async with batch_job_context("test_job") as job_ctx:
+            async with batch_job_context("test_job") as _:
                 return capture_context()
 
         with patch("obskit.core.batch_context._get_logger", return_value=MagicMock()):
@@ -91,9 +91,9 @@ class TestRestoreContext:
             assert get_correlation_id() == "original-id"
 
     def test_context_without_correlation_id_is_noop(self):
-        original_id = get_correlation_id()
+        _original_id = get_correlation_id()
         with restore_context({}):
-            pass
+            pass  # NOSONAR
         # Should not crash
 
     def test_restores_batch_job_context(self):
@@ -126,7 +126,7 @@ class TestBatchJobContext:
                 async with batch_job_context("my_job") as ctx:
                     return get_correlation_id(), ctx
 
-        cid, ctx = asyncio.get_event_loop().run_until_complete(run())
+        cid, _ = asyncio.get_event_loop().run_until_complete(run())
         assert cid is not None
         assert "batch:my_job:" in cid
 
@@ -171,7 +171,7 @@ class TestBatchJobContext:
         async def run():
             with patch("obskit.core.batch_context._get_logger", return_value=mock_logger):
                 async with batch_job_context("report_job"):
-                    pass
+                    pass  # NOSONAR
 
         asyncio.get_event_loop().run_until_complete(run())
         # Logger should have been called for start and completion
@@ -207,7 +207,7 @@ class TestBatchJobContext:
         async def run():
             with patch("obskit.core.batch_context._get_logger", return_value=mock_logger):
                 async with batch_job_context("job"):
-                    pass
+                    pass  # NOSONAR
             return get_batch_job_context()
 
         result = asyncio.get_event_loop().run_until_complete(run())
@@ -274,7 +274,7 @@ class TestPropagateToExecutor:
 
         @propagate_to_executor(executor)
         def my_named_func():
-            pass
+            pass  # NOSONAR
 
         assert my_named_func.__name__ == "my_named_func"
         executor.shutdown(wait=True)
@@ -309,7 +309,7 @@ class TestPropagateToTask:
     def test_preserves_function_name(self):
         @propagate_to_task
         async def named_task():
-            pass
+            pass  # NOSONAR
 
         assert named_task.__name__ == "named_task"
 
@@ -337,7 +337,7 @@ class TestCreateTaskWithContext:
     def test_creates_task_and_runs(self):
         results = []
 
-        async def my_coro():
+        async def my_coro():  # NOSONAR
             results.append("ran")
 
         async def run():
@@ -350,7 +350,7 @@ class TestCreateTaskWithContext:
     def test_propagates_correlation_id(self):
         captured = []
 
-        async def capture_id():
+        async def capture_id():  # NOSONAR
             captured.append(get_correlation_id())
 
         async def run():
@@ -363,7 +363,7 @@ class TestCreateTaskWithContext:
 
     def test_task_named_when_name_provided(self):
         async def noop():
-            pass
+            pass  # NOSONAR
 
         async def run():
             task = create_task_with_context(noop(), name="my-task")

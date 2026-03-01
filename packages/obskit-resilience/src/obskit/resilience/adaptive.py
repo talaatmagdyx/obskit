@@ -292,6 +292,8 @@ class AdaptiveRetry:
 
                 return result
 
+            except asyncio.CancelledError:
+                raise  # Never retry cancellation; propagate immediately
             except Exception as e:
                 last_exception = e
                 latency = time.time() - start
@@ -392,7 +394,7 @@ class AdaptiveRetry:
         Example:
             @retry.wrap
             async def call_api():
-                pass
+                pass  # NOSONAR
         """
 
         @functools.wraps(func)
@@ -436,7 +438,7 @@ def adaptive_retry(
     Example:
         @adaptive_retry("external_api", max_retries=3)
         async def call_api():
-            pass
+            pass  # NOSONAR
     """
     config = RetryConfig(
         max_retries=max_retries,

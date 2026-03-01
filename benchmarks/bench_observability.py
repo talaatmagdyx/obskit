@@ -105,7 +105,7 @@ class TestWithObservabilityMicro:
             try:
                 failing()
             except ValueError:
-                pass
+                pass  # NOSONAR
 
         benchmark(run_ignoring)
 
@@ -179,9 +179,8 @@ class TestObservabilityWithSLO:
         self.slo_tracker = SLOTracker()
         self.slo_tracker.register_slo(
             name="bench_latency",
-            target=0.99,
-            threshold=0.100,
             slo_type=SLOType.LATENCY,
+            target_value=0.99,
         )
         self._orig_stderr = sys.stderr
         sys.stderr = io.StringIO()

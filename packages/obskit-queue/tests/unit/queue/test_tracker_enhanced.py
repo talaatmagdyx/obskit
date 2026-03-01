@@ -35,7 +35,7 @@ class TestMessageContext:
         assert ctx.correlation_id == "corr-456"
         assert ctx.tenant_id == "tenant-789"
         assert ctx.redelivered is True
-        assert ctx.message_age_ms == 100.5
+        assert ctx.message_age_ms == pytest.approx(100.5)
         assert ctx.delivery_tag == 42
 
     def test_to_dict_filters_none(self):
@@ -104,7 +104,7 @@ class TestQueueTrackerTrackMessage:
         ctx = MessageContext(message_id="msg-123")
 
         with pytest.raises(ValueError):
-            with tracker.track_message("process", ctx) as context:
+            with tracker.track_message("process", ctx):
                 raise ValueError("test error")
 
     def test_track_message_yields_context(self):
@@ -205,7 +205,7 @@ class TestQueueTrackerLegacyMethod:
         tracker = QueueTracker("test_queue")
 
         with tracker.track_message_processing("process", "msg-123"):
-            pass
+            pass  # NOSONAR
 
     def test_track_message_processing_failure(self):
         """Test legacy track_message_processing with failure."""
@@ -224,14 +224,14 @@ class TestTrackMessageProcessingConvenience:
         from obskit.queue.tracker import track_message_processing
 
         with track_message_processing("process", queue_name="test"):
-            pass
+            pass  # NOSONAR
 
     def test_convenience_function_with_message_id(self):
         """Test convenience function with message ID."""
         from obskit.queue.tracker import track_message_processing
 
         with track_message_processing("process", "test", "msg-123"):
-            pass
+            pass  # NOSONAR
 
     def test_convenience_function_failure(self):
         """Test convenience function with failure."""

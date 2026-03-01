@@ -51,13 +51,13 @@ if ! command -v mkdocs &> /dev/null; then
 fi
 
 # Clean if requested
-if [ "$CLEAN" = true ]; then
+if [[ "$CLEAN" = true ]]; then
     echo "Cleaning site directory..."
     rm -rf site/
     echo ""
 fi
 
-if [ "$SERVE" = true ]; then
+if [[ "$SERVE" = true ]]; then
     echo "Starting live-reload server..."
     echo "Open http://localhost:8000 in your browser"
     echo "Press Ctrl+C to stop"

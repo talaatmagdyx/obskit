@@ -72,7 +72,7 @@ class PerformanceBudget:
         @budget.enforce
         async def execute_widget(params):
             # If budget is exceeded, logs warning
-            pass
+            pass  # NOSONAR
 
         # Check budget status
         if budget.is_exceeded():
@@ -333,7 +333,7 @@ def budget(performance_budget: PerformanceBudget) -> Callable[[F], F]:
 
         @budget(widget_budget)
         def process_widget():
-            pass
+            pass  # NOSONAR
     """
     return performance_budget.enforce
 

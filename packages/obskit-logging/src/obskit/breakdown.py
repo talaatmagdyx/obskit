@@ -29,7 +29,7 @@ import time
 from collections.abc import Generator
 from contextlib import contextmanager
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Any
 
 from prometheus_client import Gauge, Histogram
@@ -96,7 +96,7 @@ class BreakdownSummary:
     bottleneck_percent: float = 0.0
     unaccounted_seconds: float = 0.0
     unaccounted_percent: float = 0.0
-    timestamp: datetime = field(default_factory=datetime.utcnow)
+    timestamp: datetime = field(default_factory=lambda: datetime.now(UTC))
 
     def to_dict(self) -> dict[str, Any]:
         return {

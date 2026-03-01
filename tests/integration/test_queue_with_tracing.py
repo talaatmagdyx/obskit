@@ -11,7 +11,7 @@ Cross-package boundary tested:
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from unittest.mock import MagicMock
 
 import pytest
@@ -33,7 +33,7 @@ class TestMessageTracerContextPropagation:
             pytest.skip("obskit-queue not available")
 
         tracer = MessageTracer()
-        with tracer.trace_publish(queue="orders") as span:
+        with tracer.trace_publish(queue="orders"):
             # span may be None when no real OTel backend is configured
             pass  # must not raise
 
@@ -58,7 +58,7 @@ class TestMessageTracerContextPropagation:
         tracer = MessageTracer()
         attrs = {"environment": "test", "tenant": "acme", "priority": "high"}
         with tracer.trace_publish(queue="notifications", attributes=attrs):
-            pass
+            pass  # NOSONAR
 
     def test_trace_consume_with_custom_attributes(self) -> None:
         """trace_consume with attributes accepted."""
@@ -69,7 +69,7 @@ class TestMessageTracerContextPropagation:
 
         tracer = MessageTracer()
         with tracer.trace_consume(queue="events", attributes={"source": "kafka"}):
-            pass
+            pass  # NOSONAR
 
     def test_trace_publish_with_routing_key(self) -> None:
         """trace_publish accepts exchange, routing_key, and message_size."""
@@ -85,7 +85,7 @@ class TestMessageTracerContextPropagation:
             routing_key="order.created",
             message_size=256,
         ):
-            pass
+            pass  # NOSONAR
 
     @pytest.mark.asyncio
     async def test_traced_handler_decorator_async(self) -> None:
@@ -142,7 +142,7 @@ class TestMessageTracerContextPropagation:
         result = await handle_payment(
             {"amount": 250.0, "headers": {"traceparent": "00-abc-def-01"}}
         )
-        assert result == 250.0
+        assert result == 250.0  # NOSONAR
 
 
 # ---------------------------------------------------------------------------
@@ -200,7 +200,7 @@ class TestQueueTrackerMetricsIntegration:
         ops = ["ingest", "transform", "publish"]
         for op in ops:
             with tracker.track_message_processing(op):
-                pass
+                pass  # NOSONAR
 
 
 # ---------------------------------------------------------------------------
@@ -250,7 +250,7 @@ class TestConsumerLagIntegration:
         tracker.set_lag(messages=1000)
 
         # Simulate consuming 50 messages spread over 5 seconds
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         tracker._consumed_timestamps = [
             now - timedelta(seconds=5 - i * 0.1) for i in range(50)
         ]

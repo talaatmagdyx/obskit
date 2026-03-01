@@ -7,6 +7,7 @@ from obskit.config import (
     reset_settings,
     validate_config,
 )
+import pytest
 
 
 class TestObskitSettings:
@@ -46,7 +47,7 @@ class TestObskitSettings:
         )
         assert settings.tracing_enabled is True
         assert settings.otlp_endpoint == "http://jaeger:4317"
-        assert settings.trace_sample_rate == 0.5
+        assert settings.trace_sample_rate == pytest.approx(0.5)
 
     def test_metrics_settings(self):
         """Test metrics configuration."""
@@ -67,7 +68,7 @@ class TestObskitSettings:
             circuit_breaker_half_open_requests=5,
         )
         assert settings.circuit_breaker_failure_threshold == 10
-        assert settings.circuit_breaker_recovery_timeout == 60.0
+        assert settings.circuit_breaker_recovery_timeout == pytest.approx(60.0)
         assert settings.circuit_breaker_half_open_requests == 5
 
     def test_retry_settings(self):
@@ -79,9 +80,9 @@ class TestObskitSettings:
             retry_exponential_base=3.0,
         )
         assert settings.retry_max_attempts == 5
-        assert settings.retry_base_delay == 2.0
-        assert settings.retry_max_delay == 120.0
-        assert settings.retry_exponential_base == 3.0
+        assert settings.retry_base_delay == pytest.approx(2.0)
+        assert settings.retry_max_delay == pytest.approx(120.0)
+        assert settings.retry_exponential_base == pytest.approx(3.0)
 
     def test_rate_limit_settings(self):
         """Test rate limiting configuration."""
@@ -90,7 +91,7 @@ class TestObskitSettings:
             rate_limit_window_seconds=30.0,
         )
         assert settings.rate_limit_requests == 50
-        assert settings.rate_limit_window_seconds == 30.0
+        assert settings.rate_limit_window_seconds == pytest.approx(30.0)
 
 
 class TestConfigure:
@@ -195,7 +196,7 @@ class TestValidateConfig:
             service_name="my-service",
             environment="production",
         )
-        is_valid, errors = validate_config()
+        _, errors = validate_config()
         # May have warnings about otlp_insecure in production
         assert isinstance(errors, list)
 
@@ -219,7 +220,7 @@ class TestValidateConfig:
             otlp_endpoint="http://localhost:4317",
             otlp_insecure=True,
         )
-        is_valid, errors = validate_config()
+        _, errors = validate_config()
         assert any("insecure" in e.lower() for e in errors)
 
     def test_validate_nonstandard_environment(self):
@@ -251,7 +252,7 @@ class TestValidateConfig:
             tracing_enabled=True,
             otlp_endpoint="",  # Empty string means no endpoint
         )
-        is_valid, errors = validate_config()
+        _, errors = validate_config()
         assert any("otlp_endpoint" in e for e in errors)
 
     def test_validate_metrics_enabled_with_settings(self):
@@ -261,7 +262,7 @@ class TestValidateConfig:
             metrics_enabled=True,
             metrics_port=9090,
         )
-        is_valid, errors = validate_config()
+        _, errors = validate_config()
         # Should not have port errors
         assert not any("metrics_port" in e for e in errors)
 
@@ -271,7 +272,7 @@ class TestValidateConfig:
             service_name="test",
             tracing_enabled=False,
         )
-        is_valid, errors = validate_config()
+        _, errors = validate_config()
         # Should not have tracing errors when disabled
         assert not any("otlp_endpoint" in e for e in errors)
 
@@ -281,7 +282,7 @@ class TestValidateConfig:
             service_name="test",
             metrics_enabled=False,
         )
-        is_valid, errors = validate_config()
+        _, errors = validate_config()
         # Should not have metrics errors when disabled
         assert not any("metrics_port" in e for e in errors)
 

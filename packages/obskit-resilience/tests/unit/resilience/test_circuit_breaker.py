@@ -1,5 +1,6 @@
 """Tests for obskit.resilience.circuit_breaker module."""
 
+import asyncio
 import concurrent.futures
 import time
 
@@ -86,7 +87,7 @@ class TestCircuitOpenError:
         """Test error message contains circuit name."""
         error = CircuitOpenError("test-circuit", time_until_retry=10.0)
         assert "test-circuit" in str(error)
-        assert error.time_until_retry == 10.0
+        assert error.time_until_retry == pytest.approx(10.0)
 
 
 class TestAsyncCircuitBreaker:
@@ -143,7 +144,7 @@ class TestAsyncCircuitBreaker:
         # Should raise CircuitOpenError
         with pytest.raises(CircuitOpenError):
             async with breaker:
-                pass
+                pass  # NOSONAR
 
     @pytest.mark.asyncio
     async def test_half_open_to_closed_transition(self):
@@ -163,17 +164,17 @@ class TestAsyncCircuitBreaker:
         assert breaker.state == CircuitState.OPEN
 
         # Wait for recovery timeout
-        time.sleep(0.02)
+        await asyncio.sleep(0.02)
 
         # First success in half-open
         async with breaker:
-            pass
+            pass  # NOSONAR
 
         assert breaker.state == CircuitState.HALF_OPEN
 
         # Second success should close circuit
         async with breaker:
-            pass
+            pass  # NOSONAR
 
         assert breaker.state == CircuitState.CLOSED
 
@@ -193,11 +194,11 @@ class TestAsyncCircuitBreaker:
                 raise ValueError("Open circuit")
 
         # Wait for recovery timeout
-        time.sleep(0.02)
+        await asyncio.sleep(0.02)
 
         # Trigger half-open with a success
         async with breaker:
-            pass
+            pass  # NOSONAR
 
         assert breaker.state == CircuitState.HALF_OPEN
 
@@ -246,7 +247,7 @@ class TestAsyncCircuitBreaker:
 
         # Success should reset
         async with breaker:
-            pass
+            pass  # NOSONAR
 
         assert breaker.failure_count == 0
 
@@ -339,7 +340,7 @@ class TestCircuitBreakerTimeUntilRetry:
         assert breaker._last_failure_time is None
 
         result = breaker._get_time_until_retry()
-        assert result == 0.0
+        assert result == pytest.approx(0.0)
 
 
 class TestSyncCircuitBreakerConcurrency:
@@ -373,7 +374,7 @@ class TestSyncCircuitBreakerConcurrency:
                 with breaker:
                     raise ValueError("concurrent failure")
             except (ValueError, CircuitOpenError):
-                pass
+                pass  # NOSONAR
             except Exception as exc:  # pragma: no cover
                 errors.append(exc)
 
@@ -423,7 +424,7 @@ class TestSyncCircuitBreakerConcurrency:
                     if idx % 2 == 0:
                         raise RuntimeError("even failure")
             except (RuntimeError, CircuitOpenError):
-                pass
+                pass  # NOSONAR
 
         with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
             futures = [executor.submit(mixed_op, i) for i in range(30)]
@@ -460,7 +461,7 @@ class TestSyncCircuitBreakerConcurrency:
             with breaker:
                 raise ValueError("force open")
         except ValueError:
-            pass
+            pass  # NOSONAR
 
         assert breaker.state == CircuitState.OPEN
 
@@ -473,7 +474,7 @@ class TestSyncCircuitBreakerConcurrency:
         def probe_success() -> None:
             try:
                 with breaker:
-                    pass
+                    pass  # NOSONAR
             except CircuitOpenError:
                 pass  # acceptable: another thread may have re-opened it
             except Exception as exc:  # pragma: no cover
@@ -506,7 +507,7 @@ class TestSyncCircuitBreakerConcurrency:
                 with breaker:
                     raise ValueError("barrier failure")
             except (ValueError, CircuitOpenError):
-                pass
+                pass  # NOSONAR
 
         with concurrent.futures.ThreadPoolExecutor(max_workers=threshold) as executor:
             futures = [executor.submit(inject_failure_at_barrier) for _ in range(threshold)]

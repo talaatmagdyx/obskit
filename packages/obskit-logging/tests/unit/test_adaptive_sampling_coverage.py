@@ -2,10 +2,11 @@
 from __future__ import annotations
 
 import time
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone, UTC
 
 import obskit.adaptive_sampling as module
 from obskit.adaptive_sampling import AdaptiveSampler, SamplingConfig
+import pytest
 
 
 class TestRateLimitCoverage:
@@ -41,7 +42,7 @@ class TestMaybeAdaptCoverage:
         sampler._request_count = 100
         sampler._error_count = 20
         sampler._samples_taken = 50
-        sampler._last_adaptation = datetime.utcnow() - timedelta(seconds=10)
+        sampler._last_adaptation = datetime.now(UTC) - timedelta(seconds=10)
         sampler._maybe_adapt()
         assert sampler._request_count == 0
         assert sampler._error_count == 0
@@ -53,7 +54,7 @@ class TestMaybeAdaptCoverage:
         sampler._request_count = 10
         sampler._error_count = 0
         sampler._samples_taken = 100
-        sampler._last_adaptation = datetime.utcnow() - timedelta(seconds=10)
+        sampler._last_adaptation = datetime.now(UTC) - timedelta(seconds=10)
         sampler._maybe_adapt()
         assert sampler._current_rate < 1.0
 
@@ -64,7 +65,7 @@ class TestMaybeAdaptCoverage:
         sampler._request_count = 200
         sampler._error_count = 0
         sampler._samples_taken = 0
-        sampler._last_adaptation = datetime.utcnow() - timedelta(seconds=10)
+        sampler._last_adaptation = datetime.now(UTC) - timedelta(seconds=10)
         sampler._maybe_adapt()
         assert sampler._current_rate > 0.01
 
@@ -72,7 +73,7 @@ class TestMaybeAdaptCoverage:
         """Line 310: request_count == 0 skips inner if-block."""
         sampler = AdaptiveSampler(base_rate=0.5, adapt_interval_seconds=0.0)
         sampler._request_count = 0
-        sampler._last_adaptation = datetime.utcnow() - timedelta(seconds=10)
+        sampler._last_adaptation = datetime.now(UTC) - timedelta(seconds=10)
         sampler._maybe_adapt()
         assert sampler._request_count == 0
 
@@ -83,9 +84,9 @@ class TestMaybeAdaptCoverage:
         sampler._request_count = 10
         sampler._error_count = 0
         sampler._samples_taken = 5
-        sampler._last_adaptation = datetime.utcnow() - timedelta(seconds=10)
+        sampler._last_adaptation = datetime.now(UTC) - timedelta(seconds=10)
         sampler._maybe_adapt()
-        assert sampler._load_factor == 1.0
+        assert sampler._load_factor == pytest.approx(1.0)
 
 
 class TestSingletonCoverage:

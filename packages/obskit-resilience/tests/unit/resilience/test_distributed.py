@@ -47,7 +47,7 @@ class TestIsAsyncRedisClient:
     def test_client_with_coroutine_return(self):
         """Test detection via coroutine return from get()."""
 
-        async def mock_get(_):
+        async def mock_get(_):  # NOSONAR
             return "value"
 
         mock = MagicMock()
@@ -478,7 +478,7 @@ class TestCircuitOpenBehavior:
 
         with pytest.raises(CircuitOpenError):
             with breaker:
-                pass
+                pass  # NOSONAR
 
     def test_sync_circuit_transitions_to_half_open_after_timeout(self):
         """Test circuit transitions to half-open after recovery timeout."""
@@ -634,7 +634,7 @@ class TestAsyncDistributedCircuitBreaker:
 
         with pytest.raises(RuntimeError, match="can only be used with 'async with'"):
             with breaker:
-                pass
+                pass  # NOSONAR
 
     @pytest.mark.asyncio
     async def test_async_breaker_works_with_async_with(self):
@@ -670,7 +670,7 @@ class TestDistributedBreaker_SyncWithAsyncClient:
 
         with pytest.raises(RuntimeError, match="Cannot use sync context manager with async Redis"):
             with breaker:
-                pass
+                pass  # NOSONAR
 
 
 class TestBackwardCompatMethods:
@@ -750,7 +750,7 @@ class TestGetStateDict:
         assert state["state"] == "closed"
         assert state["failure_count"] == 5
         assert state["half_open_count"] == 2
-        assert state["last_failure_time"] == 12345.0
+        assert state["last_failure_time"] == pytest.approx(12345.0)
 
 
 class TestCheckShouldAttemptReset:

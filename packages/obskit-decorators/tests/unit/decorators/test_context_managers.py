@@ -56,7 +56,7 @@ class TestObserve:
     async def test_high_throughput_success_buffers_metric(self):
         """HT path records a success count in the aggregator."""
         async with observe(operation="ht_cm_success", high_throughput=True):
-            pass
+            pass  # NOSONAR
         counts = get_ht_pipeline()._agg.get_pending_counts()
         assert counts.get(("ht_cm_success", "success"), 0) == 1
 
@@ -73,7 +73,7 @@ class TestObserve:
     async def test_high_throughput_enqueues_log_record(self):
         """HT path puts a log record in the ring buffer."""
         async with observe(operation="ht_cm_log", component="C", high_throughput=True):
-            pass
+            pass  # NOSONAR
         assert get_ht_pipeline()._ring.qsize >= 1
 
     # ------------------------------------------------------------------
@@ -98,7 +98,7 @@ class TestObserve:
         """When random() < sample_rate the HT pipeline runs."""
         with patch("obskit.decorators.context_managers.random.random", return_value=0.05):
             async with observe(operation="sampled_in", high_throughput=True, sample_rate=0.1):
-                pass
+                pass  # NOSONAR
         counts = get_ht_pipeline()._agg.get_pending_counts()
         assert counts.get(("sampled_in", "success"), 0) == 1
 
@@ -149,7 +149,7 @@ class TestObserve:
         """Standard path calls observe_request with 'success' status."""
         with patch("obskit.decorators.context_managers.get_red_metrics") as mock_red:
             async with observe(operation="std_success", component="C"):
-                pass
+                pass  # NOSONAR
         mock_red.return_value.observe_request.assert_called_once()
         kwargs = mock_red.return_value.observe_request.call_args.kwargs
         assert kwargs["operation"] == "std_success"
@@ -170,7 +170,7 @@ class TestObserve:
         """With track_metrics=False no metric is recorded on standard path."""
         with patch("obskit.decorators.context_managers.get_red_metrics") as mock_red:
             async with observe(operation="no_metric", track_metrics=False):
-                pass
+                pass  # NOSONAR
         mock_red.return_value.observe_request.assert_not_called()
 
     @pytest.mark.asyncio
@@ -178,7 +178,7 @@ class TestObserve:
         """When operation is omitted the default 'unnamed_operation' is used."""
         with patch("obskit.decorators.context_managers.get_red_metrics") as mock_red:
             async with observe():
-                pass
+                pass  # NOSONAR
         kwargs = mock_red.return_value.observe_request.call_args.kwargs
         assert kwargs["operation"] == "unnamed_operation"
 
@@ -193,7 +193,7 @@ class TestObserve:
         """log_start=True causes a debug log before the body executes."""
         with patch("obskit.decorators.context_managers.logger") as mock_logger:
             async with observe(operation="log_start_op", log_start=True):
-                pass
+                pass  # NOSONAR
         mock_logger.debug.assert_called_once_with(
             "operation_started",
             component="unknown",
@@ -205,7 +205,7 @@ class TestObserve:
         """log_start=False (default) does not emit a debug log."""
         with patch("obskit.decorators.context_managers.logger") as mock_logger:
             async with observe(operation="no_log_start_op"):
-                pass
+                pass  # NOSONAR
         mock_logger.debug.assert_not_called()
 
 
@@ -254,7 +254,7 @@ class TestObserveSync:
     def test_high_throughput_success_buffers_metric(self):
         """HT path records a success count in the aggregator."""
         with observe_sync(operation="sync_ht_cm_success", high_throughput=True):
-            pass
+            pass  # NOSONAR
         counts = get_ht_pipeline()._agg.get_pending_counts()
         assert counts.get(("sync_ht_cm_success", "success"), 0) == 1
 
@@ -269,7 +269,7 @@ class TestObserveSync:
     def test_high_throughput_enqueues_log_record(self):
         """HT path puts a log record in the ring buffer."""
         with observe_sync(operation="sync_ht_cm_log", component="C", high_throughput=True):
-            pass
+            pass  # NOSONAR
         assert get_ht_pipeline()._ring.qsize >= 1
 
     # ------------------------------------------------------------------
@@ -291,7 +291,7 @@ class TestObserveSync:
         """When random() < sample_rate the HT pipeline runs."""
         with patch("obskit.decorators.context_managers.random.random", return_value=0.05):
             with observe_sync(operation="sync_sampled_in", high_throughput=True, sample_rate=0.1):
-                pass
+                pass  # NOSONAR
         counts = get_ht_pipeline()._agg.get_pending_counts()
         assert counts.get(("sync_sampled_in", "success"), 0) == 1
 
@@ -352,7 +352,7 @@ class TestObserveSync:
         """Standard path calls observe_request with 'success' status."""
         with patch("obskit.decorators.context_managers.get_red_metrics") as mock_red:
             with observe_sync(operation="sync_std_success", component="C"):
-                pass
+                pass  # NOSONAR
         mock_red.return_value.observe_request.assert_called_once()
         kwargs = mock_red.return_value.observe_request.call_args.kwargs
         assert kwargs["operation"] == "sync_std_success"
@@ -371,14 +371,14 @@ class TestObserveSync:
         """With track_metrics=False no metric is recorded on standard path."""
         with patch("obskit.decorators.context_managers.get_red_metrics") as mock_red:
             with observe_sync(operation="sync_no_metric", track_metrics=False):
-                pass
+                pass  # NOSONAR
         mock_red.return_value.observe_request.assert_not_called()
 
     def test_default_operation_name(self):
         """When operation is omitted the default 'unnamed_operation' is used."""
         with patch("obskit.decorators.context_managers.get_red_metrics") as mock_red:
             with observe_sync():
-                pass
+                pass  # NOSONAR
         kwargs = mock_red.return_value.observe_request.call_args.kwargs
         assert kwargs["operation"] == "unnamed_operation"
 
@@ -391,7 +391,7 @@ class TestObserveSync:
         """log_start=True causes a debug log before the body executes."""
         with patch("obskit.decorators.context_managers.logger") as mock_logger:
             with observe_sync(operation="sync_log_start_op", log_start=True):
-                pass
+                pass  # NOSONAR
         mock_logger.debug.assert_called_once_with(
             "operation_started",
             component="unknown",
@@ -402,7 +402,7 @@ class TestObserveSync:
         """log_start=False (default) does not emit a debug log."""
         with patch("obskit.decorators.context_managers.logger") as mock_logger:
             with observe_sync(operation="sync_no_log_start_op"):
-                pass
+                pass  # NOSONAR
         mock_logger.debug.assert_not_called()
 
 

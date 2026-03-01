@@ -31,7 +31,7 @@ import threading
 import time
 import uuid
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Any
 
 from prometheus_client import Counter, Gauge, Histogram
@@ -174,7 +174,7 @@ class DistributedLock:
 
             if acquired:
                 self._acquired = True
-                self._acquired_at = datetime.utcnow()
+                self._acquired_at = datetime.now(UTC)
 
                 wait_time = time.perf_counter() - start_time
 
@@ -233,7 +233,7 @@ class DistributedLock:
             logger.error("lock_release_failed", lock_name=self.lock_name, error=str(e))
 
         if self._acquired_at:
-            hold_time = (datetime.utcnow() - self._acquired_at).total_seconds()
+            hold_time = (datetime.now(UTC) - self._acquired_at).total_seconds()
             LOCK_HOLD_TIME.labels(lock_name=self.lock_name).observe(hold_time)
 
         LOCK_CURRENTLY_HELD.labels(lock_name=self.lock_name, holder=self._holder_id).set(0)
@@ -295,7 +295,7 @@ class DistributedLock:
 
             if acquired:
                 self._acquired = True
-                self._acquired_at = datetime.utcnow()
+                self._acquired_at = datetime.now(UTC)
 
                 wait_time = time.perf_counter() - start_time
                 LOCK_ACQUISITIONS_TOTAL.labels(lock_name=self.lock_name, status="success").inc()

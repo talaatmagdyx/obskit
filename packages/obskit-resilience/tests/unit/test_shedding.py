@@ -4,7 +4,7 @@ Tests for obskit.shedding module — LoadShedder.
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone, UTC
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -46,13 +46,13 @@ class TestSheddingConfig:
         config = SheddingConfig()
         assert config.max_queue_size == 1000
         assert config.max_latency_ms == 500
-        assert config.min_shed_rate == 0.0
-        assert config.max_shed_rate == 0.9
+        assert config.min_shed_rate == pytest.approx(0.0)
+        assert config.max_shed_rate == pytest.approx(0.9)
 
     def test_priority_weights_present(self):
         config = SheddingConfig()
         assert Priority.CRITICAL in config.priority_weights
-        assert config.priority_weights[Priority.CRITICAL] == 0.0
+        assert config.priority_weights[Priority.CRITICAL] == pytest.approx(0.0)
 
 
 # =============================================================================
@@ -74,7 +74,7 @@ class TestSheddingStats:
         )
         d = stats.to_dict()
         assert d["shedder_name"] == "test"
-        assert d["current_shed_rate"] == 0.5
+        assert d["current_shed_rate"] == pytest.approx(0.5)
         assert d["requests_processed"] == 500
         assert isinstance(d["timestamp"], str)
 
@@ -89,7 +89,7 @@ class TestLoadShedder:
         shedder = LoadShedder()
         assert shedder.name == "default"
         assert shedder.config.max_queue_size == 1000
-        assert shedder._current_shed_rate == 0.0
+        assert shedder._current_shed_rate == pytest.approx(0.0)
 
     def test_init_custom(self):
         shedder = LoadShedder(
@@ -100,7 +100,7 @@ class TestLoadShedder:
             adaptive=False,
         )
         assert shedder.name == "custom"
-        assert shedder.base_shed_rate == 0.2
+        assert shedder.base_shed_rate == pytest.approx(0.2)
         assert shedder.adaptive is False
 
     def test_critical_priority_never_shed(self):
@@ -137,7 +137,7 @@ class TestLoadShedder:
         shedder.force_shed_rate(0.0)
         result = shedder.should_process(Priority.NORMAL, latency_ms=200.0)
         assert result is True
-        assert shedder._current_latency_ms == 200.0
+        assert shedder._current_latency_ms == pytest.approx(200.0)
 
     def test_on_shed_callback(self):
         shed_events = []
@@ -160,7 +160,7 @@ class TestLoadShedder:
         shedder = LoadShedder(name="test_rl")
         shedder.record_latency(100.0)
         shedder.record_latency(200.0)
-        assert shedder._current_latency_ms == 150.0
+        assert shedder._current_latency_ms == pytest.approx(150.0)
 
     def test_record_latency_bounded(self):
         shedder = LoadShedder(name="test_bound")
@@ -176,16 +176,16 @@ class TestLoadShedder:
     def test_force_shed_rate_clamps_to_zero(self):
         shedder = LoadShedder(name="test_clamp2")
         shedder.force_shed_rate(-0.5)
-        assert shedder._current_shed_rate == 0.0
+        assert shedder._current_shed_rate == pytest.approx(0.0)
 
     def test_reset(self):
         shedder = LoadShedder(name="test_reset")
         shedder.force_shed_rate(0.5)
         shedder.record_latency(300.0)
         shedder.reset()
-        assert shedder._current_shed_rate == 0.0
+        assert shedder._current_shed_rate == pytest.approx(0.0)
         assert shedder._latency_samples == []
-        assert shedder._current_latency_ms == 0.0
+        assert shedder._current_latency_ms == pytest.approx(0.0)
 
     def test_get_stats(self):
         shedder = LoadShedder(name="test_stats", adaptive=False)
@@ -194,7 +194,7 @@ class TestLoadShedder:
         stats = shedder.get_stats()
         assert isinstance(stats, SheddingStats)
         assert stats.shedder_name == "test_stats"
-        assert stats.current_shed_rate == 0.3
+        assert stats.current_shed_rate == pytest.approx(0.3)
         assert stats.current_queue_size == 200
 
     def test_adaptive_shedding_high_load(self):
@@ -203,7 +203,7 @@ class TestLoadShedder:
         # Set high queue size
         shedder.set_queue_size(950)  # 95% of max 1000
         # Force evaluation by moving last_evaluation back
-        shedder._last_evaluation = datetime.utcnow() - timedelta(seconds=20)
+        shedder._last_evaluation = datetime.now(UTC) - timedelta(seconds=20)
         shedder._evaluate_shed_rate()
         # Rate should have increased
         assert shedder._current_shed_rate > 0.0
@@ -213,7 +213,7 @@ class TestLoadShedder:
         shedder = LoadShedder(name="test_adaptive2", adaptive=True)
         shedder.force_shed_rate(0.5)
         shedder.set_queue_size(100)  # 10% of max 1000
-        shedder._last_evaluation = datetime.utcnow() - timedelta(seconds=20)
+        shedder._last_evaluation = datetime.now(UTC) - timedelta(seconds=20)
         shedder._evaluate_shed_rate()
         # Rate should have decreased (0.5 * 0.9 = 0.45)
         assert shedder._current_shed_rate <= 0.5
@@ -221,7 +221,7 @@ class TestLoadShedder:
     def test_adaptive_evaluation_skipped_within_window(self):
         """Test that evaluation is skipped if called too soon."""
         shedder = LoadShedder(name="test_window", adaptive=True)
-        shedder._last_evaluation = datetime.utcnow()  # Just evaluated
+        shedder._last_evaluation = datetime.now(UTC)  # Just evaluated
         initial_rate = shedder._current_shed_rate
         shedder._evaluate_shed_rate()
         assert shedder._current_shed_rate == initial_rate
@@ -231,9 +231,9 @@ class TestLoadShedder:
         shedder = LoadShedder(name="test_medium", adaptive=True)
         shedder.force_shed_rate(0.4)
         shedder.set_queue_size(600)  # 60% of max
-        shedder._last_evaluation = datetime.utcnow() - timedelta(seconds=20)
+        shedder._last_evaluation = datetime.now(UTC) - timedelta(seconds=20)
         shedder._evaluate_shed_rate()
-        assert shedder._current_shed_rate == 0.4  # Unchanged in medium range
+        assert shedder._current_shed_rate == pytest.approx(0.4)  # Unchanged in medium range
 
     def test_requests_processed_counter(self):
         shedder = LoadShedder(name="test_counter", adaptive=False)

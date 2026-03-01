@@ -11,7 +11,6 @@ class TestOTLPMetricsExporter:
     def setup_method(self):
         """Reset state before each test."""
         # Clear any cached modules
-        pass
 
     @patch("obskit.metrics.otlp.OTLP_METRICS_AVAILABLE", True)
     @patch("obskit.metrics.otlp.Resource")
@@ -59,10 +58,10 @@ class TestOTLPMetricsExporter:
 
         assert exporter.service_version == "1.0.0"
         assert exporter.environment == "production"
-        assert exporter.export_interval == 30.0
+        assert exporter.export_interval == pytest.approx(30.0)
         assert exporter.use_grpc is True
         assert exporter.insecure is False
-        assert exporter.timeout == 15.0
+        assert exporter.timeout == pytest.approx(15.0)
 
     @patch("obskit.metrics.otlp.OTLP_METRICS_AVAILABLE", True)
     @patch("obskit.metrics.otlp.Resource")

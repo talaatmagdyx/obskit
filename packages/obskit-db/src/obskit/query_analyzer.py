@@ -24,7 +24,7 @@ import hashlib
 import re
 import threading
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import UTC, datetime
 from enum import Enum
 from typing import Any
 
@@ -127,7 +127,7 @@ class QueryAnalysis:
     has_sort: bool = False
     needs_optimization: bool = False
     suggestions: list[str] = field(default_factory=list)
-    timestamp: datetime = field(default_factory=datetime.utcnow)
+    timestamp: datetime = field(default_factory=lambda: datetime.now(UTC))
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -196,33 +196,32 @@ class QueryAnalyzer:
 
         if query_upper.startswith("SELECT"):
             return QueryType.SELECT
-        elif query_upper.startswith("INSERT"):
+        if query_upper.startswith("INSERT"):
             return QueryType.INSERT
-        elif query_upper.startswith("UPDATE"):
+        if query_upper.startswith("UPDATE"):
             return QueryType.UPDATE
-        elif query_upper.startswith("DELETE"):
+        if query_upper.startswith("DELETE"):
             return QueryType.DELETE
-        else:
-            return QueryType.OTHER
+        return QueryType.OTHER
 
     def _extract_tables(self, query: str) -> list[str]:
         """Extract table names from query."""
         tables = []
 
         # FROM clause
-        from_match = re.findall(r"\bFROM\s+([a-zA-Z_][a-zA-Z0-9_]*)", query, re.IGNORECASE)
+        from_match = re.findall(r"\bFROM\s+([a-z_][a-z0-9_]*)", query, re.IGNORECASE)
         tables.extend(from_match)
 
         # JOIN clauses
-        join_match = re.findall(r"\bJOIN\s+([a-zA-Z_][a-zA-Z0-9_]*)", query, re.IGNORECASE)
+        join_match = re.findall(r"\bJOIN\s+([a-z_][a-z0-9_]*)", query, re.IGNORECASE)
         tables.extend(join_match)
 
         # UPDATE/INSERT tables
-        update_match = re.findall(r"\bUPDATE\s+([a-zA-Z_][a-zA-Z0-9_]*)", query, re.IGNORECASE)
+        update_match = re.findall(r"\bUPDATE\s+([a-z_][a-z0-9_]*)", query, re.IGNORECASE)
         tables.extend(update_match)
 
         insert_match = re.findall(
-            r"\bINSERT\s+INTO\s+([a-zA-Z_][a-zA-Z0-9_]*)", query, re.IGNORECASE
+            r"\bINSERT\s+INTO\s+([a-z_][a-z0-9_]*)", query, re.IGNORECASE
         )
         tables.extend(insert_match)
 

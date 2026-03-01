@@ -31,7 +31,7 @@ import time
 from collections.abc import Callable
 from concurrent.futures import Executor, Future, ProcessPoolExecutor, ThreadPoolExecutor
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import UTC, datetime
 from functools import wraps
 from typing import Any, TypeVar
 
@@ -110,7 +110,7 @@ class ExecutorStats:
     utilization: float = 0.0
     avg_task_latency_ms: float = 0.0
     avg_queue_wait_ms: float = 0.0
-    last_updated: datetime = field(default_factory=datetime.utcnow)
+    last_updated: datetime = field(default_factory=lambda: datetime.now(UTC))
 
     def to_dict(self) -> dict[str, Any]:
         return {

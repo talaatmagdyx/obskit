@@ -50,7 +50,7 @@ class TestAggregatorMissingBranches:
         """
         aggregator = DependencyHealthAggregator()
 
-        async def check_func():
+        async def check_func():  # NOSONAR
             return True
 
         aggregator.add_dependency("cached_dep_x", check_func)
@@ -69,7 +69,7 @@ class TestAggregatorMissingBranches:
         aggregator = DependencyHealthAggregator(cache_seconds=100)
         call_count = [0]
 
-        async def counting_check():
+        async def counting_check():  # NOSONAR
             call_count[0] += 1
             return True
 
@@ -105,7 +105,7 @@ class TestAggregatorMissingBranches:
         """
         aggregator = DependencyHealthAggregator()
 
-        async def string_check():
+        async def string_check():  # NOSONAR
             return "OK"
 
         aggregator.add_dependency("string_dep", string_check)
@@ -120,7 +120,7 @@ class TestAggregatorMissingBranches:
         """
         aggregator = DependencyHealthAggregator()
 
-        async def none_check():
+        async def none_check():  # NOSONAR
             return None
 
         aggregator.add_dependency("none_dep", none_check)
@@ -136,7 +136,7 @@ class TestAggregatorMissingBranches:
         """
         aggregator = DependencyHealthAggregator()
 
-        async def fast_check():
+        async def fast_check():  # NOSONAR
             return True
 
         aggregator.add_dependency("zero_lat_dep", fast_check)
@@ -147,7 +147,7 @@ class TestAggregatorMissingBranches:
             health = await aggregator.check("zero_lat_dep")
 
         # latency_ms = 0.0 which is falsy -> branch 297->300
-        assert health.latency_ms == 0.0
+        assert health.latency_ms == pytest.approx(0.0)
 
     @pytest.mark.asyncio
     async def test_check_all_all_healthy(self):
@@ -156,7 +156,7 @@ class TestAggregatorMissingBranches:
         """
         aggregator = DependencyHealthAggregator(critical_dependencies=["dep1"])
 
-        async def healthy():
+        async def healthy():  # NOSONAR
             return True
 
         aggregator.add_dependency("dep1", healthy, critical=True)
@@ -344,7 +344,7 @@ class TestChecksMissingBranches:
         with patch("asyncio.wait_for", new=AsyncMock(return_value=True)):
             result = await check()
         # in_use = 0 (default), available = 50, utilization = 0/50 = 0.0
-        assert result["pool_utilization"] == 0.0
+        assert result["pool_utilization"] == pytest.approx(0.0)
         assert result["available_connections"] == 50
 
     @pytest.mark.asyncio
@@ -419,7 +419,7 @@ class TestChecksMissingBranches:
         check = create_redis_pool_check(redis)
         with patch("asyncio.wait_for", new=AsyncMock(return_value=True)):
             result = await check()
-        assert result["pool_utilization"] == 0.0
+        assert result["pool_utilization"] == pytest.approx(0.0)
 
     @pytest.mark.asyncio
     async def test_redis_pool_max_connections_none_fallback(self):

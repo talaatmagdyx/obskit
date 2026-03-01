@@ -5,7 +5,7 @@ Extended tests for obskit.slo.tracker module — SLOTracker gaps.
 from __future__ import annotations
 
 import time
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone, UTC
 
 import pytest
 
@@ -102,7 +102,7 @@ class TestSLOTrackerExtended:
         status = self.tracker.get_status("throughput_slo")
         assert status is not None
         # Single measurement returns 0 throughput
-        assert status.current_value == 0.0
+        assert status.current_value == pytest.approx(0.0)
 
     def test_throughput_slo_multiple_measurements(self):
         self.tracker.register_slo("throughput_multi", SLOType.THROUGHPUT, 1.0)
@@ -120,7 +120,7 @@ class TestSLOTrackerExtended:
         # Record measurements
         tracker.record_measurement("window_test", 1.0, success=True)
         # Manually age the measurement
-        tracker._measurements["window_test"][0].timestamp = datetime.now() - timedelta(seconds=10)
+        tracker._measurements["window_test"][0].timestamp = datetime.now(UTC) - timedelta(seconds=10)
         # New recording triggers eviction
         tracker.record_measurement("window_test", 1.0, success=True)
         # The old measurement should be evicted
@@ -169,7 +169,7 @@ class TestSLOTrackerExtended:
         """Test SLO status with no measurements."""
         self.tracker.register_slo("empty_slo", SLOType.AVAILABILITY, 0.99)
         status = self.tracker.get_status("empty_slo")
-        assert status.current_value == 1.0  # Default for availability
+        assert status.current_value == pytest.approx(1.0)  # Default for availability
         assert status.compliance is True
         assert status.measurement_count == 0
 

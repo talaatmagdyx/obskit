@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import asyncio
 import time
-from datetime import datetime
+from datetime import datetime, timezone, UTC
 from unittest.mock import MagicMock
 
 import pytest
@@ -36,7 +36,7 @@ class TestSheddingBranchCoverage:
         # Force evaluation window to 0 so it evaluates
         shedder.config.evaluation_window_seconds = 0.0
         # Force last eval to past
-        shedder._last_evaluation = datetime.utcnow() - timedelta(seconds=100)
+        shedder._last_evaluation = datetime.now(UTC) - timedelta(seconds=100)
 
         # Trigger _evaluate_shed_rate via should_process
         shedder.should_process(queue_size=100)
@@ -49,7 +49,7 @@ class TestSheddingBranchCoverage:
         shedder = LoadShedder(name="test-stats-zero", max_queue_size=0, max_latency_ms=0.0)
         stats = shedder.get_stats()
 
-        assert stats.load_level == 0.0
+        assert stats.load_level == pytest.approx(0.0)
 
     def test_get_load_shedder_inner_lock_branch(self):
         """Lines 375->378: inner lock branch in get_load_shedder singleton."""
@@ -266,7 +266,7 @@ class TestFailoverRemainingBranchCoverage:
         coordinator._state = FailoverState.BACKUP
         coordinator._primary.is_healthy = True
         coordinator._backup.is_healthy = True
-        coordinator._failover_time = datetime.utcnow()
+        coordinator._failover_time = datetime.now(UTC)
 
         # Trigger evaluate - recovery_successes will be incremented and >= threshold
         coordinator._evaluate_state()
@@ -289,7 +289,7 @@ class TestFailoverRemainingBranchCoverage:
         # Set up BACKUP state with failover_time
         coordinator._state = FailoverState.BACKUP
         coordinator._primary.is_healthy = True
-        coordinator._failover_time = datetime.utcnow()
+        coordinator._failover_time = datetime.now(UTC)
 
         coordinator._do_recovery()
 
@@ -345,7 +345,7 @@ class TestCircuitBreakerBranchCoverage:
         cb = CircuitBreaker(name="test-async-basexc", failure_threshold=5)
 
         # Create context manually and call __aexit__ with BaseException (not Exception)
-        ctx = cb.__aenter__
+        _ctx = cb.__aenter__
         await cb.__aenter__()
 
         # SystemExit is BaseException but NOT Exception
@@ -423,7 +423,7 @@ class TestFailoverMoreBranches:
 
         # Set to FAILING_OVER state (not PRIMARY, not BACKUP)
         coordinator._state = FailoverState.FAILING_OVER
-        coordinator._failover_time = datetime.utcnow()
+        coordinator._failover_time = datetime.now(UTC)
 
         coordinator._evaluate_state()  # Should hit 325->335 (neither if nor elif matches)
         # failover_time is set so line 335 should also execute
@@ -482,10 +482,10 @@ class TestCombinedMoreBranches:
         # Use real circuit breaker in OPEN state
         cb = CircuitBreaker(name="test-open-no-cb", failure_threshold=1, recovery_timeout=100.0)
         try:
-            with cb:
+            with cb:  # NOSONAR
                 raise ValueError("force open")
         except ValueError:
-            pass
+            pass  # NOSONAR
 
         executor = ResilientExecutor(
             circuit_breaker=cb,

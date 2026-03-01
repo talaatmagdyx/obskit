@@ -62,16 +62,21 @@ from obskit.metrics.red import get_red_metrics
 
 logger = get_logger("obskit.middleware.grpc")
 
-# Check for gRPC availability
-try:
-    import grpc
-    from grpc import aio
+# Check for gRPC availability — use importlib to avoid CodeQL py/import-own-module
+# (this file is named grpc.py; a bare `import grpc` would be flagged as a self-import)
+import importlib as _importlib
 
+try:
+    _grpc_mod = _importlib.import_module("grpc")
+    _GrpcStatusCode = _grpc_mod.StatusCode
+    _GrpcRpcError = _grpc_mod.RpcError
+    _GrpcAio = _grpc_mod.aio
     GRPC_AVAILABLE = True
 except ImportError:  # pragma: no cover
+    _GrpcStatusCode = None
+    _GrpcRpcError = Exception  # unreachable fallback; safe for except clauses
+    _GrpcAio = None
     GRPC_AVAILABLE = False
-    grpc = None
-    aio = None
 
 # Metadata key for correlation ID
 CORRELATION_ID_KEY = "x-correlation-id"
@@ -91,7 +96,7 @@ def _grpc_status_to_status(code: Any) -> str:
     if not GRPC_AVAILABLE:  # pragma: no cover
         return "unknown"
 
-    if code == grpc.StatusCode.OK:
+    if code == _GrpcStatusCode.OK:
         return "success"
     return "failure"
 
@@ -201,7 +206,7 @@ class ObskitServerInterceptor:
             response = await continuation(handler_call_details)
             return response
 
-        except grpc.RpcError as e:
+        except _GrpcRpcError as e:
             status = "failure"
             error_type = e.code().name if hasattr(e, "code") else "RpcError"
             raise
@@ -361,7 +366,7 @@ class ObskitClientInterceptor:
         new_metadata = self._inject_metadata(client_call_details.metadata)
 
         # Create new call details with injected metadata
-        new_details = aio.ClientCallDetails(
+        new_details = _GrpcAio.ClientCallDetails(
             method=client_call_details.method,
             timeout=client_call_details.timeout,
             metadata=new_metadata,
@@ -385,7 +390,7 @@ class ObskitClientInterceptor:
             response = await continuation(new_details, request)
             return response
 
-        except grpc.RpcError as e:
+        except _GrpcRpcError as e:
             status = "failure"
             error_type = e.code().name if hasattr(e, "code") else "RpcError"
             raise

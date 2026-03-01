@@ -67,7 +67,7 @@ class TestCacheTracker:
             tracker.record_miss()
 
         stats = tracker.get_stats()
-        assert stats["hit_rate"] == 0.8
+        assert stats["hit_rate"] == pytest.approx(0.8)
 
     def test_get_stats(self):
         """Test get_stats returns correct data."""
@@ -386,9 +386,9 @@ class TestCachedDecoratorCoverage:
             call_count[0] += 1
             return {"data": key}
 
-        result1 = get_data("x")
+        _result1 = get_data("x")
         time.sleep(0.001)
-        result2 = get_data("x")
+        _result2 = get_data("x")
         # Both calls should execute the function since TTL=0
         assert call_count[0] >= 1
 
@@ -405,9 +405,9 @@ class TestCachedDecoratorCoverage:
             await asyncio.sleep(0)
             return {"data": key}
 
-        result1 = await get_data_async("y")
+        _result1 = await get_data_async("y")
         await asyncio.sleep(0.001)
-        result2 = await get_data_async("y")
+        _result2 = await get_data_async("y")
         # Both calls should execute since TTL=0
         assert call_count[0] >= 1
 
@@ -595,7 +595,7 @@ class TestCacheMoreCoverage:
 
         result1 = await get_data_async("missing")
         assert result1 is None
-        result2 = await get_data_async("missing")
+        _result2 = await get_data_async("missing")
         # Should call function twice since None wasn't cached
         assert call_count[0] == 2
 

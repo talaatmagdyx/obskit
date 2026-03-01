@@ -144,7 +144,7 @@ class TestCircuitBreakerSLOIntegration:
                 async with breaker:
                     _record(tracker, "payment_availability", success=True)
             except Exception:
-                pass
+                pass  # NOSONAR
 
         status = tracker.get_status("payment_availability")
         assert status is not None
@@ -288,7 +288,7 @@ class TestCircuitBreakerMetricsIntegration:
                 async with breaker:
                     raise ValueError("fail")
             except ValueError:
-                pass
+                pass  # NOSONAR
 
         assert breaker.state == CircuitState.OPEN
 

@@ -30,7 +30,7 @@ class TestCaptureTraces:
 class TestDisableObservabilityContext:
     def test_disable_observability_context(self):
         with disable_observability():
-            pass
+            pass  # NOSONAR
 
     def test_disable_then_noop_span(self):
         from obskit.testing.context import disable_observability
@@ -81,7 +81,7 @@ class TestContextCoverageGaps:
             assert tracer is not None
             # Use the trace_span from the mock
             with tracer.trace_span("test_span"):
-                pass
+                pass  # NOSONAR
         assert len(tracer.spans) == 1
 
 
@@ -90,7 +90,7 @@ class TestObskitTestContext:
         from obskit.testing.context import ObskitTestContext
         ctx = ObskitTestContext()
         with ctx:
-            pass
+            pass  # NOSONAR
 
     def test_context_has_metrics(self):
         from obskit.testing.context import ObskitTestContext

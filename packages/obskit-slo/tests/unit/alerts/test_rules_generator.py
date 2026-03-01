@@ -29,7 +29,7 @@ class TestSLODefinition:
     def test_defaults(self):
         slo = SLODefinition(name="availability", target=0.999)
         assert slo.name == "availability"
-        assert slo.target == 0.999
+        assert slo.target == pytest.approx(0.999)
         assert slo.window == "5m"
         assert slo.burn_rate_windows is not None
 

@@ -11,7 +11,7 @@ Tests cover:
 """
 
 import time
-from datetime import datetime
+from datetime import datetime, timezone, UTC
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -60,7 +60,7 @@ class TestDLQMessage:
         assert msg.message_id == "msg-1"
         assert msg.original_queue == "orders"
         assert msg.reason == "max_retries_exceeded"
-        assert msg.age_seconds == 0.0
+        assert msg.age_seconds == pytest.approx(0.0)
         assert msg.retry_count == 0
         assert msg.error_message is None
         assert msg.metadata == {}
@@ -75,7 +75,7 @@ class TestDLQMessage:
             error_message="Invalid JSON",
             metadata={"key": "value"},
         )
-        assert msg.age_seconds == 120.5
+        assert msg.age_seconds == pytest.approx(120.5)
         assert msg.retry_count == 3
         assert msg.error_message == "Invalid JSON"
         assert msg.metadata == {"key": "value"}
@@ -93,16 +93,16 @@ class TestDLQMessage:
         assert d["message_id"] == "msg-3"
         assert d["original_queue"] == "events"
         assert d["reason"] == "handler_error"
-        assert d["age_seconds"] == 60.0
+        assert d["age_seconds"] == pytest.approx(60.0)
         assert d["retry_count"] == 2
         assert d["error_message"] == "DB error"
         assert "timestamp" in d
         assert "metadata" in d
 
     def test_timestamp_auto_populated(self):
-        before = datetime.utcnow()
+        before = datetime.now(UTC)
         msg = DLQMessage(message_id="msg-ts", original_queue="q", reason="r")
-        after = datetime.utcnow()
+        after = datetime.now(UTC)
         assert before <= msg.timestamp <= after
 
 
@@ -116,11 +116,11 @@ class TestDLQStats:
         stats = DLQStats(dlq_name="orders_dlq")
         assert stats.total_messages == 0
         assert stats.current_size == 0
-        assert stats.oldest_message_age_seconds == 0.0
+        assert stats.oldest_message_age_seconds == pytest.approx(0.0)
         assert stats.messages_by_reason == {}
         assert stats.messages_by_queue == {}
-        assert stats.processing_success_rate == 1.0
-        assert stats.avg_processing_time_seconds == 0.0
+        assert stats.processing_success_rate == pytest.approx(1.0)
+        assert stats.avg_processing_time_seconds == pytest.approx(0.0)
 
     def test_to_dict(self):
         stats = DLQStats(
@@ -137,9 +137,9 @@ class TestDLQStats:
         assert d["dlq_name"] == "orders_dlq"
         assert d["total_messages"] == 10
         assert d["current_size"] == 5
-        assert d["oldest_message_age_seconds"] == 300.0
+        assert d["oldest_message_age_seconds"] == pytest.approx(300.0)
         assert d["messages_by_reason"] == {"parse_error": 3, "timeout": 2}
-        assert d["processing_success_rate"] == 0.8
+        assert d["processing_success_rate"] == pytest.approx(0.8)
 
 
 # =============================================================================
@@ -215,7 +215,7 @@ class TestDLQTrackerTrackMessageSent:
             retry_count=3,
         )
         msg = tracker._messages["msg-age"]
-        assert msg.age_seconds == 300.0
+        assert msg.age_seconds == pytest.approx(300.0)
         assert msg.retry_count == 3
 
     def test_track_message_with_error_message(self):
@@ -295,7 +295,7 @@ class TestDLQTrackerTrackProcessing:
         )
         assert "msg-remove" in tracker._messages
         with tracker.track_processing("msg-remove"):
-            pass
+            pass  # NOSONAR
         assert "msg-remove" not in tracker._messages
 
     def test_failed_processing_keeps_message(self):
@@ -312,7 +312,7 @@ class TestDLQTrackerTrackProcessing:
     def test_processing_records_time(self):
         tracker = DLQTracker("dlq_proc_time")
         with tracker.track_processing("some-msg"):
-            pass
+            pass  # NOSONAR
         assert len(tracker._processing_times) == 1
         assert tracker._processing_times[0] >= 0.0
 
@@ -321,7 +321,7 @@ class TestDLQTrackerTrackProcessing:
         # Fill up to over 1000
         tracker._processing_times = [0.1] * 1001
         with tracker.track_processing("msg-cap"):
-            pass
+            pass  # NOSONAR
         # Should be trimmed back
         assert len(tracker._processing_times) <= 1001
 
@@ -329,7 +329,7 @@ class TestDLQTrackerTrackProcessing:
         tracker = DLQTracker("dlq_proc_unknown")
         # Processing a message_id that doesn't exist in _messages
         with tracker.track_processing("nonexistent-msg"):
-            pass
+            pass  # NOSONAR
         assert tracker._processing_success == 1
 
 
@@ -391,7 +391,7 @@ class TestDLQTrackerGetStats:
         assert isinstance(stats, DLQStats)
         assert stats.total_messages == 0
         assert stats.current_size == 0
-        assert stats.processing_success_rate == 1.0
+        assert stats.processing_success_rate == pytest.approx(1.0)
 
     def test_get_stats_with_messages(self):
         tracker = DLQTracker("dlq_stats_with_msgs")
@@ -416,9 +416,9 @@ class TestDLQTrackerGetStats:
         tracker = DLQTracker("dlq_stats_success_rate")
         tracker.track_message_sent(original_queue="q", reason="r", message_id="m1")
         with tracker.track_processing("m1"):
-            pass
+            pass  # NOSONAR
         stats = tracker.get_stats()
-        assert stats.processing_success_rate == 1.0
+        assert stats.processing_success_rate == pytest.approx(1.0)
 
     def test_get_stats_success_rate_all_failure(self):
         tracker = DLQTracker("dlq_stats_failure_rate")
@@ -427,7 +427,7 @@ class TestDLQTrackerGetStats:
             with tracker.track_processing("m1"):
                 raise Exception("fail")
         stats = tracker.get_stats()
-        assert stats.processing_success_rate == 0.0
+        assert stats.processing_success_rate == pytest.approx(0.0)
 
     def test_get_stats_mixed_success_failure(self):
         tracker = DLQTracker("dlq_stats_mixed_rate")
@@ -436,9 +436,9 @@ class TestDLQTrackerGetStats:
         tracker.track_message_sent(original_queue="q", reason="r", message_id="m3")
 
         with tracker.track_processing("m1"):
-            pass
+            pass  # NOSONAR
         with tracker.track_processing("m2"):
-            pass
+            pass  # NOSONAR
         with pytest.raises(Exception):
             with tracker.track_processing("m3"):
                 raise Exception("fail")
@@ -500,8 +500,8 @@ class TestDLQTrackerGetMessages:
         tracker.track_message_sent(original_queue="q", reason="r", message_id="m-b")
         msgs = tracker.get_messages()
         # Should be sorted by timestamp (ascending)
-        for i in range(len(msgs) - 1):
-            assert msgs[i].timestamp <= msgs[i + 1].timestamp
+        for a, b in zip(msgs, msgs[1:], strict=False):
+            assert a.timestamp <= b.timestamp
 
     def test_get_messages_default_limit_100(self):
         tracker = DLQTracker("dlq_getmsgs_default")
@@ -594,7 +594,7 @@ class TestGetDlqTrackerDoubleLock:
                 dlq_mod._dlq_trackers[key] = sentinel
                 return self
             def __exit__(self, *a):
-                pass
+                pass  # NOSONAR
 
         dlq_mod._dlq_lock = _RaceLock()
         try:

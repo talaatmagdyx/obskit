@@ -167,7 +167,7 @@ class StatsDEmitter:
         try:
             self._sock.close()
         except OSError:
-            pass
+            pass  # NOSONAR
 
     def __enter__(self) -> StatsDEmitter:
         return self
@@ -185,4 +185,4 @@ class StatsDEmitter:
             self._sock.sendto(payload.encode(), self._addr)
         except OSError:
             # Buffer full, socket closed, network error — never raise.
-            pass
+            pass  # NOSONAR

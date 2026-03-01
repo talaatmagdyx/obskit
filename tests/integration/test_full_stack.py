@@ -217,7 +217,7 @@ class TestResilienceIntegration:
         # Requests should fail immediately
         with pytest.raises(CircuitOpenError):
             async with breaker:
-                pass
+                pass  # NOSONAR
 
         # Wait for recovery timeout
         await asyncio.sleep(0.15)

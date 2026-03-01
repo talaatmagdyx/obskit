@@ -5,6 +5,7 @@ import time
 from unittest.mock import MagicMock, patch
 
 from obskit.breakdown import LatencyBreakdown, PhaseRecord, track_breakdown
+import pytest
 
 
 class TestBreakdownCoverage:
@@ -51,7 +52,7 @@ class TestBreakdownCoverage:
         bd._current_phase = open_phase  # still open
         # Start a new phase via context manager -> should close the open one
         with bd.phase("phase2"):
-            pass
+            pass  # NOSONAR
         # The first phase should now have an end_time
         assert open_phase.end_time is not None
         assert open_phase.duration_seconds is not None
@@ -92,10 +93,10 @@ class TestBreakdownLoopBranches:
             bd.__exit__(None, None, None)
 
         # Verify total_duration was 0
-        assert bd._end_time == 100.0
-        assert bd._start_time == 100.0
-        assert bd._end_time - bd._start_time == 0.0
+        assert bd._end_time == pytest.approx(100.0)
+        assert bd._start_time == pytest.approx(100.0)
+        assert bd._end_time - bd._start_time == pytest.approx(0.0)
 
         # get_summary with zero total_duration exercises line 286->283
         summary = bd.get_summary()
-        assert summary.total_duration_seconds == 0.0
+        assert summary.total_duration_seconds == pytest.approx(0.0)

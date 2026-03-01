@@ -13,7 +13,6 @@ class TestObskitMiddleware:
 
     def setup_method(self):
         """Reset state before each test."""
-        pass
 
     def test_init(self):
         """Test middleware initialization."""

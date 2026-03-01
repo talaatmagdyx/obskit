@@ -21,17 +21,15 @@ def _make_tracker(window_seconds: float = 60.0, max_measurements: int = 1000) ->
     tracker = SLOTracker()
     tracker.register_slo(
         name="latency",
-        target=0.95,
-        threshold=0.200,
         slo_type=SLOType.LATENCY,
-        window_seconds=window_seconds,
+        target_value=0.95,
+        window_seconds=int(window_seconds),
     )
     tracker.register_slo(
         name="availability",
-        target=0.999,
-        threshold=1.0,
         slo_type=SLOType.AVAILABILITY,
-        window_seconds=window_seconds,
+        target_value=0.999,
+        window_seconds=int(window_seconds),
     )
     return tracker
 

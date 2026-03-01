@@ -10,7 +10,7 @@ Tests cover:
 - Registry helpers: get_consumer_lag_tracker, get_all_consumer_lag_stats
 """
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone, UTC
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -48,14 +48,14 @@ class TestQueueType:
 
 class TestLagSample:
     def test_creation_with_defaults(self):
-        ts = datetime.utcnow()
+        ts = datetime.now(UTC)
         sample = LagSample(timestamp=ts, messages=100)
         assert sample.timestamp == ts
         assert sample.messages == 100
         assert sample.bytes == 0
 
     def test_creation_with_bytes(self):
-        ts = datetime.utcnow()
+        ts = datetime.now(UTC)
         sample = LagSample(timestamp=ts, messages=500, bytes=10000)
         assert sample.bytes == 10000
 
@@ -74,9 +74,9 @@ class TestConsumerLagStats:
         )
         assert stats.current_lag_messages == 0
         assert stats.current_lag_bytes == 0
-        assert stats.lag_growth_rate == 0.0
-        assert stats.consumer_velocity == 0.0
-        assert stats.estimated_catch_up_seconds == 0.0
+        assert stats.lag_growth_rate == pytest.approx(0.0)
+        assert stats.consumer_velocity == pytest.approx(0.0)
+        assert stats.estimated_catch_up_seconds == pytest.approx(0.0)
         assert stats.total_consumed == 0
         assert stats.is_falling_behind is False
 
@@ -99,9 +99,9 @@ class TestConsumerLagStats:
         assert d["consumer_group"] == "group-1"
         assert d["current_lag_messages"] == 50
         assert d["current_lag_bytes"] == 1000
-        assert d["lag_growth_rate"] == 2.5
-        assert d["consumer_velocity"] == 10.0
-        assert d["estimated_catch_up_seconds"] == 5.0
+        assert d["lag_growth_rate"] == pytest.approx(2.5)
+        assert d["consumer_velocity"] == pytest.approx(10.0)
+        assert d["estimated_catch_up_seconds"] == pytest.approx(5.0)
         assert d["total_consumed"] == 200
         assert d["is_falling_behind"] is True
         assert "last_updated" in d
@@ -166,13 +166,13 @@ class TestConsumerLagTrackerSetLag:
     def test_set_lag_cleanup_old_samples(self):
         tracker = ConsumerLagTracker("test_queue_set_lag_cleanup", window_seconds=1)
         # Add an old sample directly
-        old_ts = datetime.utcnow() - timedelta(seconds=10)
+        old_ts = datetime.now(UTC) - timedelta(seconds=10)
         tracker._lag_samples.append(LagSample(timestamp=old_ts, messages=50))
         # This should trigger cleanup
         tracker.set_lag(messages=100)
         # Only the new sample should remain (old one pruned)
         assert all(
-            s.timestamp > datetime.utcnow() - timedelta(seconds=2)
+            s.timestamp > datetime.now(UTC) - timedelta(seconds=2)
             for s in tracker._lag_samples
         )
 
@@ -211,13 +211,13 @@ class TestConsumerLagTrackerMessagesConsumed:
 
     def test_messages_consumed_cleanup_old_timestamps(self):
         tracker = ConsumerLagTracker("test_queue_consumed_cleanup", window_seconds=1)
-        old_ts = datetime.utcnow() - timedelta(seconds=10)
+        old_ts = datetime.now(UTC) - timedelta(seconds=10)
         tracker._consumed_timestamps.extend([old_ts, old_ts, old_ts])
         tracker.messages_consumed(count=1)
         # Old timestamps should be pruned
         remaining = [
             t for t in tracker._consumed_timestamps
-            if t <= datetime.utcnow() - timedelta(seconds=2)
+            if t <= datetime.now(UTC) - timedelta(seconds=2)
         ]
         assert len(remaining) == 0
 
@@ -226,18 +226,18 @@ class TestConsumerLagTrackerCalculateGrowthRate:
     def test_no_samples_returns_zero(self):
         tracker = ConsumerLagTracker("test_growth_no_samples")
         rate = tracker._calculate_growth_rate()
-        assert rate == 0.0
+        assert rate == pytest.approx(0.0)
 
     def test_single_sample_returns_zero(self):
         tracker = ConsumerLagTracker("test_growth_single")
-        ts = datetime.utcnow()
+        ts = datetime.now(UTC)
         tracker._lag_samples = [LagSample(timestamp=ts, messages=100)]
         rate = tracker._calculate_growth_rate()
-        assert rate == 0.0
+        assert rate == pytest.approx(0.0)
 
     def test_increasing_lag(self):
         tracker = ConsumerLagTracker("test_growth_increasing")
-        now = datetime.utcnow()
+        now = datetime.now(UTC)
         tracker._lag_samples = [
             LagSample(timestamp=now - timedelta(seconds=10), messages=100),
             LagSample(timestamp=now, messages=200),
@@ -247,7 +247,7 @@ class TestConsumerLagTrackerCalculateGrowthRate:
 
     def test_decreasing_lag(self):
         tracker = ConsumerLagTracker("test_growth_decreasing")
-        now = datetime.utcnow()
+        now = datetime.now(UTC)
         tracker._lag_samples = [
             LagSample(timestamp=now - timedelta(seconds=10), messages=200),
             LagSample(timestamp=now, messages=100),
@@ -257,24 +257,24 @@ class TestConsumerLagTrackerCalculateGrowthRate:
 
     def test_same_time_returns_zero(self):
         tracker = ConsumerLagTracker("test_growth_same_time")
-        now = datetime.utcnow()
+        now = datetime.now(UTC)
         tracker._lag_samples = [
             LagSample(timestamp=now, messages=100),
             LagSample(timestamp=now, messages=200),
         ]
         rate = tracker._calculate_growth_rate()
-        assert rate == 0.0
+        assert rate == pytest.approx(0.0)
 
 
 class TestConsumerLagTrackerCalculateVelocity:
     def test_no_timestamps_returns_zero(self):
         tracker = ConsumerLagTracker("test_velocity_empty")
         velocity = tracker._calculate_velocity()
-        assert velocity == 0.0
+        assert velocity == pytest.approx(0.0)
 
     def test_velocity_with_timestamps(self):
         tracker = ConsumerLagTracker("test_velocity_calc", window_seconds=60)
-        now = datetime.utcnow()
+        now = datetime.now(UTC)
         # Simulate 10 messages over 10 seconds
         tracker._consumed_timestamps = [
             now - timedelta(seconds=10 - i) for i in range(10)
@@ -284,10 +284,10 @@ class TestConsumerLagTrackerCalculateVelocity:
 
     def test_velocity_all_old_timestamps_returns_zero(self):
         tracker = ConsumerLagTracker("test_velocity_old", window_seconds=5)
-        old_ts = datetime.utcnow() - timedelta(seconds=100)
+        old_ts = datetime.now(UTC) - timedelta(seconds=100)
         tracker._consumed_timestamps = [old_ts, old_ts, old_ts]
         velocity = tracker._calculate_velocity()
-        assert velocity == 0.0
+        assert velocity == pytest.approx(0.0)
 
 
 class TestConsumerLagTrackerCheckThreshold:
@@ -345,7 +345,7 @@ class TestConsumerLagTrackerCheckThreshold:
             on_high_lag=callback,
         )
         # Set last alert to far in the past
-        tracker._last_high_lag_alert = datetime.utcnow() - timedelta(minutes=10)
+        tracker._last_high_lag_alert = datetime.now(UTC) - timedelta(minutes=10)
         tracker._check_threshold(200)
         callback.assert_called_once()
 
@@ -369,7 +369,7 @@ class TestConsumerLagTrackerGetStats:
     def test_get_stats_catch_up_when_velocity_positive(self):
         tracker = ConsumerLagTracker("test_getstats_catchup", window_seconds=60)
         tracker._current_lag = 100
-        now = datetime.utcnow()
+        now = datetime.now(UTC)
         # Simulate some consumed messages to get velocity
         tracker._consumed_timestamps = [
             now - timedelta(seconds=10 - i) for i in range(10)
@@ -380,7 +380,7 @@ class TestConsumerLagTrackerGetStats:
 
     def test_get_stats_is_falling_behind_when_growth_positive(self):
         tracker = ConsumerLagTracker("test_getstats_falling")
-        now = datetime.utcnow()
+        now = datetime.now(UTC)
         tracker._lag_samples = [
             LagSample(timestamp=now - timedelta(seconds=10), messages=100),
             LagSample(timestamp=now, messages=200),
@@ -413,7 +413,7 @@ class TestConsumerLagTrackerIsHealthy:
 
     def test_is_not_healthy_when_falling_behind(self):
         tracker = ConsumerLagTracker("test_healthy_false_falling", lag_threshold=10000)
-        now = datetime.utcnow()
+        now = datetime.now(UTC)
         tracker._lag_samples = [
             LagSample(timestamp=now - timedelta(seconds=10), messages=100),
             LagSample(timestamp=now, messages=200),
@@ -506,7 +506,7 @@ class TestConsumerLagTrackerIntegration:
         tracker.set_lag(messages=500)
         stats = tracker.get_stats()
         # No consumed messages -> velocity=0 -> catch_up=0
-        assert stats.estimated_catch_up_seconds == 0.0
+        assert stats.estimated_catch_up_seconds == pytest.approx(0.0)
 
     def test_stats_to_dict(self):
         stats = ConsumerLagStats(
@@ -532,7 +532,7 @@ class TestConsumerLagCoverageGaps:
         from datetime import datetime, timedelta
 
         tracker = ConsumerLagTracker("test_catchup_velocity")
-        now = datetime.utcnow()
+        now = datetime.now(UTC)
         # Pre-populate consumed_timestamps so velocity > 0
         tracker._consumed_timestamps = [
             now - timedelta(seconds=5 - i * 0.5) for i in range(10)
@@ -544,18 +544,18 @@ class TestConsumerLagCoverageGaps:
 
     def test_calculate_velocity_zero_time_span(self):
         """Line 319: time_span <= 0 returns 0.0 when recent[0] == now."""
-        from datetime import datetime
+        from datetime import UTC, datetime
 
-        fixed_now = datetime(2025, 1, 1, 12, 0, 0)
+        fixed_now = datetime(2025, 1, 1, 12, 0, 0, tzinfo=UTC)
         tracker = ConsumerLagTracker("test_zero_timespan", window_seconds=60)
         # Set timestamps to exactly fixed_now so time_span = now - recent[0] = 0
         tracker._consumed_timestamps = [fixed_now, fixed_now, fixed_now]
 
         with patch("obskit.consumer_lag.datetime") as mock_dt:
-            mock_dt.utcnow.return_value = fixed_now
+            mock_dt.now.return_value = fixed_now
             velocity = tracker._calculate_velocity()
 
-        assert velocity == 0.0
+        assert velocity == pytest.approx(0.0)
 
     def test_get_consumer_lag_tracker_inner_lock_already_set(self):
         """Branch 405->412: inner if key not in _lag_trackers is False (race won by another thread)."""
@@ -574,7 +574,7 @@ class TestConsumerLagCoverageGaps:
                 return self
 
             def __exit__(self, *a):
-                pass
+                pass  # NOSONAR
 
         mod._lag_lock = _RaceLock()
         try:

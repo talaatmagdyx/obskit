@@ -24,14 +24,14 @@ try:
 
     _backends["structlog"] = StructlogAdapter
 except ImportError:  # pragma: no cover
-    pass
+    pass  # NOSONAR
 
 try:
     from obskit.logging.adapters.loguru_adapter import LoguruAdapter
 
     _backends["loguru"] = LoguruAdapter
 except ImportError:  # pragma: no cover
-    pass
+    pass  # NOSONAR
 
 
 def get_available_backends() -> list[str]:  # pragma: no cover

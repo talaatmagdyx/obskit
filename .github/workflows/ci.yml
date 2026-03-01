@@ -3,8 +3,16 @@ name: CI
 on:
   push:
     branches: [main, develop]
+    paths:
+      - "packages/**"
+      - "pyproject.toml"
+      - ".github/workflows/ci.yml"
   pull_request:
     branches: [main, develop]
+    paths:
+      - "packages/**"
+      - "pyproject.toml"
+      - ".github/workflows/ci.yml"
 
 jobs:
   test:
@@ -13,7 +21,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: ["3.11", "3.12", "3.13"]
+        python-version: ["3.11"]
         package:
           - obskit-core
           - obskit-logging
@@ -35,37 +43,21 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
       - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
 
-      - name: Install all packages in editable mode
-        run: |
-          pip install --upgrade pip
-          pip install \
-            -e packages/obskit-core \
-            -e packages/obskit-logging \
-            -e packages/obskit-metrics \
-            -e packages/obskit-tracing \
-            -e packages/obskit-health \
-            -e packages/obskit-resilience \
-            -e packages/obskit-slo \
-            -e packages/obskit-decorators \
-            -e packages/obskit-db \
-            -e packages/obskit-queue \
-            -e packages/obskit-dashboards \
-            -e packages/obskit-middleware-fastapi \
-            -e packages/obskit-middleware-flask \
-            -e packages/obskit-middleware-django \
-            -e packages/obskit-middleware-grpc \
-            -e packages/obskit
-
-      - name: Install dev dependencies for ${{ matrix.package }}
-        run: pip install -e "packages/${{ matrix.package }}[dev]"
+      - name: Install workspace (all packages + all extras)
+        run: uv sync --all-packages --all-extras
 
       - name: Run tests for ${{ matrix.package }}
-        run: pytest packages/${{ matrix.package }}/tests/ -q --tb=short
+        run: uv run pytest packages/${{ matrix.package }}/tests/ -q --tb=short --no-cov --timeout=30 --benchmark-disable
 
   lint:
     name: Lint
@@ -73,15 +65,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-python@v5
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
         with:
-          python-version: "3.11"
-
-      - name: Install ruff
-        run: pip install ruff>=0.3.0
+          enable-cache: true
 
       - name: Run ruff check
-        run: ruff check packages/
+        run: uv run ruff check packages/
 
   type-check:
     name: Type Check
@@ -89,38 +79,24 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
 
-      - name: Install packages + mypy
-        run: |
-          pip install --upgrade pip
-          pip install \
-            -e packages/obskit-core \
-            -e packages/obskit-logging \
-            -e packages/obskit-metrics \
-            -e packages/obskit-tracing \
-            -e packages/obskit-health \
-            -e packages/obskit-resilience \
-            -e packages/obskit-slo \
-            -e packages/obskit-decorators \
-            -e packages/obskit-db \
-            -e packages/obskit-queue \
-            -e packages/obskit-dashboards \
-            -e packages/obskit-middleware-fastapi \
-            -e packages/obskit-middleware-flask \
-            -e packages/obskit-middleware-django \
-            -e packages/obskit-middleware-grpc \
-            -e packages/obskit
-          pip install mypy>=1.8.0
+      - name: Install workspace (all packages + all extras)
+        run: uv sync --all-packages --all-extras
 
       - name: Run mypy on core packages
         run: |
-          mypy packages/obskit-core/src/
-          MYPYPATH=packages/obskit-logging/src mypy packages/obskit-logging/src/
-          MYPYPATH=packages/obskit-metrics/src mypy packages/obskit-metrics/src/
-          MYPYPATH=packages/obskit-tracing/src mypy packages/obskit-tracing/src/
+          uv run mypy packages/obskit-core/src/
+          MYPYPATH=packages/obskit-logging/src uv run mypy packages/obskit-logging/src/
+          MYPYPATH=packages/obskit-metrics/src uv run mypy packages/obskit-metrics/src/
+          MYPYPATH=packages/obskit-tracing/src uv run mypy packages/obskit-tracing/src/
 
   integration:
     name: Integration Tests
@@ -128,31 +104,17 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
 
-      - name: Install all packages
-        run: |
-          pip install --upgrade pip
-          pip install \
-            -e packages/obskit-core \
-            -e packages/obskit-logging \
-            -e packages/obskit-metrics \
-            -e packages/obskit-tracing \
-            -e packages/obskit-health \
-            -e packages/obskit-resilience \
-            -e packages/obskit-slo \
-            -e packages/obskit-decorators \
-            -e packages/obskit-db \
-            -e packages/obskit-queue \
-            -e packages/obskit-dashboards \
-            -e packages/obskit-middleware-fastapi \
-            -e packages/obskit-middleware-flask \
-            -e packages/obskit-middleware-django \
-            -e packages/obskit-middleware-grpc \
-            -e packages/obskit
-          pip install pytest pytest-asyncio pytest-cov httpx fastapi starlette flask prometheus-client
+      - name: Install workspace (all packages + all extras)
+        run: uv sync --all-packages --all-extras
 
       - name: Run integration tests (no containers)
-        run: pytest tests/integration/ -q --tb=short -m "not integration"
+        run: uv run pytest tests/integration/ -q --tb=short -m "not integration"

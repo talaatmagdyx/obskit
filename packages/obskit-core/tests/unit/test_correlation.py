@@ -70,7 +70,7 @@ class TestCorrelationIdFunctions:
 
         ctx = get_custom_context()
         assert ctx["order_id"] == "order-123"
-        assert ctx["amount"] == 99.99
+        assert ctx["amount"] == pytest.approx(99.99)
 
     def test_get_full_context(self):
         """Test getting full context."""
@@ -132,7 +132,7 @@ class TestCorrelationManager:
             ctx = get_full_context()
             assert ctx["correlation_id"] == "corr-1"
             assert ctx["order_id"] == "order-123"
-            assert ctx["amount"] == 99.99
+            assert ctx["amount"] == pytest.approx(99.99)
 
     def test_capture_and_restore(self):
         """Test capturing and restoring context."""
@@ -256,7 +256,7 @@ class TestCorrelatedTask:
     async def test_preserves_context(self):
         """Test CorrelatedTask preserves correlation context."""
 
-        async def inner_task():
+        async def inner_task():  # NOSONAR
             return get_correlation_id()
 
         with CorrelationManager.new_context(correlation_id="task-corr"):
@@ -274,7 +274,7 @@ class TestCreateCorrelatedTask:
         """Test create_correlated_task creates task with preserved context."""
         results = []
 
-        async def capture_correlation():
+        async def capture_correlation():  # NOSONAR
             results.append(get_correlation_id())
 
         with CorrelationManager.new_context(correlation_id="captured-corr"):
@@ -326,10 +326,10 @@ class TestCorrelationCoverageGaps:
             # Restore original values
             for token in reversed(tokens):
                 try:
-                    var_name = token.var.name
+                    _var_name = token.var.name
                     token.var.reset(token)
                 except Exception:
-                    pass
+                    pass  # NOSONAR
         assert headers.get("X-Correlation-ID") == "only-corr-id"
         # Other vars were None, so they weren't in the context dict
         # This exercises the False branch at line 223 (223->222)

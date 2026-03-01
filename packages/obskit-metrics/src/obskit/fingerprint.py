@@ -28,7 +28,7 @@ import re
 import threading
 import traceback
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Any
 
 from prometheus_client import Counter, Gauge
@@ -67,8 +67,8 @@ class ErrorGroup:
     message_template: str
     component: str | None = None
     count: int = 0
-    first_seen: datetime = field(default_factory=datetime.utcnow)
-    last_seen: datetime = field(default_factory=datetime.utcnow)
+    first_seen: datetime = field(default_factory=lambda: datetime.now(UTC))
+    last_seen: datetime = field(default_factory=lambda: datetime.now(UTC))
     sample_stack_trace: str | None = None
     affected_operations: set[str] = field(default_factory=set)
 
@@ -268,17 +268,17 @@ class ErrorFingerprinter:
 
             if "controller" in path:
                 return "controller"
-            elif "widget" in path:
+            if "widget" in path:
                 return "widget"
-            elif "query" in path or "builder" in path:
+            if "query" in path or "builder" in path:
                 return "query_builder"
-            elif "page" in path:
+            if "page" in path:
                 return "page"
-            elif "service" in path:
+            if "service" in path:
                 return "service"
-            elif "handler" in path:
+            if "handler" in path:
                 return "handler"
-            elif "middleware" in path:
+            if "middleware" in path:
                 return "middleware"
 
         return None
@@ -312,7 +312,7 @@ class ErrorFingerprinter:
             if fp_result.fingerprint in self._groups:
                 group = self._groups[fp_result.fingerprint]
                 group.count += 1
-                group.last_seen = datetime.utcnow()
+                group.last_seen = datetime.now(UTC)
                 if operation:
                     group.affected_operations.add(operation)
             else:

@@ -37,7 +37,7 @@ class TestExecutorStats:
         assert stats.tasks_submitted == 0
         assert stats.tasks_completed == 0
         assert stats.tasks_failed == 0
-        assert stats.utilization == 0.0
+        assert stats.utilization == pytest.approx(0.0)
 
     def test_to_dict(self):
         stats = ExecutorStats(executor_name="exec", max_workers=4)
@@ -62,11 +62,11 @@ class TestExecutorTrackerInit:
 
     def test_default_saturation_threshold(self):
         tracker = ExecutorTracker("tracker")
-        assert tracker.saturation_threshold == 0.9
+        assert tracker.saturation_threshold == pytest.approx(0.9)
 
     def test_custom_saturation_threshold(self):
         tracker = ExecutorTracker("tracker", saturation_threshold=0.8)
-        assert tracker.saturation_threshold == 0.8
+        assert tracker.saturation_threshold == pytest.approx(0.8)
 
     def test_on_saturated_callback_stored(self):
         callback = MagicMock()
@@ -110,7 +110,7 @@ class TestExecutorTrackerTaskLifecycle:
         tracker.task_submitted()
         tracker.task_started(0.05)
         assert len(tracker._queue_waits) == 1
-        assert tracker._queue_waits[0] == 0.05
+        assert tracker._queue_waits[0] == pytest.approx(0.05)
 
     def test_task_completed_success_increments_completed(self):
         tracker = ExecutorTracker("exec_test_complete")
@@ -142,7 +142,7 @@ class TestExecutorTrackerTaskLifecycle:
         tracker.task_started(0.0)
         tracker.task_completed(0.5, success=True)
         assert len(tracker._task_latencies) == 1
-        assert tracker._task_latencies[0] == 0.5
+        assert tracker._task_latencies[0] == pytest.approx(0.5)
 
     def test_queue_waits_trimmed_at_1000(self):
         tracker = ExecutorTracker("exec_test_trim")
@@ -226,8 +226,8 @@ class TestExecutorTrackerGetStats:
     def test_get_stats_zero_avg_when_no_tasks(self):
         tracker = ExecutorTracker("exec_no_tasks")
         stats = tracker.get_stats()
-        assert stats.avg_task_latency_ms == 0.0
-        assert stats.avg_queue_wait_ms == 0.0
+        assert stats.avg_task_latency_ms == pytest.approx(0.0)
+        assert stats.avg_queue_wait_ms == pytest.approx(0.0)
 
     def test_get_stats_utilization_calculated(self):
         tracker = ExecutorTracker("exec_util", max_workers=10)

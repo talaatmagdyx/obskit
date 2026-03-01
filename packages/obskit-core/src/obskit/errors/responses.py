@@ -32,7 +32,7 @@ from __future__ import annotations
 
 import traceback
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Any
 
 from obskit.core import get_correlation_id
@@ -49,7 +49,7 @@ class ErrorResponse:
     trace_id: str | None = None
     span_id: str | None = None
     correlation_id: str | None = None
-    timestamp: str = field(default_factory=lambda: datetime.utcnow().isoformat())
+    timestamp: str = field(default_factory=lambda: datetime.now(UTC).isoformat())
     stack_trace: list[str] | None = None
 
     def to_dict(self) -> dict[str, Any]:

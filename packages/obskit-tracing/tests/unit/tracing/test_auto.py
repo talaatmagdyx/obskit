@@ -143,7 +143,7 @@ class TestApplyInstrumentors:
 
     def test_already_applied_is_idempotent(self) -> None:
         """A second call with the same name does not call .instrument() again."""
-        mod, inst = _make_mock_mod("HttpxInstrumentor")
+        _make_mock_mod("HttpxInstrumentor")
         # Correct class name for httpx
         mock_mod = MagicMock()
         mock_inst = MagicMock()

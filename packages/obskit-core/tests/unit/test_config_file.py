@@ -159,7 +159,7 @@ class TestFlattenConfig:
         assert r["log_level"] == "DEBUGI"
         assert r["log_format"] == "text"
         assert r["log_include_timestamp"] is True
-        assert r["log_sample_rate"] == 0.5
+        assert r["log_sample_rate"] == pytest.approx(0.5)
         assert r["logging_backend"] == "sl"
 
     def test_metrics(self):
@@ -176,7 +176,7 @@ class TestFlattenConfig:
         assert r["metrics_auth_token"] == "s"
         assert r["metrics_rate_limit_enabled"] is True
         assert r["metrics_rate_limit_requests"] == 100
-        assert r["metrics_sample_rate"] == 0.1
+        assert r["metrics_sample_rate"] == pytest.approx(0.1)
         assert r["use_histogram"] is True
         assert r["use_summary"] is False
 
@@ -189,7 +189,7 @@ class TestFlattenConfig:
         assert r["tracing_enabled"] is True
         assert r["otlp_endpoint"] == "http://x"
         assert r["otlp_insecure"] is True
-        assert r["trace_sample_rate"] == 0.1
+        assert r["trace_sample_rate"] == pytest.approx(0.1)
         assert r["trace_export_queue_size"] == 2048
         assert r["trace_export_batch_size"] == 512
         assert r["trace_export_timeout"] == 5
@@ -211,9 +211,9 @@ class TestFlattenConfig:
                          "max_delay": 60.0, "exponential_base": 3.0}}
         r = _flatten_config(cfg)
         assert r["retry_max_attempts"] == 5
-        assert r["retry_base_delay"] == 2.0
-        assert r["retry_max_delay"] == 60.0
-        assert r["retry_exponential_base"] == 3.0
+        assert r["retry_base_delay"] == pytest.approx(2.0)
+        assert r["retry_max_delay"] == pytest.approx(60.0)
+        assert r["retry_exponential_base"] == pytest.approx(3.0)
 
     def test_rate_limit(self):
         r = _flatten_config({"rate_limit": {"requests": 100, "window_seconds": 60}})
@@ -396,7 +396,7 @@ class TestFlattenConfigMissingBranches:
         assert r["metrics_auth_token"] == "secret"
         assert r["metrics_rate_limit_enabled"] is True
         assert r["metrics_rate_limit_requests"] == 100
-        assert r["metrics_sample_rate"] == 1.0
+        assert r["metrics_sample_rate"] == pytest.approx(1.0)
         assert r["use_summary"] is True
 
     def test_tracing_all_secondary_keys(self):
@@ -412,7 +412,7 @@ class TestFlattenConfigMissingBranches:
         }})
         assert r["tracing_enabled"] is True
         assert r["otlp_insecure"] is True
-        assert r["trace_sample_rate"] == 0.5
+        assert r["trace_sample_rate"] == pytest.approx(0.5)
         assert r["trace_export_queue_size"] == 512
         assert r["trace_export_batch_size"] == 64
         assert r["trace_export_timeout"] == 30

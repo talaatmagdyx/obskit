@@ -19,13 +19,13 @@ class TestResourceUsage:
         usage = ResourceUsage(tenant_id="tenant-1")
 
         assert usage.tenant_id == "tenant-1"
-        assert usage.cpu_time_seconds == 0.0
+        assert usage.cpu_time_seconds == pytest.approx(0.0)
         assert usage.memory_bytes == 0
         assert usage.api_calls == 0
         assert usage.storage_bytes == 0
         assert usage.network_bytes_in == 0
         assert usage.network_bytes_out == 0
-        assert usage.cost_units == 0.0
+        assert usage.cost_units == pytest.approx(0.0)
 
     def test_to_dict(self):
         """Test conversion to dictionary."""
@@ -40,10 +40,10 @@ class TestResourceUsage:
         data = usage.to_dict()
 
         assert data["tenant_id"] == "tenant-1"
-        assert data["cpu_time_seconds"] == 10.5
+        assert data["cpu_time_seconds"] == pytest.approx(10.5)
         assert data["memory_bytes"] == 1024 * 1024
         assert data["api_calls"] == 100
-        assert data["cost_units"] == 5.50
+        assert data["cost_units"] == pytest.approx(5.50)
 
 
 class TestCostTracker:
@@ -63,7 +63,7 @@ class TestCostTracker:
         tracker = CostTracker(service_name="my-service", cost_rates=custom_rates)
 
         assert tracker.service_name == "my-service"
-        assert tracker.cost_rates["cpu_second"] == 0.0002
+        assert tracker.cost_rates["cpu_second"] == pytest.approx(0.0002)
 
     def test_track_cpu(self):
         """Test tracking CPU time."""
@@ -151,7 +151,7 @@ class TestCostTracker:
 
         usage = tracker.get_usage("tenant-1")
 
-        assert usage.cost_units == 0.5  # 10 * 0.05
+        assert usage.cost_units == pytest.approx(0.5)  # 10 * 0.05
 
     def test_get_usage_new_tenant(self):
         """Test getting usage for new tenant returns empty usage."""
@@ -160,7 +160,7 @@ class TestCostTracker:
         usage = tracker.get_usage("new-tenant")
 
         assert usage.tenant_id == "new-tenant"
-        assert usage.cpu_time_seconds == 0.0
+        assert usage.cpu_time_seconds == pytest.approx(0.0)
 
     def test_get_all_usage(self):
         """Test getting usage for all tenants."""
@@ -200,8 +200,8 @@ class TestCostTracker:
         assert "network" in costs
         assert "total" in costs
 
-        assert costs["cpu"] == 0.1  # 100 * 0.001
-        assert costs["api_calls"] == 0.5  # 50 * 0.01
+        assert costs["cpu"] == pytest.approx(0.1)  # 100 * 0.001
+        assert costs["api_calls"] == pytest.approx(0.5)  # 50 * 0.01
 
     def test_get_usage_report_single_tenant(self):
         """Test usage report for single tenant."""
@@ -374,7 +374,7 @@ class TestCostTrackerCustomUnitsBranch:
         tracker.track_custom_cost("tenant-1", "cpu", 10, cost_per_unit=None)
         usage = tracker.get_usage("tenant-1")
         # cost_units should not be incremented when cost_per_unit is 0
-        assert usage.cost_units == 0.0
+        assert usage.cost_units == pytest.approx(0.0)
 
 
 class TestCostTrackerResetUsageBranch:

@@ -43,24 +43,24 @@ class TestRetryConfig:
     def test_defaults(self):
         config = RetryConfig()
         assert config.max_retries == 3
-        assert config.base_delay == 1.0
-        assert config.max_delay == 60.0
+        assert config.base_delay == pytest.approx(1.0)
+        assert config.max_delay == pytest.approx(60.0)
 
     def test_constant_delay(self):
         config = RetryConfig(base_delay=2.0, backoff=BackoffStrategy.CONSTANT)
-        assert config.get_delay(1) == 2.0
-        assert config.get_delay(5) == 2.0
+        assert config.get_delay(1) == pytest.approx(2.0)
+        assert config.get_delay(5) == pytest.approx(2.0)
 
     def test_linear_delay(self):
         config = RetryConfig(base_delay=1.0, backoff=BackoffStrategy.LINEAR)
-        assert config.get_delay(1) == 1.0
-        assert config.get_delay(3) == 3.0
+        assert config.get_delay(1) == pytest.approx(1.0)
+        assert config.get_delay(3) == pytest.approx(3.0)
 
     def test_exponential_delay(self):
         config = RetryConfig(base_delay=1.0, backoff=BackoffStrategy.EXPONENTIAL)
-        assert config.get_delay(1) == 1.0
-        assert config.get_delay(2) == 2.0
-        assert config.get_delay(3) == 4.0
+        assert config.get_delay(1) == pytest.approx(1.0)
+        assert config.get_delay(2) == pytest.approx(2.0)
+        assert config.get_delay(3) == pytest.approx(4.0)
 
     def test_exponential_jitter_delay(self):
         config = RetryConfig(base_delay=1.0, backoff=BackoffStrategy.EXPONENTIAL_JITTER)
@@ -70,7 +70,7 @@ class TestRetryConfig:
 
     def test_delay_capped_at_max(self):
         config = RetryConfig(base_delay=100.0, max_delay=10.0, backoff=BackoffStrategy.CONSTANT)
-        assert config.get_delay(1) == 10.0
+        assert config.get_delay(1) == pytest.approx(10.0)
 
 
 # =============================================================================
@@ -165,7 +165,7 @@ class TestResilientExecutorAsync:
     async def test_execute_async_success(self):
         executor = ResilientExecutor(max_retries=3)
 
-        async def async_func():
+        async def async_func():  # NOSONAR
             return "async_ok"
 
         result = await executor.execute(async_func)
@@ -181,7 +181,7 @@ class TestResilientExecutorAsync:
     async def test_execute_async_retries(self):
         call_count = [0]
 
-        async def flaky():
+        async def flaky():  # NOSONAR
             call_count[0] += 1
             if call_count[0] < 2:
                 raise ConnectionError("timeout")
@@ -230,7 +230,7 @@ class TestResilientExecutorAsync:
         executor = ResilientExecutor(max_retries=1)
         executor._circuit_breaker = mock_cb
 
-        async def good_func():
+        async def good_func():  # NOSONAR
             return "circuit_ok"
 
         result = await executor.execute(good_func)
@@ -265,7 +265,7 @@ class TestResilientExecutorAsync:
 class TestResilientCall:
     @pytest.mark.asyncio
     async def test_resilient_call_success(self):
-        async def my_func(x):
+        async def my_func(x):  # NOSONAR
             return x * 2
 
         result = await resilient_call(my_func, args=(5,))
@@ -273,7 +273,7 @@ class TestResilientCall:
 
     @pytest.mark.asyncio
     async def test_resilient_call_with_kwargs(self):
-        async def my_func(x, multiplier=1):
+        async def my_func(x, multiplier=1):  # NOSONAR
             return x * multiplier
 
         result = await resilient_call(my_func, args=(3,), kwargs={"multiplier": 4})
@@ -283,7 +283,7 @@ class TestResilientCall:
     async def test_resilient_call_with_max_retries(self):
         call_count = [0]
 
-        async def flaky():
+        async def flaky():  # NOSONAR
             call_count[0] += 1
             if call_count[0] < 2:
                 raise ValueError("fail")

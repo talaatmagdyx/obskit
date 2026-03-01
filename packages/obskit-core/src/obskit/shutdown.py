@@ -204,15 +204,15 @@ def shutdown() -> None:
                 if loop.is_running():
                     # Schedule shutdown (fire and forget)
                     try:  # pragma: no cover
-                        asyncio.create_task(shutdown_async_recording())
+                        asyncio.create_task(shutdown_async_recording())  # NOSONAR
                     except RuntimeError:  # pragma: no cover
                         # Can't create task, skip
-                        pass
+                        pass  # NOSONAR
                 else:
                     loop.run_until_complete(shutdown_async_recording())
             except RuntimeError:  # pragma: no cover
                 # No event loop, skip
-                pass
+                pass  # NOSONAR
 
             logger.debug("async_metrics_shutdown_complete")
         except Exception as e:
@@ -247,6 +247,19 @@ def shutdown() -> None:
             error_type=type(e).__name__,
         )
         raise
+
+
+def is_shutdown_in_progress() -> bool:
+    """
+    Return whether a graceful shutdown is currently in progress.
+
+    Returns
+    -------
+    bool
+        True if :func:`shutdown` has been called and has not yet completed,
+        False otherwise.
+    """
+    return _shutdown_in_progress
 
 
 def _signal_handler(signum: int, frame: object) -> None:
@@ -381,6 +394,9 @@ class GracefulShutdown:
             # Third signal - force exit
             logger.warning("force_shutdown", signal_count=self._shutdown_count)
             sys.exit(1)
+        else:
+            # Second signal - warn but continue graceful shutdown in progress
+            logger.info("shutdown_signal_repeated", count=self._shutdown_count)
 
     def register(
         self,
@@ -573,6 +589,7 @@ def get_graceful_shutdown(
 
 __all__ = [
     "shutdown",
+    "is_shutdown_in_progress",
     "register_shutdown_hook",
     "unregister_shutdown_hook",
     "GracefulShutdown",

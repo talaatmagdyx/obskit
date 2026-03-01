@@ -7,7 +7,7 @@ Provides utilities for tracking business KPIs alongside technical metrics.
 import time
 from contextlib import contextmanager
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Any
 
 from prometheus_client import Counter, Gauge, Histogram
@@ -58,7 +58,7 @@ class BusinessEvent:
     channel: str | None = None
     value: float | None = None
     metadata: dict[str, Any] = field(default_factory=dict)
-    timestamp: datetime = field(default_factory=datetime.utcnow)
+    timestamp: datetime = field(default_factory=lambda: datetime.now(UTC))
 
 
 class BusinessMetrics:
@@ -80,7 +80,7 @@ class BusinessMetrics:
         # Track engagement time
         with metrics.track_engagement("dashboard_view", tenant_id="123"):
             # User activity
-            pass
+            pass  # NOSONAR
     """
 
     def __init__(self, service_name: str):

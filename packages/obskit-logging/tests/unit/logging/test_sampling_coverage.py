@@ -10,6 +10,7 @@ from obskit.logging.sampling import (
     SamplingConfig,
     SamplingRule,
 )
+import pytest
 
 
 class TestSampledLoggerCoverage:
@@ -23,7 +24,7 @@ class TestSampledLoggerCoverage:
         logger = SampledLogger("test-cov", config=config)
 
         rate = logger._get_sample_rate("info", "special_event")
-        assert rate == 0.42
+        assert rate == pytest.approx(0.42)
 
     def test_should_log_sampled_out(self):
         """Line 201: sampled_out when random > sample_rate."""
@@ -209,7 +210,7 @@ class TestSamplingBranchCoverage:
         logger._recent_logs[key] = time.time() - 1.0  # 1 second ago > 0.001s window
 
         # Should NOT be deduplicated (entry expired) and should use sample rate
-        should_log, reason = logger._should_log('info', event)
+        _, reason = logger._should_log('info', event)
         # With info_rate=1.0, should be sampled_in
         assert reason in ('sampled_in', 'sampled_out')  # not 'deduplicated'
 

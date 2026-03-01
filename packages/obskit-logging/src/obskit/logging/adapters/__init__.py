@@ -38,7 +38,7 @@ You can create custom adapters by implementing LoggerInterface:
     class MyCustomAdapter(LoggerInterface):
         def info(self, event: str, **kwargs) -> None:
             # Custom implementation
-            pass
+            pass  # NOSONAR
 """
 
 from obskit.logging.adapters.base import LoggerAdapter
@@ -54,7 +54,7 @@ try:
     _adapters.append("StructlogAdapter")
     __all__.append("StructlogAdapter")
 except ImportError:  # pragma: no cover
-    pass
+    pass  # NOSONAR
 
 try:
     from obskit.logging.adapters.loguru_adapter import LoguruAdapter
@@ -62,4 +62,4 @@ try:
     _adapters.append("LoguruAdapter")
     __all__.append("LoguruAdapter")
 except ImportError:  # pragma: no cover
-    pass
+    pass  # NOSONAR

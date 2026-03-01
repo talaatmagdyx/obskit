@@ -788,11 +788,9 @@ class _AsyncNullContext:
 
     async def __aenter__(self) -> None:
         """Enter context (no-op)."""
-        pass
 
     async def __aexit__(self, *args: Any) -> None:
         """Exit context (no-op)."""
-        pass
 
 
 @asynccontextmanager

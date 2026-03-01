@@ -17,11 +17,6 @@ on:
       - 'packages/*/src/**/*.py'
       - 'packages/*/README.md'
 
-permissions:
-  contents: write   # needed for mike versioning commits
-  pages: write
-  id-token: write
-
 concurrency:
   group: "pages"
   cancel-in-progress: false
@@ -33,6 +28,8 @@ jobs:
   build-mkdocs:
     name: Build MkDocs
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@v4
         with:
@@ -87,6 +84,8 @@ jobs:
   build-sphinx:
     name: Build Sphinx (legacy)
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     # Only run Sphinx if its source files changed
     steps:
       - uses: actions/checkout@v4
@@ -114,7 +113,7 @@ jobs:
 
       - name: Build Sphinx docs
         run: |
-          if [ -f docs/source/conf.py ]; then
+          if [[ -f docs/source/conf.py ]]; then
             cd docs && make html 2>&1 | tail -20
           else
             echo "No Sphinx conf.py found — skipping"
@@ -137,6 +136,9 @@ jobs:
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     needs: build-mkdocs
     runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}

@@ -172,7 +172,7 @@ class CorrelationManager:
             yield
         finally:
             # Tokens are automatically reset when context exits
-            pass
+            pass  # NOSONAR
 
     @staticmethod
     def capture() -> dict[str, Any]:
@@ -307,7 +307,7 @@ def with_correlation(generate_if_missing: bool = True, propagate: bool = True) -
         @with_correlation()
         async def handle_request(request):
             # correlation_id is available
-            pass
+            pass  # NOSONAR
     """
 
     def decorator(func: F) -> F:
@@ -345,7 +345,7 @@ class CorrelatedTask:
     Example:
         async def my_task():
             # Has access to correlation context
-            pass
+            pass  # NOSONAR
 
         # Create task with context preserved
         task = CorrelatedTask(my_task())

@@ -427,6 +427,8 @@ def retry(
                 try:
                     return await func(*args, **kwargs)
 
+                except asyncio.CancelledError:
+                    raise  # Never retry cancellation; propagate immediately
                 except Exception as e:
                     last_exception = e
 

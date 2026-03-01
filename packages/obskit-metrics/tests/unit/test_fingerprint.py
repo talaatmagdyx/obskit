@@ -10,7 +10,7 @@ Tests cover:
 """
 
 import traceback
-from datetime import datetime
+from datetime import datetime, timezone, UTC
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -359,7 +359,7 @@ class TestRecordError:
         assert group.count == 1
 
     def test_record_same_error_increments_count(self):
-        for i in range(5):
+        for _ in range(5):
             try:
                 raise ValueError("repeated error")
             except ValueError as e:
@@ -398,12 +398,12 @@ class TestRecordError:
         assert len(fp._groups) <= 2
 
     def test_record_error_updates_last_seen(self):
-        before = datetime.utcnow()
+        before = datetime.now(UTC)
         try:
             raise ValueError("timestamp check")
         except ValueError as e:
             group = self.fp.record_error(e)
-        after = datetime.utcnow()
+        after = datetime.now(UTC)
         assert before <= group.last_seen <= after
 
 
@@ -443,8 +443,8 @@ class TestErrorFingerprinterQueries:
     def test_get_top_errors_sorted_by_count(self):
         top = self.fp.get_top_errors(limit=3)
         assert len(top) >= 1
-        for i in range(len(top) - 1):
-            assert top[i].count >= top[i + 1].count
+        for a, b in zip(top, top[1:], strict=False):
+            assert a.count >= b.count
 
     def test_get_top_errors_limit(self):
         top = self.fp.get_top_errors(limit=1)
@@ -453,8 +453,8 @@ class TestErrorFingerprinterQueries:
     def test_get_recent_errors_sorted_by_last_seen(self):
         recent = self.fp.get_recent_errors(limit=3)
         assert len(recent) >= 1
-        for i in range(len(recent) - 1):
-            assert recent[i].last_seen >= recent[i + 1].last_seen
+        for a, b in zip(recent, recent[1:], strict=False):
+            assert a.last_seen >= b.last_seen
 
     def test_clear(self):
         assert len(self.fp._groups) > 0

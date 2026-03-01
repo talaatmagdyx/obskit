@@ -32,7 +32,7 @@ class TestAdaptiveRetryBranchCoverage:
         retry._update_metrics(True, 0.01)
 
         # _backpressure_multiplier should still be 1.0 (adapt not called)
-        assert retry._backpressure_multiplier == 1.0
+        assert retry._backpressure_multiplier == pytest.approx(1.0)
 
     def test_adapt_linear_above_threshold(self):
         """Lines 195-196: LINEAR strategy with error_rate > threshold."""
@@ -58,7 +58,7 @@ class TestAdaptiveRetryBranchCoverage:
         retry = AdaptiveRetry("test-linear-low", config)
         retry._adapt(error_rate=0.05)  # 0.05 < 0.1 -> multiplier = 1.0
 
-        assert retry._backpressure_multiplier == 1.0
+        assert retry._backpressure_multiplier == pytest.approx(1.0)
 
     def test_adapt_exponential_above_threshold(self):
         """Lines 201-202: EXPONENTIAL strategy with error_rate > threshold."""
@@ -84,7 +84,7 @@ class TestAdaptiveRetryBranchCoverage:
         retry = AdaptiveRetry("test-exp-low", config)
         retry._adapt(error_rate=0.05)
 
-        assert retry._backpressure_multiplier == 1.0
+        assert retry._backpressure_multiplier == pytest.approx(1.0)
 
     def test_adapt_adaptive_low_error_concurrency_increase(self):
         """Lines 224-225: ADAPTIVE strategy, low error rate -> increase concurrency."""
@@ -250,7 +250,7 @@ class TestCombinedBranchCoverage:
         config.backoff = "unknown_strategy"
 
         delay = config.get_delay(1)
-        assert delay == 1.0  # base_delay returned
+        assert delay == pytest.approx(1.0)  # base_delay returned
 
     def test_resilient_executor_with_circuit_breaker_instance(self):
         """Line 146: circuit_breaker is a CircuitBreaker instance."""
@@ -298,10 +298,10 @@ class TestCombinedBranchCoverage:
         # Use real CircuitBreaker in OPEN state
         cb = CircuitBreaker(name="test-open-raises", failure_threshold=1, recovery_timeout=100.0)
         try:
-            with cb:
+            with cb:  # NOSONAR
                 raise ValueError("force open")
         except ValueError:
-            pass
+            pass  # NOSONAR
 
         callback_called = [False]
 
@@ -334,7 +334,7 @@ class TestCombinedBranchCoverage:
 
         call_count = [0]
 
-        async def failing_async():
+        async def failing_async():  # NOSONAR
             call_count[0] += 1
             raise ConnectionError("always fails")
 
@@ -351,7 +351,7 @@ class TestCombinedBranchCoverage:
 
         call_count = [0]
 
-        async def circuit_open_func():
+        async def circuit_open_func():  # NOSONAR
             call_count[0] += 1
             raise CircuitOpenError(breaker_name="test", time_until_retry=0.0)
 
@@ -559,13 +559,13 @@ class TestAdaptiveRetryMoreBranches:
 
         # Override strategy to an unknown type -> skips all elif branches
         class UnknownStrategy:
-            pass
+            pass  # NOSONAR
 
         retry.config.backpressure_strategy = UnknownStrategy()
         # Should reach line 230 without entering any branch
         retry._adapt(error_rate=0.5)
         # multiplier capped at min(1.0, 10.0) = 1.0 (unchanged from default)
-        assert retry._backpressure_multiplier == 1.0
+        assert retry._backpressure_multiplier == pytest.approx(1.0)
 
     @pytest.mark.asyncio
     async def test_execute_async_raises_last_exception_when_empty_retries(self):

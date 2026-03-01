@@ -28,7 +28,7 @@ import time
 from collections.abc import Callable, Generator
 from contextlib import contextmanager
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Any
 
 from prometheus_client import Counter, Gauge, Histogram
@@ -211,7 +211,7 @@ class HotPathDetector:
             stats.total_time_ms += duration_ms
             stats.min_time_ms = min(stats.min_time_ms, duration_ms)
             stats.max_time_ms = max(stats.max_time_ms, duration_ms)
-            stats.last_called = datetime.utcnow()
+            stats.last_called = datetime.now(UTC)
 
             if has_error:
                 stats.error_count += 1

@@ -114,6 +114,6 @@ class TestStatsDEmitter:
         srv.close()
         emitter = StatsDEmitter(host="127.0.0.1", port=port)
         with emitter:
-            pass
+            pass  # NOSONAR
         # After exiting context, socket is closed
         emitter.emit_counter("test")  # should not raise (error swallowed)

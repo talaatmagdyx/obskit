@@ -74,7 +74,7 @@ echo ""
 echo "4. Validating packages..."
 echo "----------------------------------------------"
 for pkg in "${PACKAGES[@]}"; do
-    if [ -d "packages/$pkg/dist/" ]; then
+    if [[ -d "packages/$pkg/dist/" ]]; then
         twine check "packages/$pkg/dist/"*
     fi
 done
@@ -88,7 +88,7 @@ echo "=============================================="
 echo ""
 echo "Built packages:"
 for pkg in "${PACKAGES[@]}"; do
-    if [ -d "packages/$pkg/dist/" ]; then
+    if [[ -d "packages/$pkg/dist/" ]]; then
         echo "  packages/$pkg/dist/"
         ls "packages/$pkg/dist/" | sed 's/^/    /'
     fi

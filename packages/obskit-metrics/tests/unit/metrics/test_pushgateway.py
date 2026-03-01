@@ -10,7 +10,6 @@ class TestPushgatewayExporter:
 
     def setup_method(self):
         """Reset state before each test."""
-        pass
 
     @patch("obskit.metrics.pushgateway.PUSHGATEWAY_AVAILABLE", True)
     @patch("obskit.metrics.pushgateway.CollectorRegistry")
@@ -28,7 +27,7 @@ class TestPushgatewayExporter:
         assert exporter.gateway_url == "http://pushgateway:9091"
         assert exporter.job_name == "test_job"
         assert exporter.use_add is False
-        assert exporter.timeout == 30.0
+        assert exporter.timeout == pytest.approx(30.0)
 
     @patch("obskit.metrics.pushgateway.PUSHGATEWAY_AVAILABLE", True)
     @patch("obskit.metrics.pushgateway.CollectorRegistry")
@@ -49,7 +48,7 @@ class TestPushgatewayExporter:
 
         assert exporter.gateway_url == "http://pushgateway:9091"  # Trailing slash removed
         assert exporter.use_add is True
-        assert exporter.timeout == 60.0
+        assert exporter.timeout == pytest.approx(60.0)
 
     @patch("obskit.metrics.pushgateway.PUSHGATEWAY_AVAILABLE", True)
     @patch("obskit.metrics.pushgateway.CollectorRegistry")
@@ -413,7 +412,7 @@ class TestBatchJobMetrics:
             job_name="test_job",
             delete_on_success=True,
         ):
-            pass
+            pass  # NOSONAR
 
         mock_push.assert_called_once()
         mock_delete.assert_called_once()

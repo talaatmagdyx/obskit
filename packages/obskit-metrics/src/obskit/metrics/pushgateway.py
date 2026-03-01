@@ -67,7 +67,7 @@ Example - Batch Job Pattern
         # Push results
         exporter.push(grouping_key={"date": "2024-01-15"})
 
-    except Exception as e:
+    except Exception as _e:
         # Record failure
         exporter.record_gauge("batch_status", 0)  # 0 = failure
         exporter.push(grouping_key={"date": "2024-01-15"})
@@ -262,11 +262,11 @@ class PushgatewayExporter:
                 grouping_key=grouping_key,
             )
 
-        except Exception as e:
+        except Exception as _e:
             logger.error(
                 "pushgateway_push_failed",
-                error=str(e),
-                error_type=type(e).__name__,
+                error=str(_e),
+                error_type=type(_e).__name__,
                 gateway_url=self.gateway_url,
                 job_name=self.job_name,
             )
@@ -302,11 +302,11 @@ class PushgatewayExporter:
                 grouping_key=grouping_key,
             )
 
-        except Exception as e:
+        except Exception as _e:
             logger.error(
                 "pushgateway_delete_failed",
-                error=str(e),
-                error_type=type(e).__name__,
+                error=str(_e),
+                error_type=type(_e).__name__,
                 gateway_url=self.gateway_url,
                 job_name=self.job_name,
             )
@@ -539,10 +539,10 @@ def batch_job_metrics(
             if delete_on_success and success:
                 exporter.delete(grouping_key=grouping_key)
 
-        except Exception as e:
+        except Exception as _e:
             logger.error(
                 "batch_job_metrics_push_failed",
-                error=str(e),
+                error=str(_e),
                 job_name=job_name,
             )
 

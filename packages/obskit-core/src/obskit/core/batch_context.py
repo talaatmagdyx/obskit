@@ -178,9 +178,8 @@ def restore_context(ctx: dict[str, Any]) -> Generator[None, None, None]:
     try:
         yield
     finally:
-        # Restore previous values
-        if old_correlation_id:
-            set_correlation_id(old_correlation_id)
+        # Restore previous values (always, even if old_correlation_id is None)
+        set_correlation_id(old_correlation_id)
         _batch_job_context.set(old_batch_ctx)
 
 

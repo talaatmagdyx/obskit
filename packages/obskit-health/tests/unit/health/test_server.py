@@ -60,10 +60,10 @@ class TestHealthRequestHandler:
             responses.append(code)
 
         def mock_send_header(key, val):
-            pass
+            pass  # NOSONAR
 
         def mock_end_headers():
-            pass
+            pass  # NOSONAR
 
         def mock_send_error(code, msg=None):
             errors.append((code, msg))
@@ -83,7 +83,7 @@ class TestHealthRequestHandler:
         return response_data, errors
 
     def test_liveness_endpoint(self):
-        data, errors = self._invoke_handler("/health/live")
+        data, _ = self._invoke_handler("/health/live")
         assert len(data) == 1
         status_code, body = data[0]
         assert status_code == 200

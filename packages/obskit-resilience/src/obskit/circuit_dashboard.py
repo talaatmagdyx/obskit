@@ -22,7 +22,7 @@ Example:
 
 import threading
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import UTC, datetime
 from enum import Enum
 from typing import Any
 
@@ -113,7 +113,7 @@ class DashboardData:
     open_breakers: int
     half_open_breakers: int
     overall_health: bool
-    timestamp: datetime = field(default_factory=datetime.utcnow)
+    timestamp: datetime = field(default_factory=lambda: datetime.now(UTC))
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -272,7 +272,7 @@ class CircuitBreakerDashboard:
 
         # Calculate time until recovery
         if state == CircuitState.OPEN and last_state_change:
-            elapsed = (datetime.utcnow() - last_state_change).total_seconds()
+            elapsed = (datetime.now(UTC) - last_state_change).total_seconds()
             time_until_recovery = max(0, recovery_timeout - elapsed)
 
         is_healthy = state == CircuitState.CLOSED

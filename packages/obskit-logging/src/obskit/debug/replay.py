@@ -24,6 +24,10 @@ logger = get_logger(__name__)
 F = TypeVar("F", bound=Callable[..., Any])
 
 
+
+_JSON_EXT = ".json"
+_JSON_GZ_EXT = ".json.gz"
+
 @dataclass
 class CapturedRequest:
     """Represents a captured request."""
@@ -142,7 +146,7 @@ class FileStorage(RequestCaptureStorage):
         self.base_path.mkdir(parents=True, exist_ok=True)
 
     def _get_path(self, capture_id: str) -> Path:
-        ext = ".json.gz" if self.compress else ".json"
+        ext = _JSON_GZ_EXT if self.compress else _JSON_EXT
         return self.base_path / f"{capture_id}{ext}"
 
     async def save(self, capture: CapturedRequest) -> str:
@@ -150,10 +154,13 @@ class FileStorage(RequestCaptureStorage):
         data = json.dumps(capture.to_dict(), indent=2)
 
         if self.compress:
-            with gzip.open(path, "wt", encoding="utf-8") as f:
-                f.write(data)
+            def _write_gz() -> None:
+                with gzip.open(path, "wt", encoding="utf-8") as f:
+                    f.write(data)
+
+            await asyncio.to_thread(_write_gz)
         else:
-            path.write_text(data)
+            await asyncio.to_thread(path.write_text, data)
 
         return capture.capture_id
 
@@ -161,17 +168,20 @@ class FileStorage(RequestCaptureStorage):
         path = self._get_path(capture_id)
         if not path.exists():
             # Try other extension
-            other_ext = ".json" if self.compress else ".json.gz"
+            other_ext = _JSON_EXT if self.compress else _JSON_GZ_EXT
             path = self.base_path / f"{capture_id}{other_ext}"
             if not path.exists():
                 return None
 
         try:
             if path.suffix == ".gz":
-                with gzip.open(path, "rt", encoding="utf-8") as f:
-                    data = json.load(f)
+                def _read_gz() -> Any:
+                    with gzip.open(path, "rt", encoding="utf-8") as f:
+                        return json.load(f)
+
+                data = await asyncio.to_thread(_read_gz)
             else:
-                data = json.loads(path.read_text())
+                data = json.loads(await asyncio.to_thread(path.read_text))
 
             return CapturedRequest.from_dict(data)
         except Exception as e:
@@ -187,10 +197,10 @@ class FileStorage(RequestCaptureStorage):
             if len(captures) >= limit:
                 break
 
-            if not path.name.endswith((".json", ".json.gz")):
+            if not path.name.endswith((_JSON_EXT, _JSON_GZ_EXT)):
                 continue
 
-            capture_id = path.stem.replace(".json", "")
+            capture_id = path.stem.replace(_JSON_EXT, "")
 
             # Apply filters if we can load the capture
             if function_name or since:
@@ -274,7 +284,7 @@ class RequestCapture:
         @capture.wrap
         async def process_request(data: dict):
             # On failure, request is captured
-            pass
+            pass  # NOSONAR
 
         # Later: replay captured request
         await capture.replay("capture-123")
@@ -503,7 +513,7 @@ class RequestCapture:
         Example:
             @capture.wrap
             async def my_function(data):
-                pass
+                pass  # NOSONAR
         """
         # Register function for replay
         key = f"{func.__module__}.{func.__name__}"

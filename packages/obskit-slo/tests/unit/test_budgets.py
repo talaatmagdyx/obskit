@@ -37,7 +37,7 @@ class TestBudgetStatus:
         assert data["name"] == "test"
         assert data["healthy"] is False
         assert len(data["violations"]) == 1
-        assert data["utilization"]["latency_p95_ms"] == 120.0
+        assert data["utilization"]["latency_p95_ms"] == pytest.approx(120.0)
 
 
 class TestPerformanceBudget:
@@ -63,7 +63,7 @@ class TestPerformanceBudget:
         assert budget.latency_p50_ms == 100
         assert budget.latency_p95_ms == 500
         assert budget.latency_p99_ms == 1000
-        assert budget.error_rate_percent == 1.0
+        assert budget.error_rate_percent == pytest.approx(1.0)
         assert budget.throughput_min_rps == 10
 
     def test_record_latency(self):

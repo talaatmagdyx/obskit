@@ -15,7 +15,7 @@ class TestObskitSelfMetrics:
         """Test self-metrics can be initialized."""
         self_metrics_module.reset_self_metrics()
         metrics = self_metrics_module.ObskitSelfMetrics()
-        assert metrics is not None
+        assert isinstance(metrics, self_metrics_module.ObskitSelfMetrics)
         assert metrics._version is not None
 
     def test_set_queue_depth(self) -> None:

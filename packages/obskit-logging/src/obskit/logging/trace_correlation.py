@@ -104,7 +104,7 @@ def add_trace_context(
             event_dict["trace_id"] = format(ctx.trace_id, "032x")
             event_dict["span_id"] = format(ctx.span_id, "016x")
     except Exception:  # nosec B110 — never let logging crash the app
-        pass
+        pass  # NOSONAR
 
     return event_dict
 
@@ -137,7 +137,7 @@ def get_trace_context() -> dict[str, str]:
                 "span_id": format(ctx.span_id, "016x"),
             }
     except Exception:  # nosec B110
-        pass
+        pass  # NOSONAR
 
     return {}
 

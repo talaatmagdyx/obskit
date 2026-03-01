@@ -43,7 +43,7 @@ class TestOTLPHandlerCoverage:
             handler._shutdown = True
 
         # Verify handler was created successfully
-        assert handler is not None
+        assert isinstance(handler, OTLPLogHandler)
 
     def test_flush_loop_final_flush_with_batch(self):
         """Line 347: final flush when batch is non-empty on shutdown."""
@@ -100,7 +100,7 @@ class TestGetOTLPHandlerCoverage:
                 return False
 
             with patch.object(otlp_mod, "configure_otlp_logging", mock_configure):
-                handler = otlp_mod.get_otlp_handler()
+                _handler = otlp_mod.get_otlp_handler()
 
             assert len(configure_calls) == 1
 

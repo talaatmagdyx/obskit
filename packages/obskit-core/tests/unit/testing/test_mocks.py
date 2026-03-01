@@ -97,7 +97,7 @@ class TestMockMetrics:
     def test_track_request_records_success(self) -> None:
         m = MockMetrics()
         with m.track_request("my_op"):
-            pass
+            pass  # NOSONAR
         assert m.get_request_count("my_op", "success") == 1
 
     def test_track_request_records_failure(self) -> None:
@@ -120,14 +120,14 @@ class TestMockTracer:
     def test_trace_span_records_span(self) -> None:
         t = MockTracer()
         with t.trace_span("my_span"):
-            pass
+            pass  # NOSONAR
         assert len(t.spans) == 1
         assert t.spans[0].name == "my_span"
 
     def test_trace_span_status_ok_on_success(self) -> None:
         t = MockTracer()
         with t.trace_span("op"):
-            pass
+            pass  # NOSONAR
         assert t.spans[0].status == "ok"
 
     def test_trace_span_status_error_on_exception(self) -> None:
@@ -140,7 +140,7 @@ class TestMockTracer:
     def test_assert_span_created_passes(self) -> None:
         t = MockTracer()
         with t.trace_span("my_span"):
-            pass
+            pass  # NOSONAR
         t.assert_span_created("my_span")  # should not raise
 
     def test_assert_span_created_fails(self) -> None:
@@ -151,15 +151,15 @@ class TestMockTracer:
     def test_get_spans_filtered(self) -> None:
         t = MockTracer()
         with t.trace_span("a"):
-            pass
+            pass  # NOSONAR
         with t.trace_span("b"):
-            pass
+            pass  # NOSONAR
         assert len(t.get_spans("a")) == 1
 
     def test_reset_clears_spans(self) -> None:
         t = MockTracer()
         with t.trace_span("op"):
-            pass
+            pass  # NOSONAR
         t.reset()
         assert len(t.spans) == 0
         assert t._current_span is None
@@ -190,7 +190,7 @@ class TestMockSLOTracker:
         s.record_measurement("avail", 1.0, success=True)
         status = s.get_status("avail")
         assert status is not None
-        assert status.current_value == 1.0
+        assert status.current_value == pytest.approx(1.0)
 
     def test_get_status_returns_none_when_empty(self) -> None:
         s = MockSLOTracker()
@@ -283,7 +283,7 @@ class TestMockCircuitBreaker:
     def test_success_increments_count(self) -> None:
         cb = MockCircuitBreaker()
         with cb:
-            pass
+            pass  # NOSONAR
         assert cb._success_count == 1
 
     def test_failure_increments_count(self) -> None:
@@ -308,7 +308,7 @@ class TestObskitTestContext:
         ctx = ObskitTestContext()
         ctx.metrics.observe_request("op", 0.1, "success")
         with ctx.tracer.trace_span("span"):
-            pass
+            pass  # NOSONAR
         ctx.slo_tracker.record_measurement("avail")
         ctx.reset()
         assert len(ctx.metrics.requests) == 0
@@ -329,12 +329,12 @@ class TestDisableObservability:
     def test_disable_observability_context_manager(self) -> None:
         # Should not raise
         with disable_observability():
-            pass
+            pass  # NOSONAR
 
     def test_disable_observability_multiple_times(self) -> None:
         with disable_observability():
             with disable_observability():
-                pass
+                pass  # NOSONAR
 
 
 # ── mock_observability ────────────────────────────────────────────────────────
@@ -453,5 +453,5 @@ class TestMockCircuitBreakerProperties:
         with patch.dict("sys.modules", {"obskit": type("obskit", (), {"CircuitOpenError": CircuitOpenError})}):
             with pytest.raises(CircuitOpenError):
                 with cb:
-                    pass
+                    pass  # NOSONAR
 

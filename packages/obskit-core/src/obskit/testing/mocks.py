@@ -313,7 +313,7 @@ class MockHealthChecker:
         """Set a check's status for testing."""
         self._checks[name] = healthy
 
-    async def check_health(self):
+    async def check_health(self):  # NOSONAR
         """Check all health statuses."""
         all_healthy = all(self._checks.values()) if self._checks else True
         return MagicMock(

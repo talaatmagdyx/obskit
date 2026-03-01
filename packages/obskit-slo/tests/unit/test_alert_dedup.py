@@ -4,7 +4,7 @@ Tests for obskit.alert_dedup module — AlertDeduplicator.
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone, UTC
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -24,7 +24,7 @@ from obskit.alert_dedup import (
 
 class TestAlertRecord:
     def _make_record(self, **kwargs):
-        now = datetime.utcnow()
+        now = datetime.now(UTC)
         defaults = dict(
             alert_name="high_error_rate",
             severity="warning",
@@ -43,7 +43,7 @@ class TestAlertRecord:
         assert d["last_sent"] is None
 
     def test_to_dict_with_last_sent(self):
-        now = datetime.utcnow()
+        now = datetime.now(UTC)
         record = self._make_record(last_sent=now)
         d = record.to_dict()
         assert d["last_sent"] is not None
@@ -200,8 +200,8 @@ class TestAlertDeduplicator:
         dedup.should_alert("old_alert", severity="warning")
         # Manually age the record
         fp = list(dedup._alerts.keys())[0]
-        dedup._alerts[fp].last_seen = datetime.utcnow() - timedelta(minutes=5)
-        dedup._suppression_windows[fp] = datetime.utcnow() - timedelta(minutes=5)
+        dedup._alerts[fp].last_seen = datetime.now(UTC) - timedelta(minutes=5)
+        dedup._suppression_windows[fp] = datetime.now(UTC) - timedelta(minutes=5)
         dedup.cleanup()
         assert fp not in dedup._alerts
 
@@ -227,7 +227,7 @@ class TestAlertDeduplicator:
 
         # Age the record beyond window
         fp = list(dedup._alerts.keys())[0]
-        dedup._alerts[fp].first_seen = datetime.utcnow() - timedelta(minutes=5)
+        dedup._alerts[fp].first_seen = datetime.now(UTC) - timedelta(minutes=5)
 
         # Clear suppression so it doesn't block
         dedup._suppression_windows.clear()

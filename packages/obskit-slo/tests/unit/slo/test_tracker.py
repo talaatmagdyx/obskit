@@ -1,6 +1,6 @@
 """Tests for obskit.slo.tracker module."""
 
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, datetime, timedelta, timezone
 
 import pytest
 
@@ -42,7 +42,7 @@ class TestSLOTracker:
         )
 
         assert "api_availability" in tracker._targets
-        assert tracker._targets["api_availability"].target_value == 0.999
+        assert tracker._targets["api_availability"].target_value == pytest.approx(0.999)
         assert tracker._targets["api_availability"].slo_type == SLOType.AVAILABILITY
 
     def test_register_slo_latency(self):
@@ -116,7 +116,7 @@ class TestSLOTracker:
 
         # Add an old measurement
         old_measurement = SLOMeasurement(
-            timestamp=datetime.now() - timedelta(seconds=120),
+            timestamp=datetime.now(UTC) - timedelta(seconds=120),
             value=1.0,
             success=True,
         )
@@ -127,7 +127,7 @@ class TestSLOTracker:
 
         # Old measurement should be cleaned
         assert len(tracker._measurements["test_slo"]) == 1
-        assert tracker._measurements["test_slo"][0].timestamp > datetime.now() - timedelta(
+        assert tracker._measurements["test_slo"][0].timestamp > datetime.now(UTC) - timedelta(
             seconds=61
         )
 
@@ -151,7 +151,7 @@ class TestSLOTracker:
         status = tracker.get_status("test_slo")
 
         assert status is not None
-        assert status.current_value == 1.0
+        assert status.current_value == pytest.approx(1.0)
         assert status.compliance is True
         assert status.measurement_count == 0
 
@@ -170,7 +170,7 @@ class TestSLOTracker:
 
         status = tracker.get_status("test_slo")
 
-        assert status.current_value == 1.0
+        assert status.current_value == pytest.approx(1.0)
         assert status.compliance is True
 
     def test_get_status_availability_non_compliant(self):
@@ -190,7 +190,7 @@ class TestSLOTracker:
 
         status = tracker.get_status("test_slo")
 
-        assert status.current_value == 0.9
+        assert status.current_value == pytest.approx(0.9)
         assert status.compliance is False
 
     def test_get_status_error_rate_compliant(self):
@@ -210,7 +210,7 @@ class TestSLOTracker:
 
         status = tracker.get_status("test_slo")
 
-        assert status.current_value == 0.02
+        assert status.current_value == pytest.approx(0.02)
         assert status.compliance is True
 
     def test_get_status_error_rate_non_compliant(self):
@@ -230,7 +230,7 @@ class TestSLOTracker:
 
         status = tracker.get_status("test_slo")
 
-        assert status.current_value == 0.1
+        assert status.current_value == pytest.approx(0.1)
         assert status.compliance is False
 
     def test_get_status_latency(self):
@@ -282,7 +282,7 @@ class TestSLOTracker:
         )
 
         # Record measurements with timestamps (oldest first for proper throughput calculation)
-        now = datetime.now()
+        now = datetime.now(UTC)
         for i in range(10):
             m = SLOMeasurement(
                 timestamp=now - timedelta(seconds=(10 - i) * 0.1),  # Oldest first
@@ -310,7 +310,7 @@ class TestSLOTracker:
         status = tracker.get_status("test_slo")
 
         # With single measurement, throughput is 0
-        assert status.current_value == 0.0
+        assert status.current_value == pytest.approx(0.0)
 
     def test_get_all_status(self):
         """Test getting status for all SLOs."""
@@ -332,7 +332,7 @@ class TestSLOTracker:
         status = tracker.get_status("empty_slo")
 
         # For availability with no measurements, default is 1.0 (100%)
-        assert status.current_value == 1.0
+        assert status.current_value == pytest.approx(1.0)
         assert status.measurement_count == 0
 
     def test_to_dict(self):
@@ -502,7 +502,7 @@ class TestSLOTypes:
             consumed=30.0,
         )
 
-        assert budget.remaining == 70.0
+        assert budget.remaining == pytest.approx(70.0)
 
     def test_error_budget_remaining_non_negative(self):
         """Test ErrorBudget remaining is never negative."""
@@ -511,7 +511,7 @@ class TestSLOTypes:
             consumed=150.0,  # Over-consumed
         )
 
-        assert budget.remaining == 0.0
+        assert budget.remaining == pytest.approx(0.0)
 
     def test_error_budget_remaining_percentage(self):
         """Test ErrorBudget remaining_percentage."""
@@ -520,7 +520,7 @@ class TestSLOTypes:
             consumed=30.0,
         )
 
-        assert budget.remaining_percentage == 70.0
+        assert budget.remaining_percentage == pytest.approx(70.0)
 
     def test_error_budget_remaining_percentage_zero_total(self):
         """Test ErrorBudget remaining_percentage with zero total."""
@@ -529,7 +529,7 @@ class TestSLOTypes:
             consumed=0.0,
         )
 
-        assert budget.remaining_percentage == 0.0
+        assert budget.remaining_percentage == pytest.approx(0.0)
 
     def test_error_budget_is_exhausted(self):
         """Test ErrorBudget is_exhausted property."""

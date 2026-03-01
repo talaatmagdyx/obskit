@@ -20,7 +20,11 @@ def reset_module_state():
         async_recording_module._metric_worker_task
         and not async_recording_module._metric_worker_task.done()
     ):
-        async_recording_module._metric_worker_task.cancel()
+        try:
+            async_recording_module._metric_worker_task.cancel()
+        except RuntimeError:
+            # Event loop may already be closed during sync teardown; ignore
+            pass
     async_recording_module._metric_queue = None
     async_recording_module._metric_worker_task = None
 
@@ -352,24 +356,28 @@ class TestWorkerEdgeCases:
         mock_base = MagicMock()
         metrics = AsyncREDMetrics(mock_base, queue_size=1)
 
-        await _ensure_worker_started()
-
-        # Create a tiny queue
+        # Set up a pre-filled maxsize=1 queue directly — no real worker needed.
+        # Starting a worker and then replacing _metric_queue causes the worker
+        # to lose its queue reference, making shutdown_async_recording() hang.
         module._metric_queue = asyncio.Queue(maxsize=1)
+        module._metric_queue.put_nowait({"metrics": MagicMock(), "method": "test"})
+        module._metric_worker_task = None  # no worker running
 
-        # Fill the queue
-        await module._metric_queue.put({"metrics": MagicMock(), "method": "test"})
+        async def _noop() -> None:
+            pass
 
-        # This should timeout as queue is full
-        with patch("obskit.metrics.async_recording.logger"):
+        # Patch _ensure_worker_started so observe_request doesn't spin up a worker
+        with patch("obskit.metrics.async_recording._ensure_worker_started", side_effect=_noop), \
+             patch("obskit.metrics.async_recording.logger"):
             await metrics.observe_request(
                 operation="test_op",
                 duration_seconds=0.05,
                 status="success",
             )
+            # Queue was full → observe_request should have timed out and dropped the metric
 
-            # Should have logged warning
-            # Note: TimeoutError may or may not trigger depending on timing
+        # Clean up without a worker to shut down
+        module._metric_queue = None
 
     @pytest.mark.asyncio
     async def test_worker_timeout_continue(self):

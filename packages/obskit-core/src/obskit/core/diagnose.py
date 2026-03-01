@@ -170,7 +170,7 @@ def _check_health() -> PackageInfo:
                                 "trace_id in /health responses" if _OTEL_AVAILABLE else "needs obskit-tracing[opentelemetry]")
             )
         except ImportError:
-            pass
+            pass  # NOSONAR
     return PackageInfo(name="obskit-health", installed=ver is not None, version=ver,
                        integrations=integrations)
 

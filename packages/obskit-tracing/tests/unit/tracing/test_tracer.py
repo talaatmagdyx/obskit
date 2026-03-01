@@ -155,7 +155,7 @@ class TestTraceSpan:
             "test_operation",
             attributes={"key1": "value1", "key2": 123},
         ):
-            pass
+            pass  # NOSONAR
 
     def test_trace_span_with_component(self):
         """Test trace_span with component."""
@@ -163,7 +163,7 @@ class TestTraceSpan:
             "test_operation",
             component="TestService",
         ):
-            pass
+            pass  # NOSONAR
 
     def test_trace_span_with_operation(self):
         """Test trace_span with operation."""
@@ -171,7 +171,7 @@ class TestTraceSpan:
             "test_operation",
             operation="create",
         ):
-            pass
+            pass  # NOSONAR
 
     def test_trace_span_yields_span(self):
         """Test trace_span yields span object."""
@@ -234,7 +234,7 @@ class TestTraceOperation:
 
         @trace_operation()
         def named_function():
-            pass
+            pass  # NOSONAR
 
         assert named_function.__name__ == "named_function"
 
@@ -317,7 +317,7 @@ class TestTraceContext:
         """Test trace_context context manager."""
         headers = {}
         with trace_context(headers):
-            pass
+            pass  # NOSONAR
 
     def test_trace_context_none_headers(self):
         """Test trace_context with None headers."""
@@ -331,7 +331,7 @@ class TestTraceContext:
 
         with trace_context(headers):
             # Should have context
-            pass
+            pass  # NOSONAR
 
 
 class TestIsTracingAvailable:

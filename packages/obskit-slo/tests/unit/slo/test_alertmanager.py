@@ -20,7 +20,7 @@ class TestAlertmanagerWebhook:
         )
 
         assert webhook.alertmanager_url == "http://alertmanager:9093"
-        assert webhook.timeout == 30.0
+        assert webhook.timeout == pytest.approx(30.0)
         assert webhook._alerts_endpoint == "http://alertmanager:9093/api/v2/alerts"
 
     @patch("obskit.slo.alertmanager.HTTPX_AVAILABLE", True)
@@ -38,7 +38,7 @@ class TestAlertmanagerWebhook:
 
         assert webhook.alertmanager_url == "http://alertmanager:9093"  # Trailing slash removed
         assert webhook.generator_url == "http://my-app.com"
-        assert webhook.timeout == 60.0
+        assert webhook.timeout == pytest.approx(60.0)
         assert webhook.headers == {"Authorization": "Bearer token"}
 
     @pytest.mark.asyncio

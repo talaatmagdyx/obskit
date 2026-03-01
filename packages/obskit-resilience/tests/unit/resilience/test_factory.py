@@ -28,31 +28,31 @@ class TestCircuitBreakerPreset:
     def test_database_preset_values(self):
         config = CircuitBreakerPreset.DATABASE.value
         assert config["failure_threshold"] == 3
-        assert config["recovery_timeout"] == 15.0
+        assert config["recovery_timeout"] == pytest.approx(15.0)
 
     def test_cache_preset_values(self):
         config = CircuitBreakerPreset.CACHE.value
         assert config["failure_threshold"] == 5
-        assert config["recovery_timeout"] == 10.0
+        assert config["recovery_timeout"] == pytest.approx(10.0)
 
     def test_external_api_preset_values(self):
         config = CircuitBreakerPreset.EXTERNAL_API.value
         assert config["failure_threshold"] == 3
-        assert config["recovery_timeout"] == 60.0
+        assert config["recovery_timeout"] == pytest.approx(60.0)
 
     def test_microservice_preset_values(self):
         config = CircuitBreakerPreset.MICROSERVICE.value
         assert config["failure_threshold"] == 5
-        assert config["recovery_timeout"] == 30.0
+        assert config["recovery_timeout"] == pytest.approx(30.0)
 
     def test_ai_api_preset_values(self):
         config = CircuitBreakerPreset.AI_API.value
-        assert config["recovery_timeout"] == 120.0
+        assert config["recovery_timeout"] == pytest.approx(120.0)
 
     def test_default_preset_values(self):
         config = CircuitBreakerPreset.DEFAULT.value
         assert config["failure_threshold"] == 5
-        assert config["recovery_timeout"] == 30.0
+        assert config["recovery_timeout"] == pytest.approx(30.0)
 
     def test_all_presets_have_required_keys(self):
         required_keys = {"failure_threshold", "recovery_timeout", "half_open_requests"}
@@ -127,7 +127,7 @@ class TestGetCircuitBreaker:
             preset=CircuitBreakerPreset.DATABASE,
             recovery_timeout=120.0,
         )
-        assert cb._recovery_timeout == 120.0
+        assert cb._recovery_timeout == pytest.approx(120.0)
 
     def test_custom_half_open_requests_overrides(self):
         cb = get_circuit_breaker(
@@ -187,7 +187,7 @@ class TestGetRateLimiter:
 
 class TestResetCircuitBreaker:
     def test_reset_existing_breaker(self):
-        cb = get_circuit_breaker("factory_reset_test_1")
+        _cb = get_circuit_breaker("factory_reset_test_1")
         result = reset_circuit_breaker("factory_reset_test_1")
         assert result is True
 
