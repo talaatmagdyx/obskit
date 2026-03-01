@@ -8,86 +8,10 @@
       "package-name": "obskit",
       "changelog-path": "CHANGELOG.md",
       "extra-files": [
-        "packages/obskit-core/src/obskit/_version.py",
-        "packages/obskit-tracing/src/obskit/tracing/_version.py",
+        "src/obskit/_version.py",
         {
           "type": "toml",
-          "path": "packages/obskit-core/pyproject.toml",
-          "jsonpath": "$.version"
-        },
-        {
-          "type": "toml",
-          "path": "packages/obskit-logging/pyproject.toml",
-          "jsonpath": "$.version"
-        },
-        {
-          "type": "toml",
-          "path": "packages/obskit-metrics/pyproject.toml",
-          "jsonpath": "$.version"
-        },
-        {
-          "type": "toml",
-          "path": "packages/obskit-tracing/pyproject.toml",
-          "jsonpath": "$.version"
-        },
-        {
-          "type": "toml",
-          "path": "packages/obskit-health/pyproject.toml",
-          "jsonpath": "$.version"
-        },
-        {
-          "type": "toml",
-          "path": "packages/obskit-resilience/pyproject.toml",
-          "jsonpath": "$.version"
-        },
-        {
-          "type": "toml",
-          "path": "packages/obskit-slo/pyproject.toml",
-          "jsonpath": "$.version"
-        },
-        {
-          "type": "toml",
-          "path": "packages/obskit-decorators/pyproject.toml",
-          "jsonpath": "$.version"
-        },
-        {
-          "type": "toml",
-          "path": "packages/obskit-db/pyproject.toml",
-          "jsonpath": "$.version"
-        },
-        {
-          "type": "toml",
-          "path": "packages/obskit-queue/pyproject.toml",
-          "jsonpath": "$.version"
-        },
-        {
-          "type": "toml",
-          "path": "packages/obskit-dashboards/pyproject.toml",
-          "jsonpath": "$.version"
-        },
-        {
-          "type": "toml",
-          "path": "packages/obskit-middleware-fastapi/pyproject.toml",
-          "jsonpath": "$.version"
-        },
-        {
-          "type": "toml",
-          "path": "packages/obskit-middleware-flask/pyproject.toml",
-          "jsonpath": "$.version"
-        },
-        {
-          "type": "toml",
-          "path": "packages/obskit-middleware-django/pyproject.toml",
-          "jsonpath": "$.version"
-        },
-        {
-          "type": "toml",
-          "path": "packages/obskit-middleware-grpc/pyproject.toml",
-          "jsonpath": "$.version"
-        },
-        {
-          "type": "toml",
-          "path": "packages/obskit/pyproject.toml",
+          "path": "pyproject.toml",
           "jsonpath": "$.version"
         }
       ]
