@@ -27,10 +27,10 @@ existing Prometheus infrastructure (exporters, Alertmanager, Grafana).
 
 ```bash
 # Minimal — metrics only
-pip install obskit-metrics
+pip install "obskit[prometheus]"
 
 # With health check server
-pip install obskit-metrics obskit-health
+pip install "obskit[prometheus]" obskit-health
 
 # Full stack
 pip install "obskit[all]"

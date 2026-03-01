@@ -5,7 +5,7 @@ Automatic per-request observability for FastAPI applications: correlation ID pro
 ## Installation
 
 ```bash
-pip install obskit-middleware-fastapi
+pip install "obskit[fastapi]"
 ```
 
 ---

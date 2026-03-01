@@ -24,10 +24,10 @@ on it.  You can still use all structlog APIs directly.
 ## Installation
 
 ```bash
-pip install obskit-logging
+pip install obskit
 
 # For OTLP log export
-pip install obskit-logging opentelemetry-exporter-otlp-proto-grpc
+pip install obskit opentelemetry-exporter-otlp-proto-grpc
 ```
 
 ---

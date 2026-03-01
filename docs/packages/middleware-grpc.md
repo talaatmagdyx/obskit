@@ -5,7 +5,7 @@ gRPC server and client interceptors that bring full obskit observability to gRPC
 ## Installation
 
 ```bash
-pip install obskit-middleware-grpc
+pip install obskit
 ```
 
 ---

@@ -40,7 +40,7 @@ Histogram observation (0.045 s)
 ## Installation
 
 ```bash
-pip install obskit-metrics obskit-tracing
+pip install "obskit[prometheus]" obskit-tracing
 ```
 
 ---
@@ -386,7 +386,7 @@ dict — obskit uses `trace_id`.
 
 | Step | Action |
 |------|--------|
-| Install | `pip install obskit-metrics obskit-tracing` |
+| Install | `pip install "obskit[prometheus]" obskit-tracing` |
 | Define metric | Use `Histogram` or `Summary` (not Counter/Gauge) |
 | Record | `observe_with_exemplar(metric.labels(…), value)` |
 | Expose | Return `application/openmetrics-text` from `/metrics` |

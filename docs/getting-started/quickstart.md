@@ -18,7 +18,7 @@ pip install \
 ```
 
 !!! tip "Just want one thing?"
-    Every obskit package is standalone. `pip install obskit-logging` is all you need for structured logging. No need to install the full stack upfront.
+    Every obskit package is standalone. `pip install obskit` is all you need for structured logging. No need to install the full stack upfront.
 
 ---
 

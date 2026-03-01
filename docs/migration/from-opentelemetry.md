@@ -64,7 +64,7 @@ setup_tracing(
 ## Installation
 
 ```bash
-pip install obskit-tracing
+pip install "obskit[otlp]"
 
 # For auto-instrumentation of specific frameworks:
 pip install opentelemetry-instrumentation-fastapi

@@ -15,9 +15,9 @@ The team decided to split the monolith into focused packages. The core challenge
 Use **Python namespace packages** (PEP 420 / PEP 451). Each sub-package contributes to the `obskit.*` namespace without owning `obskit/__init__.py`. Only the meta-package `obskit` provides `obskit/__init__.py`.
 
 **Rules:**
-- `packages/obskit-logging/src/obskit/` → **no `__init__.py`** (namespace root)
-- `packages/obskit-logging/src/obskit/logging/` → **has `__init__.py`** (regular package)
-- `packages/obskit/src/obskit/` → **has `__init__.py`** (meta-package only)
+- `src/obskit/obskit/` → **no `__init__.py`** (namespace root)
+- `src/obskit/obskit/logging/` → **has `__init__.py`** (regular package)
+- `src/obskit/obskit/` → **has `__init__.py`** (meta-package only)
 
 Python's import system merges all contributions at runtime, so `import obskit.logging` and `import obskit.metrics` both work even though they come from different installed packages.
 
@@ -25,7 +25,7 @@ Python's import system merges all contributions at runtime, so `import obskit.lo
 
 **Positive:**
 - Zero import changes for users upgrading from v1
-- `pip install obskit-metrics` gives metrics without OTel overhead
+- `pip install "obskit[prometheus]"` gives metrics without OTel overhead
 - `pip install obskit` gives everything (backward compatible with v1)
 - Each package can be versioned and released independently
 

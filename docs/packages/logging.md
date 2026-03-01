@@ -5,7 +5,7 @@ Structured, production-ready logging for obskit services. Built on [structlog](h
 ## Installation
 
 ```bash
-pip install obskit-logging
+pip install obskit
 ```
 
 ### Optional extras

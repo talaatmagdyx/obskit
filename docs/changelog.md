@@ -26,21 +26,21 @@ See the full [Migration Guide](migration/from-v1.md) for step-by-step instructio
 
 | Package | Install | What it provides |
 |---|---|---|
-| `obskit-core` | `pip install obskit-core` | Config, errors, interfaces, correlation, test helpers |
-| `obskit-logging` | `pip install obskit-logging` | Structured logging, adaptive sampling, OTLP export |
-| `obskit-metrics` | `pip install obskit-metrics` | RED/Golden/USE metrics, exemplars, cardinality guard |
-| `obskit-tracing` | `pip install obskit-tracing` | OTel setup, `trace_span`, auto-instrumentation |
-| `obskit-health` | `pip install obskit-health` | Health check framework, `/health` HTTP server |
-| `obskit-resilience` | `pip install obskit-resilience` | Circuit breaker, retry, rate limiter |
-| `obskit-slo` | `pip install obskit-slo` | SLO/SLA tracking, error budgets, alerting |
-| `obskit-decorators` | `pip install obskit-decorators` | `@with_observability` cross-cutting decorator |
-| `obskit-db` | `pip install obskit-db` | SQLAlchemy instrumentation, query analyzer |
-| `obskit-queue` | `pip install obskit-queue` | Kafka/RabbitMQ tracing, consumer-lag, DLQ |
-| `obskit-dashboards` | `pip install obskit-dashboards` | Grafana dashboard generators |
-| `obskit-middleware-fastapi` | `pip install obskit-middleware-fastapi` | FastAPI ASGI middleware |
-| `obskit-middleware-flask` | `pip install obskit-middleware-flask` | Flask WSGI middleware |
-| `obskit-middleware-django` | `pip install obskit-middleware-django` | Django middleware |
-| `obskit-middleware-grpc` | `pip install obskit-middleware-grpc` | gRPC server/client interceptors |
+| `obskit-core` | `pip install obskit` | Config, errors, interfaces, correlation, test helpers |
+| `obskit-logging` | `pip install obskit` | Structured logging, adaptive sampling, OTLP export |
+| `obskit-metrics` | `pip install "obskit[prometheus]"` | RED/Golden/USE metrics, exemplars, cardinality guard |
+| `obskit-tracing` | `pip install "obskit[otlp]"` | OTel setup, `trace_span`, auto-instrumentation |
+| `obskit-health` | `pip install obskit` | Health check framework, `/health` HTTP server |
+| `obskit-resilience` | `pip install obskit` | Circuit breaker, retry, rate limiter |
+| `obskit-slo` | `pip install obskit` | SLO/SLA tracking, error budgets, alerting |
+| `obskit-decorators` | `pip install obskit` | `@with_observability` cross-cutting decorator |
+| `obskit-db` | `pip install "obskit[sqlalchemy]"` | SQLAlchemy instrumentation, query analyzer |
+| `obskit-queue` | `pip install "obskit[kafka,rabbitmq]"` | Kafka/RabbitMQ tracing, consumer-lag, DLQ |
+| `obskit-dashboards` | `pip install obskit` | Grafana dashboard generators |
+| `obskit-middleware-fastapi` | `pip install "obskit[fastapi]"` | FastAPI ASGI middleware |
+| `obskit-middleware-flask` | `pip install "obskit[flask]"` | Flask WSGI middleware |
+| `obskit-middleware-django` | `pip install "obskit[django]"` | Django middleware |
+| `obskit-middleware-grpc` | `pip install obskit` | gRPC server/client interceptors |
 | `obskit` | `pip install "obskit[all]"` | Meta-package; installs all of the above |
 
 #### New APIs
@@ -95,7 +95,7 @@ See the full [Migration Guide](migration/from-v1.md) for step-by-step instructio
 +pip install "obskit[all]==2.0.0"   # drop-in compatible
 
 # Or per-package (new in v2):
-+pip install obskit-metrics==2.0.0
++pip install "obskit[prometheus]"==2.0.0
 ```
 
 #### Preferred import paths

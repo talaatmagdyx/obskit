@@ -5,7 +5,7 @@ Service Level Objective (SLO) tracking, error budget management, and Prometheus 
 ## Installation
 
 ```bash
-pip install obskit-slo
+pip install obskit
 ```
 
 ---

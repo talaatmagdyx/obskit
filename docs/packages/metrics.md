@@ -5,7 +5,7 @@ Prometheus-native metrics for obskit services. Implements the RED method, the Fo
 ## Installation
 
 ```bash
-pip install obskit-metrics
+pip install "obskit[prometheus]"
 ```
 
 ### With Prometheus client

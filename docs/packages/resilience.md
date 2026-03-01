@@ -5,7 +5,7 @@ Production-grade resilience primitives: circuit breakers, retries with exponenti
 ## Installation
 
 ```bash
-pip install obskit-resilience
+pip install obskit
 ```
 
 ---

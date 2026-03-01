@@ -5,7 +5,7 @@ The foundational package for the obskit ecosystem. Every other obskit package de
 ## Installation
 
 ```bash
-pip install obskit-core
+pip install obskit
 ```
 
 ## Package contents

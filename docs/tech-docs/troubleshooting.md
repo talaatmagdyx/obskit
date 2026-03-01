@@ -12,7 +12,7 @@ Use this guide to diagnose and fix the most common obskit issues in development 
 | Metrics not scraped by Prometheus | Wrong port or path | Confirm `OBSKIT_METRICS_PORT=9090` and Prometheus `targets` |
 | Health check always unhealthy | Dependency check timeout | Increase `OBSKIT_HEALTH_CHECK_TIMEOUT` or fix the failing dependency |
 | No `trace_id` in log events | Tracing not initialised before logging | Call `setup_tracing()` before creating any logger |
-| `ImportError: obskit.tracing` | Package not installed | `pip install obskit-tracing` |
+| `ImportError: obskit.tracing` | Package not installed | `pip install "obskit[otlp]"` |
 | High memory from metrics | Cardinality explosion | Bound label values; see cardinality section |
 | Circuit breaker opens immediately | Failure threshold too low or external service down | Raise threshold or fix the downstream service |
 | Spans missing in production | Sample rate too low | Increase `OBSKIT_TRACE_SAMPLE_RATE` temporarily |
@@ -325,7 +325,7 @@ ModuleNotFoundError: No module named 'obskit.tracing'
 
 ```bash
 # obskit-tracing is an optional package
-pip install obskit-tracing
+pip install "obskit[otlp]"
 
 # Or install the meta-package which includes everything
 pip install obskit[all]

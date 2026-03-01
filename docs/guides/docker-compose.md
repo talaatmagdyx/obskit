@@ -36,7 +36,7 @@ Your Python service
 
 - Docker 24+ and Docker Compose v2
 - Your Python service listening on port 8000
-- `pip install obskit-logging obskit-tracing obskit-metrics obskit-health`
+- `pip install obskit obskit-tracing obskit-metrics obskit-health`
 
 ---
 

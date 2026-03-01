@@ -5,7 +5,7 @@ Automatic per-request observability for Flask applications. Provides the same co
 ## Installation
 
 ```bash
-pip install obskit-middleware-flask
+pip install "obskit[flask]"
 ```
 
 ---
