@@ -562,23 +562,14 @@ class TestTenantGaps:
         mock_trace_module = MagicMock()
         mock_trace_module.get_current_span.return_value = mock_span
 
-        # Temporarily inject mock into sys.modules
-        sys.modules["opentelemetry.trace"] = mock_trace_module
         mock_otel = MagicMock()
         mock_otel.trace = mock_trace_module
-        sys.modules["opentelemetry"] = mock_otel
 
-        try:
+        with patch.dict(sys.modules, {"opentelemetry": mock_otel, "opentelemetry.trace": mock_trace_module}):
             with tenant_context("t-123", company_id="comp-456") as ctx:
                 assert ctx["tenant_id"] == "t-123"
             mock_span.set_attribute.assert_any_call("tenant.id", "t-123")
             mock_span.set_attribute.assert_any_call("company.id", "comp-456")
-        finally:
-            # Restore original modules
-            if "opentelemetry.trace" in sys.modules:
-                del sys.modules["opentelemetry.trace"]
-            if "opentelemetry" in sys.modules:
-                del sys.modules["opentelemetry"]
 
     def test_tenant_context_exception_from_trace_is_swallowed(self):
         """Lines 172-173: exception during trace attribute setting is swallowed."""
@@ -592,19 +583,12 @@ class TestTenantGaps:
         mock_trace_module = MagicMock()
         mock_trace_module.get_current_span.return_value = mock_span
 
-        sys.modules["opentelemetry.trace"] = mock_trace_module
         mock_otel = MagicMock()
         mock_otel.trace = mock_trace_module
-        sys.modules["opentelemetry"] = mock_otel
 
-        try:
+        with patch.dict(sys.modules, {"opentelemetry": mock_otel, "opentelemetry.trace": mock_trace_module}):
             with tenant_context("t-789") as ctx:
                 assert ctx["tenant_id"] == "t-789"
-        finally:
-            if "opentelemetry.trace" in sys.modules:
-                del sys.modules["opentelemetry.trace"]
-            if "opentelemetry" in sys.modules:
-                del sys.modules["opentelemetry"]
 
     def test_tenant_context_without_company_id(self):
         """Line 170->175: False branch - company_id is None so company.id attribute not set."""
@@ -617,12 +601,10 @@ class TestTenantGaps:
         mock_trace_module = MagicMock()
         mock_trace_module.get_current_span.return_value = mock_span
 
-        sys.modules["opentelemetry.trace"] = mock_trace_module
         mock_otel = MagicMock()
         mock_otel.trace = mock_trace_module
-        sys.modules["opentelemetry"] = mock_otel
 
-        try:
+        with patch.dict(sys.modules, {"opentelemetry": mock_otel, "opentelemetry.trace": mock_trace_module}):
             # No company_id provided - line 170 is False, company.id not set
             with tenant_context("t-no-company") as ctx:
                 assert ctx["tenant_id"] == "t-no-company"
@@ -631,11 +613,6 @@ class TestTenantGaps:
             # company.id is NOT set (False branch of if company_id:)
             for call in mock_span.set_attribute.call_args_list:
                 assert "company.id" not in str(call)
-        finally:
-            if "opentelemetry.trace" in sys.modules:
-                del sys.modules["opentelemetry.trace"]
-            if "opentelemetry" in sys.modules:
-                del sys.modules["opentelemetry"]
 
 
 # =============================================================================
