@@ -39,7 +39,7 @@ graph LR
 
 | Category | v1 behaviour | v2 behaviour | Severity |
 |----------|-------------|-------------|----------|
-| **Install command** | `pip install obskit` | `pip install obskit-logging obskit-metrics …` | Low — additive change |
+| **Install command** | `pip install obskit` | `pip install obskit obskit-metrics …` | Low — additive change |
 | **Logging API** | `configure_logging()` function call | Environment variables + `get_logger()` | **Medium** |
 | **Tracing API** | `configure_tracing()` | `setup_tracing()` | **Medium** |
 | **Metrics API** | `get_red_metrics()` factory | `REDMetrics(service=…)` constructor | **Medium** |

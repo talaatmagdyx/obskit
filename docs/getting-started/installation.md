@@ -26,25 +26,25 @@ Install only the packages your service needs. This is the preferred approach —
 === "Logging only"
 
     ```bash
-    pip install obskit-logging
+    pip install obskit
     ```
 
 === "Metrics only"
 
     ```bash
-    pip install obskit-metrics
+    pip install "obskit[prometheus]"
     ```
 
 === "Tracing only"
 
     ```bash
-    pip install obskit-tracing
+    pip install "obskit[otlp]"
     ```
 
 === "Health checks only"
 
     ```bash
-    pip install obskit-health
+    pip install obskit
     ```
 
 === "Typical microservice"

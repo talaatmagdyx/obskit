@@ -143,7 +143,7 @@ pip install "obskit[all]"
 Only install the packages you actually use.  Update imports to the new paths.
 
 ```bash
-pip install obskit-core obskit-logging obskit-metrics obskit-tracing obskit-health
+pip install obskit obskit-logging obskit-metrics obskit-tracing obskit-health
 ```
 
 **Option C — Incremental (recommended for teams)**
@@ -332,7 +332,7 @@ If you pin individual packages:
 RUN pip install obskit==1.5.0
 
 # After (minimal image)
-RUN pip install obskit-core==2.0.0 obskit-logging==2.0.0 obskit-metrics==2.0.0
+RUN pip install obskit==2.0.0 obskit-logging==2.0.0 obskit-metrics==2.0.0
 
 # After (full)
 RUN pip install "obskit[all]==2.0.0"

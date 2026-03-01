@@ -5,7 +5,7 @@ Automatic per-request observability for Django applications. Works with both WSG
 ## Installation
 
 ```bash
-pip install obskit-middleware-django
+pip install "obskit[django]"
 ```
 
 ---

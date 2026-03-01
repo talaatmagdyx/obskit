@@ -345,7 +345,7 @@ checker.add_check("obskit-environment", check_obskit_environment)
 ### "obskit-tracing shows as not installed"
 
 ```bash
-pip install obskit-tracing
+pip install "obskit[otlp]"
 # Then verify:
 python -m obskit.core.diagnose
 ```

@@ -5,7 +5,7 @@ Kubernetes-ready health checking with liveness and readiness probes, optional tr
 ## Installation
 
 ```bash
-pip install obskit-health
+pip install obskit
 ```
 
 ---

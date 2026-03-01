@@ -5,7 +5,7 @@ OpenTelemetry-based distributed tracing for obskit services. Provides zero-code 
 ## Installation
 
 ```bash
-pip install obskit-tracing
+pip install "obskit[otlp]"
 ```
 
 ### With OpenTelemetry SDK

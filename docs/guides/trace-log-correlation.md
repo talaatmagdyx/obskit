@@ -53,7 +53,7 @@ and logs simply omit the trace fields.
 ## Installation
 
 ```bash
-pip install obskit-logging obskit-tracing
+pip install obskit obskit-tracing
 ```
 
 ---
@@ -377,7 +377,7 @@ section above.  Thread pool workers require manual context copying.
 
 | Step | What to do |
 |------|------------|
-| Install | `pip install obskit-logging obskit-tracing` |
+| Install | `pip install obskit obskit-tracing` |
 | Initialise | Call `setup_tracing()` at application startup |
 | Create logger | Use `get_logger()` — not `logging.getLogger()` |
 | Verify | `is_trace_correlation_available()` returns `True` |

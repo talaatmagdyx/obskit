@@ -18,7 +18,7 @@ APIs are stable across minor versions within a major version (SemVer).
 ## obskit.config
 
 **Package:** `obskit-core`  
-**Install:** `pip install obskit-core`
+**Install:** `pip install obskit`
 
 ### configure()
 
@@ -83,7 +83,7 @@ field list.
 ## obskit.logging
 
 **Package:** `obskit-logging`  
-**Install:** `pip install obskit-logging`
+**Install:** `pip install obskit`
 
 ### get_logger()
 
@@ -138,7 +138,7 @@ inclusion in log records or API responses.
 ## obskit.metrics
 
 **Package:** `obskit-metrics`  
-**Install:** `pip install obskit-metrics`
+**Install:** `pip install "obskit[prometheus]"`
 
 ### REDMetrics
 
@@ -271,7 +271,7 @@ if is_exemplar_available():
 ## obskit.tracing
 
 **Package:** `obskit-tracing`  
-**Install:** `pip install obskit-tracing`
+**Install:** `pip install "obskit[otlp]"`
 
 ### setup_tracing()
 
@@ -352,7 +352,7 @@ span_id  = get_current_span_id()    # "00f067aa0ba902b7" or None
 ## obskit.health
 
 **Package:** `obskit-health`  
-**Install:** `pip install obskit-health`
+**Install:** `pip install obskit`
 
 ### HealthChecker
 
@@ -420,7 +420,7 @@ checker.add_check("redis", redis_check)
 ## obskit.resilience
 
 **Package:** `obskit-resilience`  
-**Install:** `pip install obskit-resilience`
+**Install:** `pip install obskit`
 
 ### CircuitBreaker
 
@@ -488,7 +488,7 @@ async def handle_request():
 ## obskit.slo
 
 **Package:** `obskit-slo`  
-**Install:** `pip install obskit-slo`
+**Install:** `pip install obskit`
 
 ### SLOTracker
 
@@ -546,7 +546,7 @@ the function returns normally, `success=False` when an exception propagates.
 ## obskit.core.diagnose
 
 **Package:** `obskit-core`  
-**Install:** `pip install obskit-core`
+**Install:** `pip install obskit`
 
 ### collect_diagnostics()
 

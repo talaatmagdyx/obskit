@@ -8,20 +8,20 @@ obskit is a modular, zero-overhead observability SDK that brings structured logg
 
 | Feature | Package | Install |
 |---------|---------|---------|
-| Structured logging + trace correlation | `obskit-logging` | `pip install obskit-logging` |
-| RED/Golden/USE metrics + exemplars | `obskit-metrics` | `pip install obskit-metrics` |
-| Distributed tracing (OTel) | `obskit-tracing` | `pip install obskit-tracing` |
-| Health check framework | `obskit-health` | `pip install obskit-health` |
-| Circuit breaker / load shedding | `obskit-resilience` | `pip install obskit-resilience` |
-| SLO tracking + alerting | `obskit-slo` | `pip install obskit-slo` |
-| FastAPI / Flask / Django / gRPC middleware | `obskit-middleware-*` | `pip install obskit-middleware-fastapi` |
+| Structured logging + trace correlation | `obskit-logging` | `pip install obskit` |
+| RED/Golden/USE metrics + exemplars | `obskit-metrics` | `pip install "obskit[prometheus]"` |
+| Distributed tracing (OTel) | `obskit-tracing` | `pip install "obskit[otlp]"` |
+| Health check framework | `obskit-health` | `pip install obskit` |
+| Circuit breaker / load shedding | `obskit-resilience` | `pip install obskit` |
+| SLO tracking + alerting | `obskit-slo` | `pip install obskit` |
+| FastAPI / Flask / Django / gRPC middleware | `obskit-middleware-*` | `pip install "obskit[fastapi]"` |
 | Everything | `obskit` | `pip install obskit[all]` |
 
 ## Quick install
 
 ```bash
 # Focused install — only what you need
-pip install obskit-metrics obskit-logging
+pip install "obskit[prometheus]" obskit-logging
 
 # Full install — every package
 pip install "obskit[all]"
