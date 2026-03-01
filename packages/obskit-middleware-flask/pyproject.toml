@@ -1,6 +1,6 @@
 [project]
 name = "obskit-middleware-flask"
-version = "2.0.0"
+version = "2.2.0"
 description = "Flask middleware for obskit: correlation ID, metrics, logging, tracing"
 readme = "README.md"
 license = "MIT"

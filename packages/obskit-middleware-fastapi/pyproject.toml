@@ -1,6 +1,6 @@
 [project]
 name = "obskit-middleware-fastapi"
-version = "2.0.0"
+version = "2.2.0"
 description = "FastAPI/Starlette middleware for obskit: correlation ID, metrics, logging, tracing"
 readme = "README.md"
 license = "MIT"

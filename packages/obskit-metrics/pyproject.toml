@@ -1,6 +1,6 @@
 [project]
 name = "obskit-metrics"
-version = "2.0.0"
+version = "2.2.0"
 description = "Prometheus metrics for obskit: RED, Golden Signals, USE, cardinality protection"
 readme = "README.md"
 license = "MIT"

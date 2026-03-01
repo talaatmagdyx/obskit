@@ -1,6 +1,6 @@
 [project]
 name = "obskit-logging"
-version = "2.0.0"
+version = "2.2.0"
 description = "Structured logging for obskit: structlog, loguru adapters, sampling, debug replay"
 readme = "README.md"
 license = "MIT"
