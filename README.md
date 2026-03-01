@@ -1,36 +1,106 @@
-# obskit
+<div align="center">
 
-[![PyPI version](https://img.shields.io/pypi/v/obskit.svg)](https://pypi.org/project/obskit/)
+```
+ ██████╗ ██████╗ ███████╗██╗  ██╗██╗████████╗
+██╔═══██╗██╔══██╗██╔════╝██║ ██╔╝██║╚══██╔══╝
+██║   ██║██████╔╝███████╗█████╔╝ ██║   ██║
+██║   ██║██╔══██╗╚════██║██╔═██╗ ██║   ██║
+╚██████╔╝██████╔╝███████║██║  ██╗██║   ██║
+ ╚═════╝ ╚═════╝ ╚══════╝╚═╝  ╚═╝╚═╝   ╚═╝
+```
+
+**Production-ready observability for Python microservices.**
+Metrics · Tracing · Logging · Health · Resilience · SLO — all in one toolkit.
+
+---
+
+[![CI](https://github.com/talaatmagdyx/obskit/actions/workflows/ci.yml/badge.svg)](https://github.com/talaatmagdyx/obskit/actions/workflows/ci.yml)
+[![PyPI version](https://img.shields.io/pypi/v/obskit.svg?color=blue)](https://pypi.org/project/obskit/)
 [![PyPI Downloads](https://img.shields.io/pypi/dm/obskit.svg)](https://pypi.org/project/obskit/)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Coverage: 100%](https://img.shields.io/badge/coverage-100%25-brightgreen.svg)](https://github.com/talaatmagdyx/obskit)
+[![Quality Gate](https://sonarcloud.io/api/project_badges/measure?project=talaatmagdyx_obskit&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=talaatmagdyx_obskit)
 [![Docs](https://img.shields.io/badge/docs-mkdocs-blue.svg)](https://talaatmagdyx.github.io/obskit/)
 
-**obskit** is a production-ready observability toolkit for Python microservices.
-It provides unified metrics, tracing, logging, and resilience patterns following industry best practices.
+</div>
 
-> **v2.0.0** — the toolkit is now a monorepo of 16 focused namespace packages.
-> Install only what you need: `pip install obskit-metrics` or `pip install "obskit[all]"`.
+---
+
+## Why obskit?
+
+Most observability setups mean **wiring 5+ libraries by hand** — Prometheus, structlog, OpenTelemetry, custom health checks, circuit breakers — each with different APIs, different configs, and no automatic correlation between them.
+
+obskit gives you **one coherent toolkit** where metrics, logs, traces, and health checks all speak to each other out of the box.
+
+```
+Without obskit                          With obskit
+─────────────────────────────────────   ──────────────────────────────────────
+✗ Configure prometheus_client           ✓ pip install obskit-metrics
+✗ Set up structlog processors           ✓ pip install obskit-logging
+✗ Bootstrap OpenTelemetry SDK           ✓ pip install obskit-tracing
+✗ Write health endpoint from scratch    ✓ pip install obskit-health
+✗ Implement circuit breaker logic       ✓ pip install obskit-resilience
+✗ Wire trace IDs into every log         ✓ Automatic — zero extra code
+✗ Correlate metrics to traces           ✓ Automatic — exemplars built in
+```
+
+---
+
+## Package Ecosystem
+
+obskit is a **monorepo of 16 focused packages**. Install only what you need.
+
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│                        obskit  (meta-package)                            │
+│              pip install "obskit[all]"  ·  pip install obskit            │
+├──────────────────┬───────────────────┬──────────────┬────────────────────┤
+│ middleware       │ obskit-decorators │  obskit-db   │   obskit-queue     │
+│ ├ fastapi        │  @observe @trace  │  SQLAlchemy  │  Kafka / RabbitMQ  │
+│ ├ flask          │  cross-cutting    │  query audit │  consumer lag      │
+│ ├ django         │  observability    │  N+1 detect  │  DLQ tracking      │
+│ └ grpc           │                   │              │                    │
+├──────────────────┴──────────┬────────┴──────────────┴────────────────────┤
+│  obskit-logging              │  obskit-metrics       │  obskit-tracing    │
+│  structlog · OTLP export     │  RED · Golden Signals │  OpenTelemetry     │
+│  adaptive sampling           │  USE · exemplars      │  W3C Baggage       │
+│  trace-log correlation       │  cardinality guard    │  auto-instrument   │
+├──────────────────────────────┴────────────┬───────────┴────────────────────┤
+│  obskit-health                             │  obskit-resilience             │
+│  liveness · readiness · /health HTTP       │  circuit breaker · retry       │
+│  Redis / DB / HTTP built-in checks         │  rate limiter · load shedding  │
+├────────────────────────────────────────────┴────────────────────────────────┤
+│  obskit-slo                                                                  │
+│  SLO / SLA targets · error budgets · burn-rate alerts · multi-window         │
+├──────────────────────────────────────────────────────────────────────────────┤
+│                           obskit-core  (foundation)                          │
+│           config · errors · interfaces · correlation ID · middleware base    │
+└──────────────────────────────────────────────────────────────────────────────┘
+```
 
 ---
 
 ## Installation
 
 ```bash
-# Full installation (all packages)
+# Everything — the full stack
 pip install "obskit[all]"
 
-# Or install only what you need
-pip install obskit-core        # Config, errors, interfaces
-pip install obskit-logging     # Structured logging, adaptive sampling
-pip install obskit-metrics     # RED / Golden / USE metrics
-pip install obskit-tracing     # OpenTelemetry tracing
-pip install obskit-health      # Health checks, /health HTTP server
-pip install obskit-resilience  # Circuit breaker, retry, rate limiter
-pip install obskit-slo         # SLO/SLA tracking, error budgets
+# Just what you need
+pip install obskit-core          # Foundation — config, errors, correlation
+pip install obskit-logging       # Structured logging + OTLP export
+pip install obskit-metrics       # RED / Golden Signals / USE metrics
+pip install obskit-tracing       # OpenTelemetry distributed tracing
+pip install obskit-health        # Kubernetes-style health endpoints
+pip install obskit-resilience    # Circuit breaker, retry, rate limiter
+pip install obskit-slo           # SLO tracking + error budgets
+pip install obskit-decorators    # @observe, @trace cross-cutting decorators
+pip install obskit-db            # SQLAlchemy instrumentation
+pip install obskit-queue         # Kafka / RabbitMQ tracing + consumer lag
+pip install obskit-dashboards    # Grafana dashboard generators
 
-# Framework middleware
+# Framework middleware (pick yours)
 pip install obskit-middleware-fastapi
 pip install obskit-middleware-flask
 pip install obskit-middleware-django
@@ -39,198 +109,367 @@ pip install obskit-middleware-grpc
 
 ---
 
-## Quick Start
+## 5-Minute Quickstart
+
+A complete, observable FastAPI service:
 
 ```python
+from fastapi import FastAPI
+from obskit.config import configure
 from obskit.logging import get_logger
-from obskit.metrics.red import REDMetrics
-from obskit.health import HealthChecker
+from obskit.metrics import REDMetrics
 from obskit.tracing import setup_tracing
+from obskit.health import HealthChecker
+from obskit.resilience import CircuitBreaker
+from obskit.middleware.fastapi import ObskitMiddleware
 
-# Tracing
-setup_tracing(service_name="my-service", environment="production")
+# ── 1. Bootstrap ──────────────────────────────────────────────────────
+configure(service_name="order-service", environment="production")
+setup_tracing(exporter_endpoint="http://otel-collector:4317")
 
-# Structured logging
-logger = get_logger(__name__)
-logger.info("order_created", order_id="123", amount=99.99)
+# ── 2. Observability primitives ───────────────────────────────────────
+logger  = get_logger(__name__)
+metrics = REDMetrics("order_service")
+health  = HealthChecker()
+breaker = CircuitBreaker(name="payment-gw", failure_threshold=5)
 
-# RED metrics (Rate, Errors, Duration)
-red = REDMetrics(service="my-service")
-red.record_request(endpoint="/api/orders", method="POST", status="success", duration=0.045)
+# ── 3. Health checks ──────────────────────────────────────────────────
+@health.add_readiness_check("database")
+async def check_db():
+    return await db.ping()
 
-# Health checks
-health = HealthChecker()
-health.add_readiness_check("database", check_database)
+# ── 4. App + auto-instrumentation middleware ──────────────────────────
+app = FastAPI()
+app.add_middleware(ObskitMiddleware, service_name="order-service")
+
+# ── 5. Business logic — fully instrumented ───────────────────────────
+@app.post("/orders")
+async def create_order(order: OrderRequest):
+    with metrics.track_request("create_order"):
+        logger.info("order_received", order_id=order.id, amount=order.total)
+
+        async with breaker:                        # circuit protection
+            result = await payment_service.charge(order)
+
+        logger.info("order_confirmed", order_id=order.id)
+        return result
+
+# ── 6. Health endpoint ────────────────────────────────────────────────
+@app.get("/health")
+async def health_endpoint():
+    return await health.check_health()
 ```
 
----
-
-## Packages
-
-| Package | Install | What it provides |
-|---|---|---|
-| `obskit-core` | `pip install obskit-core` | Config, errors, interfaces, correlation, test helpers |
-| `obskit-logging` | `pip install obskit-logging` | Structured logging, adaptive sampling, OTLP export |
-| `obskit-metrics` | `pip install obskit-metrics` | RED/Golden/USE metrics, exemplars, cardinality guard |
-| `obskit-tracing` | `pip install obskit-tracing` | OTel setup, `trace_span`, auto-instrumentation |
-| `obskit-health` | `pip install obskit-health` | Health check framework, `/health` HTTP server |
-| `obskit-resilience` | `pip install obskit-resilience` | Circuit breaker, retry, rate limiter |
-| `obskit-slo` | `pip install obskit-slo` | SLO/SLA tracking, error budgets, alerting |
-| `obskit-decorators` | `pip install obskit-decorators` | `@with_observability` cross-cutting decorator |
-| `obskit-db` | `pip install obskit-db` | SQLAlchemy instrumentation, query analyzer |
-| `obskit-queue` | `pip install obskit-queue` | Kafka/RabbitMQ tracing, consumer-lag, DLQ |
-| `obskit-dashboards` | `pip install obskit-dashboards` | Grafana dashboard generators |
-| `obskit-middleware-fastapi` | `pip install obskit-middleware-fastapi` | FastAPI ASGI middleware |
-| `obskit-middleware-flask` | `pip install obskit-middleware-flask` | Flask WSGI middleware |
-| `obskit-middleware-django` | `pip install obskit-middleware-django` | Django middleware |
-| `obskit-middleware-grpc` | `pip install obskit-middleware-grpc` | gRPC server/client interceptors |
-| `obskit` | `pip install "obskit[all]"` | Meta-package; installs all of the above |
+Every log line automatically carries `trace_id` and `span_id`.
+Every metric data point is linked to its trace via exemplars.
+Zero extra wiring needed.
 
 ---
 
 ## Features
 
-### Metrics (RED / Golden Signals / USE)
+### 📊 Metrics — RED / Golden Signals / USE
 
 ```python
-from obskit.metrics.red import REDMetrics
-from obskit.metrics.golden import GoldenSignals
-from obskit.metrics.use import USEMetrics
+from obskit.metrics import REDMetrics, GoldenSignals, USEMetrics, start_http_server
 
-# RED: Rate, Errors, Duration
-red = REDMetrics(service="api")
-red.record_request("/orders", "POST", status="success", duration=0.032)
+# RED: Rate · Errors · Duration  (per endpoint)
+red = REDMetrics("order_service")
+red.observe_request("create_order", duration_seconds=0.045, status="success")
 
-# Golden Signals: Latency, Traffic, Errors, Saturation
-golden = GoldenSignals(service="api")
-golden.record_request(latency=0.032, error=False)
+# Auto-timing context manager
+with red.track_request("process_payment"):
+    gateway.charge(amount)
 
-# USE: Utilization, Saturation, Errors (infrastructure)
+# Four Golden Signals: Latency · Traffic · Errors · Saturation
+golden = GoldenSignals("order_service")
+golden.observe_request("create_order", latency=0.045)
+golden.set_saturation("cpu", 0.75)
+golden.set_queue_depth("order_queue", 42)
+
+# USE: Utilization · Saturation · Errors  (infrastructure)
 use = USEMetrics(resource="cpu")
 use.record(utilization=0.72, saturation=0.05, errors=0)
+
+# Expose /metrics for Prometheus scraping
+start_http_server(port=9090)
 ```
 
-### Distributed Tracing
+**PromQL cheat-sheet:**
 
-```python
-from obskit.tracing import setup_tracing, trace_span
+```promql
+# Request rate (req/s)
+sum(rate(order_service_requests_total[5m])) by (operation)
 
-setup_tracing(service_name="my-service", otlp_endpoint="http://otel-collector:4317")
+# P95 latency
+histogram_quantile(0.95,
+  sum(rate(order_service_request_duration_seconds_bucket[5m])) by (le, operation))
 
-with trace_span("process_order", attributes={"order.id": "123"}):
-    result = process_order(order_id="123")
-```
-
-### Structured Logging
-
-```python
-from obskit.logging import get_logger
-
-logger = get_logger(__name__)
-logger.info("payment_processed", amount=99.99, currency="USD", user_id="u-42")
-logger.error("payment_failed", error="card_declined", retry_count=3)
-```
-
-### Health Checks
-
-```python
-from obskit.health import HealthChecker
-
-health = HealthChecker()
-health.add_liveness_check("process", lambda: True)
-health.add_readiness_check("database", check_db_connection)
-health.add_readiness_check("redis", check_redis_connection)
-
-result = await health.run_checks()
-# result.status → "healthy" | "degraded" | "unhealthy"
-```
-
-### Resilience Patterns
-
-```python
-from obskit.resilience import CircuitBreaker
-from obskit.resilience.retry import async_retry
-from obskit.resilience.rate_limiter import RateLimiter
-
-# Circuit breaker (async)
-breaker = CircuitBreaker(failure_threshold=5, recovery_timeout=30)
-async with breaker:
-    result = await call_external_service()
-
-# Retry with exponential backoff
-@async_retry(max_attempts=3, backoff_factor=2.0)
-async def fetch_data():
-    return await http_client.get("/api/data")
-
-# Rate limiting
-limiter = RateLimiter(requests_per_second=100)
-async with limiter:
-    await handle_request()
-```
-
-### SLO Tracking
-
-```python
-from obskit.slo import SLOTracker, SLOTarget, SLOType
-from obskit.slo import with_slo_tracking
-
-tracker = SLOTracker(
-    name="api-availability",
-    target=SLOTarget(slo_type=SLOType.AVAILABILITY, threshold=0.999)
-)
-
-@with_slo_tracking(tracker)
-async def handle_request(request):
-    return await process(request)
-```
-
-### FastAPI Middleware
-
-```python
-from fastapi import FastAPI
-from obskit.middleware.fastapi import ObskitMiddleware
-from obskit.tracing import setup_tracing
-
-setup_tracing(service_name="api")
-
-app = FastAPI()
-app.add_middleware(ObskitMiddleware, service_name="api")
+# Error rate %
+sum(rate(order_service_errors_total[5m]))
+  / sum(rate(order_service_requests_total[5m])) * 100
 ```
 
 ---
 
-## Configuration
+### 🔍 Distributed Tracing
 
-obskit is configured via environment variables or `obskit.yaml`:
+```python
+from obskit.tracing import setup_tracing, trace_span, async_trace_span, set_baggage
 
-```bash
-OBSKIT_SERVICE_NAME=my-service
-OBSKIT_ENVIRONMENT=production
-OBSKIT_LOG_LEVEL=INFO
-OBSKIT_LOG_FORMAT=json
-OBSKIT_OTLP_ENDPOINT=http://otel-collector:4317
-OBSKIT_METRICS_PORT=9090
+# One-line setup — auto-detects FastAPI, SQLAlchemy, Redis, httpx, Celery…
+setup_tracing(exporter_endpoint="http://tempo:4317", sample_rate=0.1)
+
+# Local dev — print spans to stdout
+setup_tracing(debug=True)
+
+# Manual spans
+with trace_span("process_order", attributes={"order.id": "123"}):
+    result = process_order(order_id="123")
+
+async with async_trace_span("fetch_user", attributes={"user.id": uid}):
+    user = await db.get_user(uid)
+
+# W3C Baggage — propagates across all downstream HTTP calls automatically
+set_baggage("tenant_id", "acme-corp")
 ```
 
-Or programmatically:
+Supported auto-instrumentation: **FastAPI · SQLAlchemy · Redis · httpx · Celery · Django · Requests · gRPC · RabbitMQ**
+
+---
+
+### 📝 Structured Logging
+
+```python
+from obskit.logging import get_logger, log_performance, log_error
+
+logger = get_logger(__name__)
+
+# Structured key-value logging
+logger.info("order_placed", order_id="ord-123", user_id="usr-456", total=99.99)
+logger.warning("retry_attempt", attempt=2, max_attempts=3, endpoint="/payments")
+logger.error("payment_failed", error="card_declined", order_id="ord-123")
+
+# Performance logging (warns automatically if threshold exceeded)
+log_performance("create_order", "OrderService", duration_ms=450, threshold_ms=200)
+
+# Bind context for a request scope
+req_logger = logger.bind(request_id="req-abc", tenant="acme")
+req_logger.info("processing")   # all fields carry through automatically
+```
+
+**Every log line automatically includes `trace_id` and `span_id`** when a trace is active:
+
+```json
+{
+  "level": "info",
+  "event": "order_placed",
+  "order_id": "ord-123",
+  "total": 99.99,
+  "trace_id": "4bf92f3577b34da6a3ce929d0e0e4736",
+  "span_id":  "00f067aa0ba902b7",
+  "service":  "order-service",
+  "timestamp": "2026-03-01T10:00:00Z"
+}
+```
+
+---
+
+### 🏥 Health Checks
+
+```python
+from obskit.health import HealthChecker, create_redis_check, create_http_check
+
+checker = HealthChecker()
+
+@checker.add_readiness_check("database")
+async def check_db():
+    return await db.ping()
+
+@checker.add_readiness_check("cache", critical=False)   # non-critical → degraded, not unhealthy
+async def check_redis():
+    return await redis.ping()
+
+# Built-in check helpers
+checker.add_readiness_check("upstream")(create_http_check("https://api.partner.com/health"))
+checker.add_liveness_check("cache")(create_redis_check("redis://localhost:6379"))
+
+result = await checker.check_health()
+# result.status → "healthy" | "degraded" | "unhealthy"
+```
+
+**Kubernetes probe config:**
+
+```yaml
+livenessProbe:
+  httpGet: { path: /live, port: 8080 }
+  initialDelaySeconds: 5
+  periodSeconds: 10
+
+readinessProbe:
+  httpGet: { path: /ready, port: 8080 }
+  initialDelaySeconds: 5
+  periodSeconds: 5
+```
+
+---
+
+### 🛡️ Resilience Patterns
+
+```python
+from obskit.resilience import CircuitBreaker, CircuitOpenError, retry, RateLimiter, LoadShedder
+
+# ── Circuit Breaker ───────────────────────────────────────────────────
+cb = CircuitBreaker(
+    name="payment-gateway",
+    failure_threshold=5,       # open after 5 consecutive failures
+    recovery_timeout=30.0,     # half-open retry after 30 s
+    expected_exceptions=(TimeoutError, ConnectionError),
+)
+
+try:
+    result = await cb.call(gateway.charge, amount)
+except CircuitOpenError:
+    result = cached_fallback()
+
+# ── Retry with Exponential Backoff ────────────────────────────────────
+@retry(max_attempts=3, backoff_factor=2.0, exceptions=(TimeoutError,))
+async def fetch_data():
+    return await external_api.get("/data")
+
+# ── Token-bucket Rate Limiter ─────────────────────────────────────────
+limiter = RateLimiter(max_calls=100, period=1.0)   # 100 req/s
+
+async def handle_request():
+    async with limiter:
+        return await process()
+
+# ── Concurrency-based Load Shedder ────────────────────────────────────
+shedder = LoadShedder(max_concurrent=50)
+
+async def endpoint():
+    async with shedder:
+        return await heavy_operation()
+```
+
+---
+
+### 📈 SLO Tracking
+
+```python
+from obskit.slo import SLOTracker, SLOType
+
+tracker = SLOTracker()
+
+# Register a 99.9% availability SLO over a 30-day window
+tracker.register_slo(
+    name="api_availability",
+    slo_type=SLOType.AVAILABILITY,
+    target_value=0.999,
+    window_seconds=30 * 86400,
+)
+
+# Record good / bad events
+tracker.record_measurement("api_availability", value=1.0, success=True)
+tracker.record_measurement("api_availability", value=0.0, success=False)
+
+# Check current status
+status = tracker.get_status("api_availability")
+print(f"Budget remaining : {status.error_budget_remaining:.4f}")
+print(f"Within SLO       : {status.is_within_slo}")
+```
+
+---
+
+### 🔌 Framework Middleware
+
+One line to instrument your entire service — every request gets automatic metrics, traces, correlation IDs, and structured access logs.
+
+```python
+# FastAPI
+from obskit.middleware.fastapi import ObskitMiddleware
+app.add_middleware(ObskitMiddleware, service_name="my-service")
+
+# Flask
+from obskit.middleware.flask import ObskitMiddleware
+ObskitMiddleware(app, service_name="my-service")
+
+# Django — settings.py
+MIDDLEWARE = ["obskit.middleware.django.ObskitMiddleware", ...]
+
+# gRPC
+from obskit.middleware.grpc import ObskitServerInterceptor
+server = grpc.server(interceptors=[ObskitServerInterceptor()])
+```
+
+---
+
+### ✨ Cross-cutting Decorators
+
+```python
+from obskit.decorators import observe, trace
+
+# Single decorator — adds metrics + logging + tracing to any function
+@observe(operation="create_order", track_metrics=True, track_tracing=True)
+async def create_order(order_data: dict) -> dict:
+    ...
+
+# Tracing only
+@trace(span_name="process_payment")
+async def process_payment(amount: float) -> bool:
+    ...
+```
+
+---
+
+## ⚙️ Configuration
+
+**Environment variables** (twelve-factor style):
+
+```bash
+OBSKIT_SERVICE_NAME=order-service
+OBSKIT_ENVIRONMENT=production
+OBSKIT_VERSION=1.4.2
+
+OBSKIT_LOG_LEVEL=INFO
+OBSKIT_LOG_FORMAT=json            # json | console
+
+OBSKIT_TRACING_ENABLED=true
+OBSKIT_OTLP_ENDPOINT=http://otel-collector:4317
+
+OBSKIT_METRICS_PORT=9090
+OBSKIT_METRICS_AUTH_ENABLED=false
+```
+
+**Programmatic** (overrides env vars):
 
 ```python
 from obskit.config import configure
 
 configure(
-    service_name="my-service",
+    service_name="order-service",
     environment="production",
     otlp_endpoint="http://otel-collector:4317",
-    metrics_auth_enabled=True,
-    metrics_auth_token="your-secret-token",
+    log_level="INFO",
+    log_format="json",
 )
+```
+
+**`obskit.yaml`** (optional file-based config):
+
+```yaml
+service_name: order-service
+environment: production
+otlp_endpoint: http://otel-collector:4317
+log_level: INFO
+metrics_port: 9090
 ```
 
 ---
 
-## Diagnose CLI
+## 🩺 Diagnose CLI
 
-Check that obskit and all optional integrations are properly installed:
+Verify obskit and all optional integrations are correctly installed:
 
 ```bash
 python -m obskit.core.diagnose
@@ -249,82 +488,108 @@ Metrics
   prometheus      0.19.0   ✓
 Tracing
   opentelemetry   1.22.0   ✓
-  otlp-endpoint   http://otel-collector:4317
+  otlp-endpoint   http://otel-collector:4317  ✓
+Health
+  checker         ready    ✓
+Resilience
+  circuit-breaker ready    ✓
 ```
 
 ---
 
-## Documentation
+## 🛠️ Development
+
+```bash
+# Clone and install the entire monorepo (uv workspace)
+git clone https://github.com/talaatmagdyx/obskit.git
+cd obskit
+uv sync --all-packages --all-extras
+
+# Run tests for a specific package
+uv run pytest packages/obskit-metrics/tests/ -q --tb=short --timeout=30
+
+# Run all tests
+for pkg in packages/obskit-*/; do
+    uv run pytest "$pkg/tests/" -q --tb=short --timeout=30 --benchmark-disable
+done
+
+# Lint
+uv run ruff check packages/
+
+# Type check
+uv run mypy packages/obskit-core/src/
+uv run mypy packages/obskit-logging/src/
+uv run mypy packages/obskit-metrics/src/
+uv run mypy packages/obskit-tracing/src/
+
+# Build docs
+uv run mkdocs build --strict
+```
+
+---
+
+## 📖 Documentation
 
 Full documentation at **[talaatmagdyx.github.io/obskit](https://talaatmagdyx.github.io/obskit/)**
 
-- [Getting Started](https://talaatmagdyx.github.io/obskit/getting-started/installation/)
-- [User Guide](https://talaatmagdyx.github.io/obskit/user-guide/metrics/)
-- [Package Reference](https://talaatmagdyx.github.io/obskit/packages/core/)
-- [Migration from v1](https://talaatmagdyx.github.io/obskit/migration/from-v1/)
-- [API Reference](https://talaatmagdyx.github.io/obskit/reference/api/)
+| Section | Link |
+|---|---|
+| 🚀 Getting Started | [Installation & Quick Start](https://talaatmagdyx.github.io/obskit/getting-started/installation/) |
+| 📊 Metrics Guide | [RED / Golden / USE](https://talaatmagdyx.github.io/obskit/user-guide/metrics/) |
+| 📦 Package Reference | [All 16 packages](https://talaatmagdyx.github.io/obskit/packages/core/) |
+| 🔄 Migration from v1 | [Migration Guide](https://talaatmagdyx.github.io/obskit/migration/from-v1/) |
+| 📚 API Reference | [Full API docs](https://talaatmagdyx.github.io/obskit/reference/api/) |
 
 ---
 
-## Migrating from v1
+## 🔄 Migrating from v1
 
 ```diff
--pip install obskit==1.5.0
-+pip install "obskit[all]==2.0.0"   # drop-in compatible
+- pip install obskit==1.5.0
++ pip install "obskit[all]"          # drop-in compatible — all imports unchanged
 
-# Import paths (old paths still work, new paths preferred)
--from obskit import configure_logging
-+from obskit.logging import get_logger
+# Preferred new import paths (old paths still work)
+- from obskit import configure_logging
++ from obskit.logging import get_logger
 
--from obskit import get_red_metrics
-+from obskit.metrics.red import REDMetrics
+- from obskit import get_red_metrics
++ from obskit.metrics.red import REDMetrics
 
--from obskit import configure_tracing
-+from obskit.tracing import setup_tracing
+- from obskit import configure_tracing
++ from obskit.tracing import setup_tracing
 ```
 
-See the [Migration Guide](https://talaatmagdyx.github.io/obskit/migration/from-v1/) for full details.
+See the full [Migration Guide](https://talaatmagdyx.github.io/obskit/migration/from-v1/) for details.
 
 ---
 
-## Development
+## 🤝 Contributing
+
+Contributions are welcome! See [CONTRIBUTING.md](CONTRIBUTING.md) and the [Contributing Guide](https://talaatmagdyx.github.io/obskit/contributing/).
 
 ```bash
-# Install all packages in editable mode
-pip install -e packages/obskit-core \
-            -e packages/obskit-logging \
-            -e packages/obskit-metrics \
-            -e packages/obskit-tracing \
-            -e packages/obskit-health \
-            -e packages/obskit-resilience \
-            -e packages/obskit-slo \
-            -e packages/obskit-middleware-fastapi \
-            -e packages/obskit-middleware-flask \
-            -e packages/obskit-middleware-django \
-            -e packages/obskit-middleware-grpc \
-            -e packages/obskit
-
-# Run all tests with coverage
-pytest packages/ --cov=packages --cov-report=term-missing
-
-# Lint
-ruff check .
-
-# Type check
-mypy packages/
-
-# Build docs
-mkdocs build --strict
+git clone https://github.com/talaatmagdyx/obskit.git
+cd obskit && uv sync --all-packages --all-extras
+git checkout -b feat/my-improvement
+# make changes + add tests
+uv run pytest packages/<affected-package>/tests/ -q
+uv run ruff check packages/
+git commit -m "feat: my improvement"
+git push && gh pr create
 ```
 
 ---
 
-## Contributing
+## 📄 License
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) and the [Contributing Guide](https://talaatmagdyx.github.io/obskit/contributing/).
+MIT — see [LICENSE](LICENSE).
 
 ---
 
-## License
+<div align="center">
 
-MIT — see [LICENSE](LICENSE).
+**[Documentation](https://talaatmagdyx.github.io/obskit/)** · **[PyPI](https://pypi.org/project/obskit/)** · **[Issues](https://github.com/talaatmagdyx/obskit/issues)** · **[Changelog](CHANGELOG.md)**
+
+Made with ❤️ for Python microservice developers.
+
+</div>
