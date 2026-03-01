@@ -44,6 +44,12 @@ dev = [
 requires = ["setuptools>=61.0"]
 build-backend = "setuptools.build_meta"
 
+[tool.uv.sources]
+obskit-core = { workspace = true }
+obskit-logging = { workspace = true }
+obskit-metrics = { workspace = true }
+obskit-tracing = { workspace = true }
+
 [tool.setuptools.packages.find]
 where = ["src"]
 namespaces = true

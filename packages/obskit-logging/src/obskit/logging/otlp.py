@@ -54,7 +54,7 @@ import time
 from collections.abc import Callable
 from datetime import UTC, datetime
 from queue import Empty, Queue
-from typing import Any
+from typing import Any, cast
 
 from obskit.config import get_settings
 from obskit.logging import get_logger
@@ -72,10 +72,10 @@ try:
 except ImportError:  # pragma: no cover
     OTEL_LOGGING_AVAILABLE = False
     trace = None  # type: ignore[assignment]
-    LoggerProvider = None  # type: ignore[misc, assignment]
-    LoggingHandler = None  # type: ignore[misc, assignment]
-    BatchLogRecordProcessor = None  # type: ignore[misc, assignment]
-    Resource = None  # type: ignore[misc, assignment]
+    LoggerProvider = None  # type: ignore[assignment,misc]
+    LoggingHandler = None  # type: ignore[assignment,misc]
+    BatchLogRecordProcessor = None  # type: ignore[assignment,misc]
+    Resource = None  # type: ignore[assignment,misc]
 
 # Check for OTLP exporter
 try:
@@ -84,7 +84,7 @@ try:
     OTLP_EXPORTER_AVAILABLE = True
 except ImportError:  # pragma: no cover
     OTLP_EXPORTER_AVAILABLE = False
-    OTLPLogExporter = None  # type: ignore[misc, assignment]
+    OTLPLogExporter = None  # type: ignore[assignment,misc]
 
 
 _otlp_logger_provider: LoggerProvider | None = None
@@ -193,6 +193,19 @@ def configure_otlp_logging(
         return True
 
 
+def is_otlp_configured() -> bool:
+    """
+    Return whether OTLP logging has been configured.
+
+    Returns
+    -------
+    bool
+        True if :func:`configure_otlp_logging` has been called successfully,
+        False otherwise (including after :func:`shutdown_otlp_logging`).
+    """
+    return _otlp_configured
+
+
 def get_otlp_handler() -> logging.Handler | None:
     """
     Get a Python logging handler that exports to OTLP.
@@ -223,10 +236,10 @@ def get_otlp_handler() -> logging.Handler | None:
     if _otlp_logger_provider is None:  # pragma: no cover
         return None
 
-    return LoggingHandler(
+    return cast(logging.Handler, LoggingHandler(
         level=logging.NOTSET,
         logger_provider=_otlp_logger_provider,
-    )
+    ))
 
 
 def shutdown_otlp_logging() -> None:
@@ -499,6 +512,7 @@ def create_otlp_log_processor(
 
 __all__ = [
     "configure_otlp_logging",
+    "is_otlp_configured",
     "get_otlp_handler",
     "shutdown_otlp_logging",
     "OTLPLogHandler",

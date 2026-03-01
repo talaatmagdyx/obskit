@@ -62,7 +62,7 @@ class TestDeserializeCoverage:
     def test_deserialize_non_dict_non_list(self):
         """Line 106: return raw value when not dict/list/None."""
         result = _deserialize(42.5)
-        assert result == 42.5
+        assert result == pytest.approx(42.5)
 
 
 class TestRequestCaptureStorageAbstract:
@@ -199,7 +199,7 @@ class TestRequestCaptureCoverage:
 
         # Create args that are larger than max size
         large_arg = "x" * 10000
-        truncated_args, truncated_kwargs = capture._truncate_args((large_arg,), {})
+        truncated_args, _ = capture._truncate_args((large_arg,), {})
 
         # Should be truncated
         assert any(isinstance(a, str) and "truncated" in a for a in truncated_args)
@@ -216,7 +216,7 @@ class TestRequestCaptureCoverage:
 
         capture = RequestCapture(storage=storage, metadata_extractor=extractor)
 
-        async def my_func(data):
+        async def my_func(data):  # NOSONAR
             return data
 
         cap_id = await capture.capture(my_func, args=("test_data",), kwargs={})
@@ -233,7 +233,7 @@ class TestRequestCaptureCoverage:
 
         capture = RequestCapture(storage=storage, metadata_extractor=failing_extractor)
 
-        async def my_func(data):
+        async def my_func(data):  # NOSONAR
             return data
 
         # Should not raise
@@ -449,7 +449,7 @@ class TestRequestCaptureCoverageExtra:
 
         capture = RequestCapture(storage=storage, metadata_extractor=extractor)
 
-        async def func_no_args():
+        async def func_no_args():  # NOSONAR
             return 42
 
         cap_id = await capture.capture(func_no_args, args=(), kwargs={})
@@ -475,7 +475,7 @@ class TestRequestCaptureCoverageExtra:
         capture_system = RequestCapture(storage=storage)
 
         # Mock storage.list_captures to return ID, but storage.load to return None
-        async def mock_load(cid):
+        async def mock_load(cid):  # NOSONAR
             return None
 
         with patch.object(storage, 'load', side_effect=mock_load):
@@ -636,7 +636,7 @@ class TestRemainingReplayCoverage:
         storage = MemoryStorage()
         capture = RequestCapture(storage=storage)
 
-        async def async_add(x, y):
+        async def async_add(x, y):  # NOSONAR
             return x + y
 
         cap = CapturedRequest(
@@ -722,7 +722,7 @@ class TestFinalReplayCoverage:
 
         # A custom object that is not None, str, int, float, bool, list, or dict
         class CustomType:
-            pass
+            pass  # NOSONAR
 
         obj = CustomType()
         result = _deserialize(obj)
@@ -748,7 +748,7 @@ class TestFinalReplayCoverage:
             await storage.save(cap)
 
             # Patch load to return None (simulating corrupt file)
-            async def patched_load(cid):
+            async def patched_load(cid):  # NOSONAR
                 return None
 
             with patch.object(storage, 'load', side_effect=patched_load):

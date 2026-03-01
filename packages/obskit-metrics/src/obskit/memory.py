@@ -28,7 +28,7 @@ import threading
 import time
 from collections.abc import Callable
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Any
 
 from prometheus_client import Counter, Gauge, Histogram
@@ -101,6 +101,19 @@ def _init_metrics() -> None:
         _metrics_initialized = True
 
 
+def is_metrics_initialized() -> bool:
+    """
+    Return whether the memory-tracking Prometheus metrics have been initialized.
+
+    Returns
+    -------
+    bool
+        True if :func:`_init_metrics` has completed successfully,
+        False otherwise.
+    """
+    return _metrics_initialized
+
+
 # =============================================================================
 # Data Classes
 # =============================================================================
@@ -117,7 +130,7 @@ class MemoryStats:
     vms_mb: float = 0.0
     heap_mb: float = 0.0
     percent: float = 0.0
-    timestamp: datetime = field(default_factory=datetime.utcnow)
+    timestamp: datetime = field(default_factory=lambda: datetime.now(UTC))
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -140,7 +153,7 @@ class GCStats:
     collected: dict[int, int] = field(default_factory=dict)
     uncollectable: int = 0
     thresholds: tuple = (700, 10, 10)
-    timestamp: datetime = field(default_factory=datetime.utcnow)
+    timestamp: datetime = field(default_factory=lambda: datetime.now(UTC))
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -159,7 +172,7 @@ class ObjectStats:
     total_objects: int = 0
     by_type: dict[str, int] = field(default_factory=dict)
     top_types: list[tuple] = field(default_factory=list)
-    timestamp: datetime = field(default_factory=datetime.utcnow)
+    timestamp: datetime = field(default_factory=lambda: datetime.now(UTC))
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -410,3 +423,15 @@ def stop_memory_tracking():
 def get_memory_tracker() -> MemoryTracker:
     """Get a memory tracker instance."""
     return MemoryTracker()
+
+
+__all__ = [
+    "is_metrics_initialized",
+    "MemoryStats",
+    "GCStats",
+    "ObjectStats",
+    "MemoryTracker",
+    "start_memory_tracking",
+    "stop_memory_tracking",
+    "get_memory_tracker",
+]

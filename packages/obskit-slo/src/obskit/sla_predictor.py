@@ -29,7 +29,7 @@ Example:
 import threading
 from collections.abc import Callable
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 from prometheus_client import Counter, Gauge
@@ -76,8 +76,7 @@ class SLADefinition:
         """Check if value breaches SLA."""
         if self.comparison == "less_than":
             return value > self.target_value
-        else:
-            return value < self.target_value
+        return value < self.target_value
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -104,7 +103,7 @@ class RiskAssessment:
     trend_slope: float
     confidence: float
     suggestions: list[str]
-    timestamp: datetime = field(default_factory=datetime.utcnow)
+    timestamp: datetime = field(default_factory=lambda: datetime.now(UTC))
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -230,7 +229,7 @@ class SLAPredictor:
             Observation time
         """
         point = DataPoint(
-            timestamp=timestamp or datetime.utcnow(),
+            timestamp=timestamp or datetime.now(UTC),
             value=value,
         )
 
@@ -241,7 +240,7 @@ class SLAPredictor:
             self._data[sla_name].append(point)
 
             # Trim old data
-            cutoff = datetime.utcnow() - timedelta(hours=self.max_history_hours)
+            cutoff = datetime.now(UTC) - timedelta(hours=self.max_history_hours)
             self._data[sla_name] = [p for p in self._data[sla_name] if p.timestamp > cutoff]
 
         SLA_CURRENT_VALUE.labels(sla_name=sla_name).set(value)

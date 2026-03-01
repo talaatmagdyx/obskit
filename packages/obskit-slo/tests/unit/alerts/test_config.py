@@ -4,6 +4,7 @@ import os
 from unittest.mock import patch
 
 from obskit.alerts.config import AlertConfig, generate_prometheus_rules
+import pytest
 
 
 class TestAlertConfig:
@@ -13,21 +14,21 @@ class TestAlertConfig:
         """Test default configuration values."""
         config = AlertConfig()
 
-        assert config.error_rate_threshold == 0.01
-        assert config.critical_error_rate_threshold == 0.10
-        assert config.latency_p95_threshold == 0.5
-        assert config.latency_p99_threshold == 1.0
-        assert config.low_request_rate_threshold == 0.1
-        assert config.saturation_warning_threshold == 0.90
-        assert config.saturation_critical_threshold == 0.95
+        assert config.error_rate_threshold == pytest.approx(0.01)
+        assert config.critical_error_rate_threshold == pytest.approx(0.10)
+        assert config.latency_p95_threshold == pytest.approx(0.5)
+        assert config.latency_p99_threshold == pytest.approx(1.0)
+        assert config.low_request_rate_threshold == pytest.approx(0.1)
+        assert config.saturation_warning_threshold == pytest.approx(0.90)
+        assert config.saturation_critical_threshold == pytest.approx(0.95)
         assert config.queue_depth_threshold == 1000
-        assert config.cpu_utilization_threshold == 0.90
-        assert config.memory_utilization_threshold == 0.90
-        assert config.cpu_saturation_threshold == 10.0
-        assert config.service_degraded_error_rate == 0.05
-        assert config.service_degraded_latency == 1.0
-        assert config.slo_error_budget_threshold == 0.001
-        assert config.slo_latency_threshold == 0.2
+        assert config.cpu_utilization_threshold == pytest.approx(0.90)
+        assert config.memory_utilization_threshold == pytest.approx(0.90)
+        assert config.cpu_saturation_threshold == pytest.approx(10.0)
+        assert config.service_degraded_error_rate == pytest.approx(0.05)
+        assert config.service_degraded_latency == pytest.approx(1.0)
+        assert config.slo_error_budget_threshold == pytest.approx(0.001)
+        assert config.slo_latency_threshold == pytest.approx(0.2)
 
     def test_custom_values(self):
         """Test custom configuration values."""
@@ -37,8 +38,8 @@ class TestAlertConfig:
             queue_depth_threshold=500,
         )
 
-        assert config.error_rate_threshold == 0.05
-        assert config.latency_p95_threshold == 0.3
+        assert config.error_rate_threshold == pytest.approx(0.05)
+        assert config.latency_p95_threshold == pytest.approx(0.3)
         assert config.queue_depth_threshold == 500
 
     def test_alert_intervals_default(self):
@@ -60,14 +61,14 @@ class TestAlertConfig:
         """Test from_env with no environment variables."""
         config = AlertConfig.from_env()
 
-        assert config.error_rate_threshold == 0.01
+        assert config.error_rate_threshold == pytest.approx(0.01)
 
     @patch.dict(os.environ, {"OBSKIT_ALERT_ERROR_RATE_THRESHOLD": "0.05"})
     def test_from_env_custom_error_rate(self):
         """Test from_env reads custom error rate."""
         config = AlertConfig.from_env()
 
-        assert config.error_rate_threshold == 0.05
+        assert config.error_rate_threshold == pytest.approx(0.05)
 
     @patch.dict(
         os.environ,
@@ -81,8 +82,8 @@ class TestAlertConfig:
         """Test from_env reads multiple environment variables."""
         config = AlertConfig.from_env()
 
-        assert config.error_rate_threshold == 0.02
-        assert config.latency_p95_threshold == 0.3
+        assert config.error_rate_threshold == pytest.approx(0.02)
+        assert config.latency_p95_threshold == pytest.approx(0.3)
         assert config.queue_depth_threshold == 500
 
     def test_to_dict(self):
@@ -91,7 +92,7 @@ class TestAlertConfig:
         result = config.to_dict()
 
         assert isinstance(result, dict)
-        assert result["error_rate_threshold"] == 0.05
+        assert result["error_rate_threshold"] == pytest.approx(0.05)
         assert "latency_p95_threshold" in result
         assert "alert_intervals" in result
         assert "alert_durations" in result

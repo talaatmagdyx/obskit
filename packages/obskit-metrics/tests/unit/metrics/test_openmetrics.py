@@ -252,7 +252,7 @@ class TestOpenMetricsExemplar:
             value=0.042,
         )
         assert exemplar.labels == {"trace_id": "abc123"}
-        assert exemplar.value == 0.042
+        assert exemplar.value == pytest.approx(0.042)
         assert exemplar.timestamp is not None
 
     def test_creation_with_timestamp(self):

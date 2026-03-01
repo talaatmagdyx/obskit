@@ -7,7 +7,7 @@ Targets specific missing lines/branches across all gap files.
 from __future__ import annotations
 
 import time
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone, UTC
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -237,7 +237,7 @@ class TestAutoscalingGaps:
         scaling = AutoScalingMetrics("proc-rate-svc")
         scaling.record_processing_rate(250.0)
         metrics = scaling.get_metrics_for_hpa()
-        assert metrics["processing_rate"] == 250.0
+        assert metrics["processing_rate"] == pytest.approx(250.0)
 
     def test_scale_down_cpu_branch(self):
         """Lines 302->308: low CPU triggers scale_down branch."""
@@ -379,7 +379,7 @@ class TestAutoscalingGaps:
         scaling = AutoScalingMetrics("cooldown-expired-svc", config=config)
         scaling.set_replicas(2)
         # Set last scaling to 2 seconds ago (cooldown expired)
-        scaling._last_scaling = datetime.utcnow() - timedelta(seconds=5)
+        scaling._last_scaling = datetime.now(UTC) - timedelta(seconds=5)
         # High CPU to trigger scale up
         scaling.record_pod_metrics("pod-1", cpu_utilization=95.0, memory_utilization=80.0)
         scaling.record_pod_metrics("pod-2", cpu_utilization=95.0, memory_utilization=80.0)
@@ -523,7 +523,7 @@ class TestDependencyGraphGaps:
         graph.add_dependency("db", DependencyType.DATABASE)
         graph.update_health("db", HealthStatus.HEALTHY, latency_ms=42.0)
         dep = graph.get_dependency("db")
-        assert dep.latency_ms == 42.0
+        assert dep.latency_ms == pytest.approx(42.0)
 
     def test_get_all_dependencies(self):
         """Lines 405-406: get_all_dependencies returns list."""
@@ -684,7 +684,7 @@ class TestHotPathGaps:
         )
         d = hp.to_dict()
         assert d["path"] == "my-path"
-        assert d["impact_score"] == 0.9
+        assert d["impact_score"] == pytest.approx(0.9)
         assert d["call_count"] == 5000
         assert "Consider caching" in d["suggestions"]
 
@@ -792,9 +792,9 @@ class TestHotPathGaps:
 
         detector = HotPathDetector()
         with detector.track("path-a"):
-            pass
+            pass  # NOSONAR
         with detector.track("path-b"):
-            pass
+            pass  # NOSONAR
         all_stats = detector.get_all_stats()
         assert len(all_stats) == 2
 
@@ -855,8 +855,8 @@ class TestMemoryGaps:
 
         import obskit.memory as memory_module
 
-        registry = prometheus_client.CollectorRegistry()
-        original_init = memory_module._metrics_initialized
+        _registry = prometheus_client.CollectorRegistry()
+        _original_init = memory_module._metrics_initialized
 
         # Use the fresh registry via mocking Gauge/Counter/Histogram
         mock_gauge = MagicMock()
@@ -1228,7 +1228,7 @@ class TestQuotaGaps:
         tracker = QuotaTracker("warn-cooldown", on_warning=on_warning)
 
         warn_key = "t1:calls"
-        tracker._warned[warn_key] = datetime.utcnow()
+        tracker._warned[warn_key] = datetime.now(UTC)
 
         usage = TenantUsage(tenant_id="t1", resource="calls", current_usage=60)
         tracker._maybe_warn("t1", "calls", usage)
@@ -1245,7 +1245,7 @@ class TestQuotaGaps:
 
         tracker = QuotaTracker("warn-after-cooldown", on_warning=on_warning)
         warn_key = "t1:calls"
-        tracker._warned[warn_key] = datetime.utcnow() - timedelta(minutes=6)
+        tracker._warned[warn_key] = datetime.now(UTC) - timedelta(minutes=6)
 
         usage = TenantUsage(tenant_id="t1", resource="calls", current_usage=60)
         tracker._maybe_warn("t1", "calls", usage)

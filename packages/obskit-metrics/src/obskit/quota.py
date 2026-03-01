@@ -25,7 +25,7 @@ Example:
 import threading
 from collections.abc import Callable
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from enum import Enum
 from typing import Any
 
@@ -90,7 +90,7 @@ class TenantUsage:
     resource: str
     current_usage: int = 0
     limit: int = 0
-    period_start: datetime = field(default_factory=datetime.utcnow)
+    period_start: datetime = field(default_factory=lambda: datetime.now(UTC))
     period: QuotaPeriod = QuotaPeriod.HOUR
     exceeded_count: int = 0
     last_exceeded: datetime | None = None
@@ -129,7 +129,7 @@ class QuotaReport:
     usages: list[TenantUsage]
     total_exceeded: int
     is_over_quota: bool
-    timestamp: datetime = field(default_factory=datetime.utcnow)
+    timestamp: datetime = field(default_factory=lambda: datetime.now(UTC))
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -280,7 +280,7 @@ class QuotaTracker:
 
             if new_usage > limit:
                 usage.exceeded_count += 1
-                usage.last_exceeded = datetime.utcnow()
+                usage.last_exceeded = datetime.now(UTC)
 
                 QUOTA_EXCEEDED_TOTAL.labels(
                     quota_name=self.quota_name, tenant_id=tenant_id, resource=resource
@@ -390,11 +390,11 @@ class QuotaTracker:
                 if resource:
                     if resource in self._usage[tenant_id]:
                         self._usage[tenant_id][resource].current_usage = 0
-                        self._usage[tenant_id][resource].period_start = datetime.utcnow()
+                        self._usage[tenant_id][resource].period_start = datetime.now(UTC)
                 else:
                     for r in self._usage[tenant_id]:
                         self._usage[tenant_id][r].current_usage = 0
-                        self._usage[tenant_id][r].period_start = datetime.utcnow()
+                        self._usage[tenant_id][r].period_start = datetime.now(UTC)
 
     def _get_or_create_usage(
         self,
@@ -421,7 +421,7 @@ class QuotaTracker:
 
     def _maybe_reset_period(self, usage: TenantUsage):
         """Reset usage if period has expired."""
-        now = datetime.utcnow()
+        now = datetime.now(UTC)
         period_duration = timedelta(seconds=usage.period.value)
 
         if now - usage.period_start >= period_duration:
@@ -451,7 +451,7 @@ class QuotaTracker:
     ):
         """Maybe send soft limit warning."""
         warn_key = f"{tenant_id}:{resource}"
-        now = datetime.utcnow()
+        now = datetime.now(UTC)
 
         # Cooldown of 5 minutes between warnings
         if warn_key in self._warned:

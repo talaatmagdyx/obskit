@@ -54,7 +54,7 @@ print_section() {
 print_summary_table() {
     local json_file="$1"
     
-    if [ ! -f "$json_file" ]; then
+    if [[ ! -f "$json_file" ]]; then
         return
     fi
     
@@ -146,7 +146,7 @@ print_comparison_table() {
     local json_file="$1"
     local baseline_dir=".benchmarks"
     
-    if [ ! -d "$baseline_dir" ]; then
+    if [[ ! -d "$baseline_dir" ]]; then
         echo -e "${YELLOW}  No baseline found. Run with --save first.${NC}"
         return
     fi
@@ -154,7 +154,7 @@ print_comparison_table() {
     # Find latest baseline
     local baseline_file=$(ls -t "$baseline_dir"/*/*.json 2>/dev/null | head -1)
     
-    if [ -z "$baseline_file" ] || [ ! -f "$baseline_file" ]; then
+    if [[ -z "$baseline_file" ]] || [[ ! -f "$baseline_file" ]]; then
         echo -e "${YELLOW}  No baseline file found.${NC}"
         return
     fi

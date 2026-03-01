@@ -350,7 +350,6 @@ class ObskitDjangoMiddleware:
         """
         # Error is already logged in __call__, but this hook allows
         # subclasses to add custom handling
-        pass
 
 
 # Type-safe factory for creating middleware

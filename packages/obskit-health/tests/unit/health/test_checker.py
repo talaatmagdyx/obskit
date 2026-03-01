@@ -19,7 +19,7 @@ class TestHealthChecker:
     def test_init(self):
         """Test HealthChecker initialization."""
         checker = HealthChecker()
-        assert checker is not None
+        assert isinstance(checker, HealthChecker)
 
     def test_add_readiness_check_decorator(self):
         """Test adding readiness check as decorator."""
@@ -142,7 +142,7 @@ class TestCheckResult:
             healthy=True,
             duration_ms=15.5,
         )
-        assert result.duration_ms == 15.5
+        assert result.duration_ms == pytest.approx(15.5)
 
     def test_status_property_healthy(self):
         """Test status property returns HEALTHY for healthy result."""
@@ -171,7 +171,7 @@ class TestCheckResult:
         )
         d = result.to_dict()
         assert d["status"] == "healthy"
-        assert d["duration_ms"] == 10.123
+        assert d["duration_ms"] == pytest.approx(10.123)
 
     def test_to_dict_with_message(self):
         """Test to_dict includes message when present."""
@@ -447,7 +447,7 @@ class TestHealthCheckerAdvanced:
             await checker.check_readiness()
         except Exception:
             # If sync functions aren't supported, that's okay
-            pass
+            pass  # NOSONAR
 
     @pytest.mark.asyncio
     async def test_check_with_critical_flag(self):

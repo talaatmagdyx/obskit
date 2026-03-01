@@ -59,7 +59,7 @@ class TestSyncCircuitBreaker:
         # Should now raise CircuitOpenError
         with pytest.raises(CircuitOpenError) as exc_info:
             with breaker:
-                pass
+                pass  # NOSONAR
 
         assert exc_info.value.breaker_name == "test_sync_open_error"
 
@@ -82,7 +82,7 @@ class TestSyncCircuitBreaker:
 
         # Successful request should close the circuit
         with breaker:
-            pass
+            pass  # NOSONAR
 
         assert breaker.is_closed
 
@@ -180,7 +180,7 @@ class TestWithCircuitBreakerSyncDecorator:
 
         @with_circuit_breaker_sync("test_decorator_sync_name")
         def my_named_function():
-            pass
+            pass  # NOSONAR
 
         assert my_named_function.__name__ == "my_named_function"
 
@@ -217,7 +217,7 @@ class TestSyncCircuitBreakerExcludedExceptions:
         """Test that excluded exceptions don't count as failures."""
 
         class IgnorableError(Exception):
-            pass
+            pass  # NOSONAR
 
         breaker = CircuitBreaker(
             name="test_sync_excluded",
@@ -238,7 +238,7 @@ class TestSyncCircuitBreakerExcludedExceptions:
         """Test mix of excluded and counted exceptions."""
 
         class IgnorableError(Exception):
-            pass
+            pass  # NOSONAR
 
         breaker = CircuitBreaker(
             name="test_sync_mixed",

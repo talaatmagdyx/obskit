@@ -7,7 +7,7 @@ import functools
 import threading
 import time
 from collections.abc import Callable
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from typing import Any, ParamSpec, TypeVar
 
 from obskit.logging import get_logger
@@ -94,7 +94,7 @@ class SLOTracker:
                 return
 
             measurement = SLOMeasurement(
-                timestamp=datetime.now(),
+                timestamp=datetime.now(UTC),
                 value=value,
                 success=success,
             )
@@ -103,7 +103,7 @@ class SLOTracker:
             # Evict measurements outside the window on every write so the list
             # stays bounded rather than growing indefinitely.
             target = self._targets[name]
-            cutoff = datetime.now() - timedelta(seconds=target.window_seconds)
+            cutoff = datetime.now(UTC) - timedelta(seconds=target.window_seconds)
             self._measurements[name] = [
                 m for m in self._measurements[name] if m.timestamp >= cutoff
             ]
@@ -124,7 +124,7 @@ class SLOTracker:
             # Snapshot the list so calculations below don't race with appends.
             measurements = list(self._measurements.get(name, []))
 
-        window_end = datetime.now()
+        window_end = datetime.now(UTC)
         window_start = window_end - timedelta(seconds=target.window_seconds)
 
         if not measurements:
@@ -174,11 +174,11 @@ class SLOTracker:
             success_count = sum(1 for m in measurements if m.success)
             return success_count / len(measurements)
 
-        elif target.slo_type == SLOType.ERROR_RATE:
+        if target.slo_type == SLOType.ERROR_RATE:
             error_count = sum(1 for m in measurements if not m.success)
             return error_count / len(measurements)
 
-        elif target.slo_type == SLOType.LATENCY:
+        if target.slo_type == SLOType.LATENCY:
             values = sorted([m.value for m in measurements])
             if target.percentile:
                 # Nearest-rank percentile. Clamp to [0, n-1] so P100 maps to
@@ -188,18 +188,17 @@ class SLOTracker:
                 return values[index]
             return sum(values) / len(values)  # pragma: no cover
 
-        else:  # THROUGHPUT
-            if len(measurements) < 2:
-                return 0.0
-            time_span = (measurements[-1].timestamp - measurements[0].timestamp).total_seconds()
-            return len(measurements) / time_span if time_span > 0 else 0.0
+        # THROUGHPUT
+        if len(measurements) < 2:
+            return 0.0
+        time_span = (measurements[-1].timestamp - measurements[0].timestamp).total_seconds()
+        return len(measurements) / time_span if time_span > 0 else 0.0
 
     def _check_compliance(self, target: SLOTarget, current_value: float) -> bool:
         """Check if current value meets SLO target."""
         if target.slo_type == SLOType.ERROR_RATE or target.slo_type == SLOType.LATENCY:
             return current_value <= target.target_value
-        else:
-            return current_value >= target.target_value
+        return current_value >= target.target_value
 
     def _calculate_error_budget(
         self,
@@ -214,7 +213,7 @@ class SLOTracker:
             burn_rate = error_budget_used / error_budget if error_budget > 0 else 0.0
             return remaining, burn_rate
 
-        elif target.slo_type == SLOType.ERROR_RATE:
+        if target.slo_type == SLOType.ERROR_RATE:
             error_budget = target.target_value
             error_budget_used = current_value
             remaining = max(0.0, error_budget - error_budget_used)

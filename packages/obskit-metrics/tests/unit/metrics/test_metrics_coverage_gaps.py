@@ -71,8 +71,8 @@ class TestAsyncRecordingGaps:
             task.cancel()
             try:
                 await task
-            except asyncio.CancelledError:
-                pass
+            except asyncio.CancelledError:  # NOSONAR
+                pass  # NOSONAR
 
         assert call_count[0] >= 1
 
@@ -339,7 +339,7 @@ class TestPushgatewayGaps:
                 gateway_url="http://pushgateway:9091",
                 job_name="test-job",
             ):
-                pass
+                pass  # NOSONAR
 
 
 # =============================================================================
@@ -477,7 +477,7 @@ class TestSelfMetricsGaps:
 
         sm.reset_self_metrics()
         metrics = sm.ObskitSelfMetrics()
-        assert metrics is not None
+        assert isinstance(metrics, sm.ObskitSelfMetrics)
         sm.reset_self_metrics()
         assert sm._self_metrics is None
 
@@ -537,7 +537,7 @@ class TestTenantGaps:
         mock_trace.get_current_span.return_value = mock_span
 
         with patch.dict("sys.modules", {"opentelemetry": MagicMock(), "opentelemetry.trace": mock_trace}):
-            with patch("builtins.__import__") as mock_import:
+            with patch("builtins.__import__"):
                 def import_side_effect(name, *args, **kwargs):
                     if name == "opentelemetry":
                         return MagicMock(trace=mock_trace)
@@ -546,7 +546,6 @@ class TestTenantGaps:
                     return __import__(name, *args, **kwargs)
 
                 # Just run without mocking import - test the exception paths instead
-                pass
 
         # Test that tenant_context works when opentelemetry is available
         with tenant_context("t-123", company_id="comp-456") as ctx:
@@ -664,7 +663,7 @@ class TestThreadsafeAggregatorGaps:
         agg.stop(timeout_s=2.0)
 
         # After stop, at least one flush should have occurred (the final flush)
-        assert len(flushed) >= 0  # stop() calls _flush_once
+        assert len(flushed) >= 1  # stop() calls _flush_once
 
     def test_stop_with_flush_thread_none(self):
         """Lines 118->120: False branch - stop() when _flush_thread is None."""
@@ -699,7 +698,7 @@ class TestTypesGaps:
         registry = prometheus_client.CollectorRegistry()
 
         # First counter registers fine
-        c1 = Counter(name="test_exc_ctr_u", documentation="Test", registry=registry)
+        _c1 = Counter(name="test_exc_ctr_u", documentation="Test", registry=registry)
 
         # Make unregister raise AND mock prometheus_client.Counter to avoid ValueError
         mock_counter_instance = MagicMock()
@@ -711,7 +710,7 @@ class TestTypesGaps:
                 mock_pc.Histogram = prometheus_client.Histogram
                 mock_pc.Summary = prometheus_client.Summary
                 # Trigger the except block: name is in _names_to_collectors, unregister raises
-                c2 = Counter(name="test_exc_ctr_u", documentation="Test 2", registry=registry)
+                _c2 = Counter(name="test_exc_ctr_u", documentation="Test 2", registry=registry)
         # The except block (lines 159-160) was executed
 
     def test_gauge_exception_in_unregister_is_swallowed(self):
@@ -722,7 +721,7 @@ class TestTypesGaps:
 
         registry = prometheus_client.CollectorRegistry()
 
-        g1 = Gauge(name="test_exc_gau_u", documentation="Test", registry=registry)
+        _g1 = Gauge(name="test_exc_gau_u", documentation="Test", registry=registry)
 
         mock_gauge_instance = MagicMock()
         with patch.object(registry, "unregister", side_effect=Exception("unregister failed")):
@@ -730,7 +729,7 @@ class TestTypesGaps:
                 mock_pc.REGISTRY = registry
                 mock_pc.Gauge.return_value = mock_gauge_instance
                 mock_pc.Counter = prometheus_client.Counter
-                g2 = Gauge(name="test_exc_gau_u", documentation="Test 2", registry=registry)
+                _g2 = Gauge(name="test_exc_gau_u", documentation="Test 2", registry=registry)
 
     def test_histogram_exception_in_unregister_is_swallowed(self):
         """Lines 431-432: exception during histogram unregistration is swallowed."""
@@ -740,7 +739,7 @@ class TestTypesGaps:
 
         registry = prometheus_client.CollectorRegistry()
 
-        h1 = Histogram(name="test_exc_his_u", documentation="Test", registry=registry)
+        _h1 = Histogram(name="test_exc_his_u", documentation="Test", registry=registry)
 
         mock_hist_instance = MagicMock()
         with patch.object(registry, "unregister", side_effect=Exception("unregister failed")):
@@ -748,7 +747,7 @@ class TestTypesGaps:
                 mock_pc.REGISTRY = registry
                 mock_pc.Histogram.return_value = mock_hist_instance
                 mock_pc.Counter = prometheus_client.Counter
-                h2 = Histogram(name="test_exc_his_u", documentation="Test 2", registry=registry)
+                _h2 = Histogram(name="test_exc_his_u", documentation="Test 2", registry=registry)
 
     def test_summary_exception_in_unregister_is_swallowed(self):
         """Lines 533-534: exception during summary unregistration is swallowed."""
@@ -758,7 +757,7 @@ class TestTypesGaps:
 
         registry = prometheus_client.CollectorRegistry()
 
-        s1 = Summary(name="test_exc_sum_u", documentation="Test", registry=registry)
+        _s1 = Summary(name="test_exc_sum_u", documentation="Test", registry=registry)
 
         mock_summ_instance = MagicMock()
         with patch.object(registry, "unregister", side_effect=Exception("unregister failed")):
@@ -766,4 +765,4 @@ class TestTypesGaps:
                 mock_pc.REGISTRY = registry
                 mock_pc.Summary.return_value = mock_summ_instance
                 mock_pc.Counter = prometheus_client.Counter
-                s2 = Summary(name="test_exc_sum_u", documentation="Test 2", registry=registry)
+                _s2 = Summary(name="test_exc_sum_u", documentation="Test 2", registry=registry)

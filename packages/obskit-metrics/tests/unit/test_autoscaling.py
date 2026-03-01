@@ -7,6 +7,7 @@ from obskit.autoscaling import (
     ScalingRecommendation,
     get_autoscaling_metrics,
 )
+import pytest
 
 
 class TestAutoScalingMetrics:
@@ -37,7 +38,7 @@ class TestAutoScalingMetrics:
         scaling.record_requests_per_second(1000.0)
 
         metrics = scaling.get_metrics_for_hpa()
-        assert metrics["requests_per_second"] == 1000.0
+        assert metrics["requests_per_second"] == pytest.approx(1000.0)
 
     def test_record_pod_metrics(self):
         """Test recording pod-level metrics."""
@@ -51,7 +52,7 @@ class TestAutoScalingMetrics:
         )
 
         metrics = scaling.get_metrics_for_hpa()
-        assert metrics["avg_cpu_utilization"] == 75.0
+        assert metrics["avg_cpu_utilization"] == pytest.approx(75.0)
 
     def test_scale_up_recommendation(self):
         """Test scale up recommendation."""
@@ -180,7 +181,7 @@ class TestScalingConfig:
         data = config.to_dict()
         assert data["min_replicas"] == 2
         assert data["max_replicas"] == 10
-        assert data["target_cpu_utilization"] == 70.0
+        assert data["target_cpu_utilization"] == pytest.approx(70.0)
 
 
 class TestSingleton:

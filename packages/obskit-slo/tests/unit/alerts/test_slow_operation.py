@@ -5,7 +5,7 @@ Tests for obskit.alerts.slow_operation module.
 from __future__ import annotations
 
 import time
-from datetime import datetime
+from datetime import datetime, timezone, UTC
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -27,13 +27,13 @@ class TestSlowOperationEvent:
             operation="fetch_data",
             duration_ms=6000.0,
             threshold_ms=5000.0,
-            timestamp=datetime.utcnow(),
+            timestamp=datetime.now(UTC),
             alert_id="abc123",
             component="api",
         )
         assert event.operation == "fetch_data"
-        assert event.duration_ms == 6000.0
-        assert event.threshold_ms == 5000.0
+        assert event.duration_ms == pytest.approx(6000.0)
+        assert event.threshold_ms == pytest.approx(5000.0)
         assert event.component == "api"
         assert event.tenant_id is None
         assert event.context is None
@@ -54,7 +54,7 @@ class TestSlowOperationDetector:
 
     def test_init_defaults(self):
         detector = SlowOperationDetector()
-        assert detector.default_threshold_ms == 5000.0
+        assert detector.default_threshold_ms == pytest.approx(5000.0)
         assert detector.component == "service"
 
     def test_init_no_metrics(self):

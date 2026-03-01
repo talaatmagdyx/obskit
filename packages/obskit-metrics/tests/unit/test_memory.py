@@ -13,7 +13,7 @@ import gc
 import sys
 import threading
 import time
-from datetime import datetime
+from datetime import datetime, timezone, UTC
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -39,10 +39,10 @@ class TestMemoryStats:
         assert stats.rss_bytes == 0
         assert stats.vms_bytes == 0
         assert stats.heap_bytes == 0
-        assert stats.rss_mb == 0.0
-        assert stats.vms_mb == 0.0
-        assert stats.heap_mb == 0.0
-        assert stats.percent == 0.0
+        assert stats.rss_mb == pytest.approx(0.0)
+        assert stats.vms_mb == pytest.approx(0.0)
+        assert stats.heap_mb == pytest.approx(0.0)
+        assert stats.percent == pytest.approx(0.0)
 
     def test_to_dict(self):
         stats = MemoryStats(
@@ -58,16 +58,16 @@ class TestMemoryStats:
         assert d["rss_bytes"] == 1024 * 1024
         assert d["vms_bytes"] == 2 * 1024 * 1024
         assert d["heap_bytes"] == 512 * 1024
-        assert d["rss_mb"] == 1.0
-        assert d["vms_mb"] == 2.0
-        assert d["heap_mb"] == 0.5
-        assert d["percent"] == 5.5
+        assert d["rss_mb"] == pytest.approx(1.0)
+        assert d["vms_mb"] == pytest.approx(2.0)
+        assert d["heap_mb"] == pytest.approx(0.5)
+        assert d["percent"] == pytest.approx(5.5)
         assert "timestamp" in d
 
     def test_timestamp_auto_populated(self):
-        before = datetime.utcnow()
+        before = datetime.now(UTC)
         stats = MemoryStats()
-        after = datetime.utcnow()
+        after = datetime.now(UTC)
         assert before <= stats.timestamp <= after
 
 
@@ -170,7 +170,7 @@ class TestMemoryTrackerCollectMemory:
         assert stats.vms_bytes == 200 * 1024 * 1024
         assert stats.rss_mb == pytest.approx(100.0, rel=0.01)
         assert stats.vms_mb == pytest.approx(200.0, rel=0.01)
-        assert stats.percent == 5.0
+        assert stats.percent == pytest.approx(5.0)
 
     @patch("obskit.memory.HAS_PSUTIL", False)
     def test_collect_memory_without_psutil(self):

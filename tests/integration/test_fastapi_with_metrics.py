@@ -122,7 +122,7 @@ class TestFastAPIMiddlewareMetricsIntegration:
         if client is None:
             pytest.skip("FastAPI or ObskitMiddleware not available")
 
-        resp = client.get("/slow")
+        resp = client.get("/slow")  # NOSONAR
         assert resp.status_code == 200
 
     def test_red_metrics_request_counter_increments(self) -> None:

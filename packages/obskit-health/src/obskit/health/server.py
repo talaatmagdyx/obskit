@@ -50,7 +50,7 @@ class HealthRequestHandler(BaseHTTPRequestHandler):
 
     # Suppress default logging
     def log_message(self, format, *args):
-        pass
+        pass  # NOSONAR
 
     def _send_json(self, status_code: int, data: dict[str, Any]):
         """Send JSON response."""
@@ -227,13 +227,13 @@ def start_health_server(
             return _health_server
 
         try:
-            _health_server = HTTPServer((host, port), HealthRequestHandler)
-            _health_server_thread = threading.Thread(
-                target=_health_server.serve_forever,
+            server = HTTPServer((host, port), HealthRequestHandler)
+            thread = threading.Thread(
+                target=server.serve_forever,
                 name="obskit-health-server",
                 daemon=daemon,
             )
-            _health_server_thread.start()
+            thread.start()
 
             logger.info(
                 "health_server_started",
@@ -242,11 +242,12 @@ def start_health_server(
                 endpoints=["/health", "/health/live", "/health/ready", "/health/slo"],
             )
 
+            _health_server = server
+            _health_server_thread = thread
             return _health_server
 
         except Exception as e:
             logger.error("health_server_start_failed", error=str(e))
-            _health_server = None
             raise
 
 

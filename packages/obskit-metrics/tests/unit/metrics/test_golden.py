@@ -28,7 +28,6 @@ class TestGoldenSignals:
         """Test initialization with name."""
         name = f"golden_{uuid.uuid4().hex[:8]}"
         signals = GoldenSignals(name=name)
-        assert signals is not None
         assert signals.name == name
 
     def test_init_creates_metrics(self):

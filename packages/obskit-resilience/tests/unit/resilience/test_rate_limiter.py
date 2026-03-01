@@ -1,5 +1,7 @@
 """Tests for obskit.resilience.rate_limiter module."""
 
+import asyncio
+
 import pytest
 
 from obskit.resilience.rate_limiter import (
@@ -16,7 +18,7 @@ class TestRateLimiter:
         """Test initialization with custom values."""
         limiter = RateLimiter(requests=50, window_seconds=30.0)
         assert limiter.requests == 50
-        assert limiter.window_seconds == 30.0
+        assert limiter.window_seconds == pytest.approx(30.0)
 
     @pytest.mark.asyncio
     async def test_acquire_success(self):
@@ -78,20 +80,18 @@ class TestRateLimiter:
 
         # Fill up the limit
         async with limiter:
-            pass
+            pass  # NOSONAR
         async with limiter:
-            pass
+            pass  # NOSONAR
 
         # Third should raise
         with pytest.raises(RateLimitExceeded):
             async with limiter:
-                pass
+                pass  # NOSONAR
 
     @pytest.mark.asyncio
     async def test_cleanup_old_requests(self):
         """Test that old requests are cleaned up."""
-        import time
-
         limiter = RateLimiter(requests=2, window_seconds=0.05)  # Very short window
 
         # Make requests
@@ -99,7 +99,7 @@ class TestRateLimiter:
         await limiter.acquire()
 
         # Wait for window to expire
-        time.sleep(0.1)
+        await asyncio.sleep(0.1)
 
         # Should be able to make request again after cleanup
         result = await limiter.acquire()
@@ -115,7 +115,7 @@ class TestTokenBucketRateLimiter:
             bucket_size=100,
             refill_rate=10.0,
         )
-        assert limiter is not None
+        assert isinstance(limiter, TokenBucketRateLimiter)
 
     @pytest.mark.asyncio
     async def test_acquire_success(self):
@@ -181,7 +181,7 @@ class TestTokenBucketRateLimiter:
 
         with pytest.raises(RateLimitExceeded):
             async with limiter:
-                pass
+                pass  # NOSONAR
 
 
 class TestRateLimitExceeded:
@@ -195,8 +195,8 @@ class TestRateLimitExceeded:
             retry_after=30.0,
         )
         assert exc.limit == 100
-        assert exc.window_seconds == 60.0
-        assert exc.retry_after == 30.0
+        assert exc.window_seconds == pytest.approx(60.0)
+        assert exc.retry_after == pytest.approx(30.0)
 
     def test_exception_message(self):
         """Test exception message."""

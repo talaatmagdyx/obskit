@@ -137,7 +137,7 @@ class TestConfigureTracingNewParams:
 
     def test_obskit_version_in_resource(self) -> None:
         """configure_tracing sets obskit.version in OTel resource attributes."""
-        created_resource = None
+        _created_resource = None
 
         original_resource_create = None
         try:
@@ -193,9 +193,9 @@ class TestAsyncTraceSpan:
         async with async_trace_span(
             "test_op",
             attributes={"order_id": "123", "user_id": "456"},
-        ) as span:
+        ):
             # Just verify no exception
-            pass
+            pass  # NOSONAR
 
     @pytest.mark.asyncio
     async def test_async_trace_span_with_component_and_operation(self) -> None:
@@ -204,22 +204,22 @@ class TestAsyncTraceSpan:
         async with async_trace_span(
             "svc.op", component="SvcName", operation="doThing"
         ):
-            pass
+            pass  # NOSONAR
 
     @pytest.mark.asyncio
     async def test_async_trace_span_name_matches_sync(self) -> None:
         """Both sync and async span wrappers work on the same name."""
         configure_tracing()
         with trace_span("sync_op"):
-            pass
+            pass  # NOSONAR
         async with async_trace_span("async_op"):
-            pass
+            pass  # NOSONAR
 
     @pytest.mark.asyncio
     async def test_async_trace_span_nested(self) -> None:
         """Async spans can be nested."""
         configure_tracing()
-        async with async_trace_span("outer") as outer:
+        async with async_trace_span("outer"):
             async with async_trace_span("inner") as inner:
                 assert inner is not None
 
@@ -282,7 +282,7 @@ class TestBaggage:
         token = set_baggage("temp_key", "temp_val")
         clear_baggage(token)
         # After detach, baggage reverts to previous (empty) context
-        val = get_baggage("temp_key")
+        _val = get_baggage("temp_key")
         # Value may or may not be None depending on OTel context depth;
         # most importantly clear_baggage must not raise
         # (the assertion here is that no exception was raised)

@@ -9,7 +9,7 @@ from collections import defaultdict
 from collections.abc import Callable, Generator
 from contextlib import contextmanager
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from typing import Any, TypeVar
 
 from prometheus_client import Counter, Gauge, Histogram
@@ -55,7 +55,7 @@ class ResourceUsage:
     network_bytes_in: int = 0
     network_bytes_out: int = 0
     cost_units: float = 0.0
-    timestamp: datetime = field(default_factory=datetime.utcnow)
+    timestamp: datetime = field(default_factory=lambda: datetime.now(UTC))
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -300,21 +300,20 @@ class CostTracker:
                 "tenant_id": tenant_id,
                 "usage": usage.to_dict(),
                 "estimated_cost": costs,
-                "generated_at": datetime.utcnow().isoformat(),
+                "generated_at": datetime.now(UTC).isoformat(),
             }
-        else:
-            report = {
-                "tenants": {},
-                "total_cost": 0.0,
-                "generated_at": datetime.utcnow().isoformat(),
-            }
+        report = {
+            "tenants": {},
+            "total_cost": 0.0,
+            "generated_at": datetime.now(UTC).isoformat(),
+        }
 
-            for tid, usage in self._usage.items():
-                costs = self.calculate_cost(tid)
-                report["tenants"][tid] = {"usage": usage.to_dict(), "estimated_cost": costs}
-                report["total_cost"] += costs["total"]
+        for tid, usage in self._usage.items():
+            costs = self.calculate_cost(tid)
+            report["tenants"][tid] = {"usage": usage.to_dict(), "estimated_cost": costs}
+            report["total_cost"] += costs["total"]
 
-            return report
+        return report
 
     def reset_usage(self, tenant_id: str | None = None):
         """
@@ -356,7 +355,7 @@ def track_cost(
 
         @track_cost(tracker, tenant_id_arg="customer_id")
         def process_request(customer_id: str, data: dict):
-            pass
+            pass  # NOSONAR
     """
     import functools
 

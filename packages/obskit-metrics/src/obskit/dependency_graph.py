@@ -23,7 +23,7 @@ Example:
 
 import threading
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import UTC, datetime
 from enum import Enum
 from typing import Any
 
@@ -148,7 +148,7 @@ class GraphVisualization:
     healthy_count: int
     unhealthy_count: int
     critical_path: list[str]
-    timestamp: datetime = field(default_factory=datetime.utcnow)
+    timestamp: datetime = field(default_factory=lambda: datetime.now(UTC))
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -291,7 +291,7 @@ class DependencyGraph:
 
             node = self._dependencies[dependency]
             node.total_calls += 1
-            node.last_check = datetime.utcnow()
+            node.last_check = datetime.now(UTC)
 
             if not success:
                 node.failed_calls += 1
@@ -371,7 +371,7 @@ class DependencyGraph:
 
             node = self._dependencies[dependency]
             node.health_status = status
-            node.last_check = datetime.utcnow()
+            node.last_check = datetime.now(UTC)
 
             if latency_ms is not None:
                 node.latency_ms = latency_ms

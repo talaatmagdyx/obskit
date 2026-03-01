@@ -72,24 +72,24 @@ class TestPresetBuckets:
             assert isinstance(b, float)
 
     def test_fast_service_buckets_ascending(self):
-        for i in range(len(FAST_SERVICE_BUCKETS) - 1):
-            assert FAST_SERVICE_BUCKETS[i] < FAST_SERVICE_BUCKETS[i + 1]
+        for a, b in zip(FAST_SERVICE_BUCKETS, FAST_SERVICE_BUCKETS[1:], strict=False):
+            assert a < b
 
     def test_api_service_buckets_ascending(self):
-        for i in range(len(API_SERVICE_BUCKETS) - 1):
-            assert API_SERVICE_BUCKETS[i] < API_SERVICE_BUCKETS[i + 1]
+        for a, b in zip(API_SERVICE_BUCKETS, API_SERVICE_BUCKETS[1:], strict=False):
+            assert a < b
 
     def test_database_service_buckets_ascending(self):
-        for i in range(len(DATABASE_SERVICE_BUCKETS) - 1):
-            assert DATABASE_SERVICE_BUCKETS[i] < DATABASE_SERVICE_BUCKETS[i + 1]
+        for a, b in zip(DATABASE_SERVICE_BUCKETS, DATABASE_SERVICE_BUCKETS[1:], strict=False):
+            assert a < b
 
     def test_batch_service_buckets_ascending(self):
-        for i in range(len(BATCH_SERVICE_BUCKETS) - 1):
-            assert BATCH_SERVICE_BUCKETS[i] < BATCH_SERVICE_BUCKETS[i + 1]
+        for a, b in zip(BATCH_SERVICE_BUCKETS, BATCH_SERVICE_BUCKETS[1:], strict=False):
+            assert a < b
 
     def test_default_buckets_ascending(self):
-        for i in range(len(DEFAULT_BUCKETS) - 1):
-            assert DEFAULT_BUCKETS[i] < DEFAULT_BUCKETS[i + 1]
+        for a, b in zip(DEFAULT_BUCKETS, DEFAULT_BUCKETS[1:], strict=False):
+            assert a < b
 
     def test_fast_service_buckets_all_positive(self):
         assert all(b > 0 for b in FAST_SERVICE_BUCKETS)
@@ -113,7 +113,7 @@ class TestPresetBuckets:
         assert min(DEFAULT_BUCKETS) <= 0.01
 
     def test_fast_service_first_bucket(self):
-        assert FAST_SERVICE_BUCKETS[0] == 0.001
+        assert FAST_SERVICE_BUCKETS[0] == pytest.approx(0.001)
 
     def test_api_service_buckets_count(self):
         assert len(API_SERVICE_BUCKETS) == 10

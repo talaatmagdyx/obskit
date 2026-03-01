@@ -22,22 +22,22 @@ class TestBatchResult:
         assert result.successful_items == 0
         assert result.failed_items == 0
         assert result.errors == []
-        assert result.duration_seconds == 0.0
+        assert result.duration_seconds == pytest.approx(0.0)
 
     def test_success_rate_empty(self):
         """Test success rate with no items."""
         result = BatchResult()
-        assert result.success_rate == 1.0
+        assert result.success_rate == pytest.approx(1.0)
 
     def test_success_rate_all_success(self):
         """Test success rate with all successful items."""
         result = BatchResult(total_items=10, successful_items=10, failed_items=0)
-        assert result.success_rate == 1.0
+        assert result.success_rate == pytest.approx(1.0)
 
     def test_success_rate_partial(self):
         """Test success rate with partial success."""
         result = BatchResult(total_items=10, successful_items=7, failed_items=3)
-        assert result.success_rate == 0.7
+        assert result.success_rate == pytest.approx(0.7)
 
     def test_all_succeeded_true(self):
         """Test all_succeeded when no failures."""
@@ -94,7 +94,7 @@ class TestBatchContext:
         ctx = BatchContext("test_batch")
         ctx.record_success(count=8)
         ctx.record_failure(count=2)
-        assert ctx.success_rate == 0.8
+        assert ctx.success_rate == pytest.approx(0.8)
 
     def test_get_result(self):
         """Test get_result returns BatchResult."""
@@ -239,7 +239,7 @@ class TestBatchTrackerEdgeCases:
     def test_success_rate_zero_processed(self):
         from obskit.batch import BatchContext
         ctx = BatchContext("test_batch", 0)
-        assert ctx.success_rate == 1.0
+        assert ctx.success_rate == pytest.approx(1.0)
 
     def test_process_batch_without_batch_size_uses_processed(self):
         from obskit.batch import BatchTracker
@@ -247,7 +247,7 @@ class TestBatchTrackerEdgeCases:
         called = []
         def processor(item):
             called.append(item)
-        result = tracker.process_batch([1, 2, 3], processor)
+        _result = tracker.process_batch([1, 2, 3], processor)
         assert len(called) == 3
 
     def test_process_batch_with_on_error_callback(self):
@@ -290,7 +290,7 @@ class TestBatchTrackerEdgeCases:
     def test_track_batch_no_batch_size_zero_processed(self):
         from obskit.batch import BatchTracker
         tracker = BatchTracker("test_tracker")
-        with tracker.track_batch(batch_size=0) as batch:
+        with tracker.track_batch(batch_size=0):
             pass  # No items processed - batch.processed == 0, covers 212->215 branch
 
 
@@ -303,7 +303,7 @@ class TestBatchTrackerAsyncEdgeCases:
         errors = []
         def on_error(item, exc):
             errors.append((item, exc))
-        async def processor(item):
+        async def processor(item):  # NOSONAR
             if item == 2: raise ValueError("async error")
         asyncio.run(tracker.process_batch_async([1, 2, 3], processor, on_error=on_error))
         assert len(errors) == 1
@@ -315,7 +315,7 @@ class TestBatchTrackerAsyncEdgeCases:
 
         from obskit.batch import BatchTracker
         tracker = BatchTracker("test_tracker")
-        async def processor(item):
+        async def processor(item):  # NOSONAR
             if item == 1: raise ValueError("fail")
         with pytest.raises(ValueError):
             asyncio.run(tracker.process_batch_async([1, 2, 3], processor, fail_fast=True))

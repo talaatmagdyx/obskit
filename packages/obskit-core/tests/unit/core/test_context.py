@@ -72,7 +72,7 @@ class TestCorrelationContext:
     def test_context_cleanup(self):
         """Test that context cleans up after exit."""
         with correlation_context("temp-id"):
-            pass
+            pass  # NOSONAR
         assert get_correlation_id() is None
 
     def test_nested_contexts(self):
@@ -123,7 +123,7 @@ class TestAsyncCorrelationContext:
     async def test_context_cleanup(self):
         """Test async context cleans up."""
         async with async_correlation_context("async-temp"):
-            pass
+            pass  # NOSONAR
         assert get_correlation_id() is None
 
     @pytest.mark.asyncio

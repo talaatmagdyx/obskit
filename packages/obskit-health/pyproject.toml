@@ -36,11 +36,19 @@ dev = [
     "mypy>=1.8.0,<2.0.0",
     "ruff>=0.3.0,<1.0.0",
     "prometheus-client>=0.19.0,<1.0.0",
+    "opentelemetry-api>=1.20.0,<2.0.0",
+    "psutil>=5.9.0",
+    "httpx>=0.25.0,<1.0.0",
+    "aiohttp>=3.9.0",
 ]
 
 [build-system]
 requires = ["setuptools>=61.0"]
 build-backend = "setuptools.build_meta"
+
+[tool.uv.sources]
+obskit-core = { workspace = true }
+obskit-metrics = { workspace = true }
 
 [tool.setuptools.packages.find]
 where = ["src"]

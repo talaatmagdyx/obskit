@@ -17,7 +17,7 @@ from obskit.metrics.red import REDMetrics, reset_red_metrics
 from obskit.metrics.registry import reset_registry
 
 if TYPE_CHECKING:
-    pass
+    _ = None  # satisfy type-checker block
 
 
 class TestREDMetricsBenchmarks:

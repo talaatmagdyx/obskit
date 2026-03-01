@@ -114,7 +114,7 @@ class TestDatabaseTrackerWithTracing:
             query="SELECT * FROM users",
             tenant_id="company_123",
         ):
-            pass
+            pass  # NOSONAR
 
     def test_track_query_with_long_query_truncated(self):
         """Test track_query truncates long query (line 172)."""
@@ -124,7 +124,7 @@ class TestDatabaseTrackerWithTracing:
             operation="SELECT",
             query=long_query,
         ):
-            pass
+            pass  # NOSONAR
 
     def test_track_query_with_attributes(self):
         """Test track_query with extra attributes (line 174)."""
@@ -133,13 +133,13 @@ class TestDatabaseTrackerWithTracing:
             operation="SELECT",
             attributes={"custom": "value", "another": "attr"},
         ):
-            pass
+            pass  # NOSONAR
 
     def test_track_query_enable_tracing_false(self):
         """Test track_query with enable_tracing=False skips tracer (branch 182->195)."""
         tracker = DatabaseTracker(database_name=f"test_{uuid.uuid4().hex[:8]}")
         with tracker.track_query(operation="SELECT", enable_tracing=False):
-            pass
+            pass  # NOSONAR
 
     def test_track_query_with_trace_context_enter_and_exit(self):
         """Test trace_context __enter__ and __exit__ are called (lines 197-200, 277-281)."""
@@ -161,7 +161,7 @@ class TestDatabaseTrackerWithTracing:
 
             with patch.dict("sys.modules", {"obskit.tracing": mock_tracing_module}):
                 with tracker.track_query(operation="SELECT", enable_tracing=True):
-                    pass
+                    pass  # NOSONAR
 
         mock_context.__enter__.assert_called_once()
         mock_context.__exit__.assert_called_once_with(None, None, None)
@@ -187,7 +187,7 @@ class TestDatabaseTrackerWithTracing:
             with patch.dict("sys.modules", {"obskit.tracing": mock_tracing_module}):
                 # Should not raise even though __exit__ raises
                 with tracker.track_query(operation="SELECT", enable_tracing=True):
-                    pass
+                    pass  # NOSONAR
 
     def test_track_query_trace_span_exception_sets_context_none(self):
         """Test trace_span call exception sets trace_context to None (lines 192-193)."""
@@ -206,7 +206,7 @@ class TestDatabaseTrackerWithTracing:
 
             with patch.dict("sys.modules", {"obskit.tracing": mock_tracing_module}):
                 with tracker.track_query(operation="SELECT", enable_tracing=True):
-                    pass
+                    pass  # NOSONAR
 
 
 class TestDatabaseTrackerSLO:
@@ -224,7 +224,7 @@ class TestDatabaseTrackerSLO:
                 default_slo_name="query_latency",
             )
             with tracker.track_query(operation="SELECT", enable_slo=True):
-                pass
+                pass  # NOSONAR
 
             mock_slo_tracker.record_measurement.assert_called_once()
             call_kwargs = mock_slo_tracker.record_measurement.call_args
@@ -245,7 +245,7 @@ class TestDatabaseTrackerSLO:
                 default_slo_name="query_latency",
             )
             with tracker.track_query(operation="SELECT", enable_slo=True):
-                pass
+                pass  # NOSONAR
         finally:
             tracker_module._slo_tracker = original_slo
 

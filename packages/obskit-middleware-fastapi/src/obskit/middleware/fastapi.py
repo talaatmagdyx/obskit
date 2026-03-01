@@ -66,7 +66,7 @@ except ImportError:  # pragma: no cover
         """Stub class when FastAPI is not available."""
 
         def __init__(self, app: Any) -> None:
-            pass
+            pass  # NOSONAR
 
     ASGIApp = Any  # type: ignore[misc]
     Request = Any  # type: ignore[misc, assignment]

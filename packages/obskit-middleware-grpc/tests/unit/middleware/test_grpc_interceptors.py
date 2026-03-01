@@ -378,7 +378,7 @@ class TestObskitClientInterceptorInterceptCall:
         details.metadata = [("existing-key", "existing-value")]
         captured_details = []
 
-        async def capture_continuation(new_details, request):
+        async def capture_continuation(new_details, request):  # NOSONAR
             captured_details.append(new_details)
             return MagicMock()
 

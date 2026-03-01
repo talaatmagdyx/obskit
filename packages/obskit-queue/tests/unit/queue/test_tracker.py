@@ -13,7 +13,7 @@ class TestQueueTracker:
     def test_init(self):
         """Test QueueTracker initialization."""
         tracker = QueueTracker(queue_name="test_queue")
-        assert tracker is not None
+        assert isinstance(tracker, QueueTracker)
 
     def test_track_message_processing_context(self):
         """Test track_message_processing context manager."""

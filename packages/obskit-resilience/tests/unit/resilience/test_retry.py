@@ -128,7 +128,7 @@ class TestRetryError:
         )
         assert "exhausted" in str(error).lower()
         assert error.attempts == 3
-        assert error.total_delay == 2.5
+        assert error.total_delay == pytest.approx(2.5)
 
 
 class TestRetryConfiguration:
@@ -185,7 +185,7 @@ class TestRetryConfig:
         """Test RetryConfig default values."""
         config = RetryConfig()
         assert config.max_attempts == 3
-        assert config.base_delay == 1.0
+        assert config.base_delay == pytest.approx(1.0)
         assert config.jitter is True
 
 

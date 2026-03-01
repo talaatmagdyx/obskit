@@ -103,7 +103,7 @@ def detect_available_instrumentors() -> list[str]:
             importlib.import_module(module_path)
             available.append(name)
         except ImportError:
-            pass
+            pass  # NOSONAR
     return available
 
 
@@ -186,7 +186,7 @@ def uninstrument_all() -> None:
         try:
             instance.uninstrument()
         except Exception:  # noqa: BLE001 — uninstrument errors must not block cleanup
-            pass
+            pass  # NOSONAR
     _applied.clear()
 
 

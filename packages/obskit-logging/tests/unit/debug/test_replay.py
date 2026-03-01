@@ -66,7 +66,7 @@ class TestCapturedRequest:
 
         assert data["capture_id"] == "cap-123"
         assert data["function_name"] == "my_func"
-        assert data["duration_seconds"] == 0.5
+        assert data["duration_seconds"] == pytest.approx(0.5)
 
     def test_from_dict(self):
         """Test creation from dictionary."""
@@ -326,8 +326,8 @@ class TestRequestCapture:
 
         assert capture.capture_on_error is True
         assert capture.capture_on_slow is False
-        assert capture.slow_threshold == 5.0
-        assert capture.sample_rate == 1.0
+        assert capture.slow_threshold == pytest.approx(5.0)
+        assert capture.sample_rate == pytest.approx(1.0)
 
     def test_init_with_storage(self):
         """Test initialization with custom storage."""
@@ -346,8 +346,8 @@ class TestRequestCapture:
         )
 
         assert capture.capture_on_slow is True
-        assert capture.slow_threshold == 2.0
-        assert capture.sample_rate == 0.5
+        assert capture.slow_threshold == pytest.approx(2.0)
+        assert capture.sample_rate == pytest.approx(0.5)
 
     @pytest.mark.asyncio
     async def test_capture_on_error(self):

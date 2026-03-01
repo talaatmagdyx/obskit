@@ -30,12 +30,12 @@ class TestRetryConfig:
         config = RetryConfig()
 
         assert config.max_retries == 3
-        assert config.base_delay_seconds == 0.1
-        assert config.max_delay_seconds == 60.0
-        assert config.exponential_base == 2.0
-        assert config.jitter_factor == 0.25
+        assert config.base_delay_seconds == pytest.approx(0.1)
+        assert config.max_delay_seconds == pytest.approx(60.0)
+        assert config.exponential_base == pytest.approx(2.0)
+        assert config.jitter_factor == pytest.approx(0.25)
         assert config.backpressure_strategy == BackpressureStrategy.ADAPTIVE
-        assert config.error_rate_threshold == 0.1
+        assert config.error_rate_threshold == pytest.approx(0.1)
         assert config.max_concurrent == 100
 
     def test_custom_config(self):
@@ -48,7 +48,7 @@ class TestRetryConfig:
         )
 
         assert config.max_retries == 5
-        assert config.base_delay_seconds == 0.5
+        assert config.base_delay_seconds == pytest.approx(0.5)
         assert config.backpressure_strategy == BackpressureStrategy.LINEAR
 
 
@@ -62,8 +62,8 @@ class TestRetryState:
         assert state.name == "test"
         assert state.attempt == 0
         assert state.last_error is None
-        assert state.total_delay == 0.0
-        assert state.backpressure_multiplier == 1.0
+        assert state.total_delay == pytest.approx(0.0)
+        assert state.backpressure_multiplier == pytest.approx(1.0)
 
 
 class TestAdaptiveRetry:
@@ -113,9 +113,9 @@ class TestAdaptiveRetry:
         delay1 = retry._calculate_delay(1, state)
         delay2 = retry._calculate_delay(2, state)
 
-        assert delay0 == 1.0  # 1 * 2^0
-        assert delay1 == 2.0  # 1 * 2^1
-        assert delay2 == 4.0  # 1 * 2^2
+        assert delay0 == pytest.approx(1.0)  # 1 * 2^0
+        assert delay1 == pytest.approx(2.0)  # 1 * 2^1
+        assert delay2 == pytest.approx(4.0)  # 1 * 2^2
 
     def test_calculate_delay_with_backpressure(self):
         """Test delay calculation with backpressure."""
@@ -125,7 +125,7 @@ class TestAdaptiveRetry:
 
         delay = retry._calculate_delay(0, state)
 
-        assert delay == 2.0  # 1.0 * 2.0 backpressure
+        assert delay == pytest.approx(2.0)  # 1.0 * 2.0 backpressure
 
     def test_calculate_delay_max_cap(self):
         """Test delay is capped at max."""
@@ -135,14 +135,14 @@ class TestAdaptiveRetry:
 
         delay = retry._calculate_delay(3, state)
 
-        assert delay == 5.0  # Capped at max
+        assert delay == pytest.approx(5.0)  # Capped at max
 
     @pytest.mark.asyncio
     async def test_execute_success(self):
         """Test successful execution."""
         retry = AdaptiveRetry(name="test")
 
-        async def success_func():
+        async def success_func():  # NOSONAR
             return "success"
 
         result = await retry.execute(success_func)
@@ -157,7 +157,7 @@ class TestAdaptiveRetry:
 
         call_count = 0
 
-        async def fail_then_succeed():
+        async def fail_then_succeed():  # NOSONAR
             nonlocal call_count
             call_count += 1
             if call_count < 3:
@@ -188,7 +188,7 @@ class TestAdaptiveRetry:
 
         call_count = 0
 
-        async def raise_value_error():
+        async def raise_value_error():  # NOSONAR
             nonlocal call_count
             call_count += 1
             raise ValueError("Not retryable")
@@ -297,7 +297,7 @@ class TestAdaptiveRetry:
         retry._adapt(error_rate=0.5)
 
         # Should not change
-        assert retry._backpressure_multiplier == 1.0
+        assert retry._backpressure_multiplier == pytest.approx(1.0)
 
 
 class TestAdaptiveRetryDecorator:

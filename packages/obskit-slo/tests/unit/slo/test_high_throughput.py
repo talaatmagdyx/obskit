@@ -1,10 +1,11 @@
 """Tests for obskit.slo.high_throughput.HighThroughputSLOTracker."""
 
 import threading
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone, UTC
 
 from obskit.slo.high_throughput import HighThroughputSLOTracker, measurements_in_window
 from obskit.slo.types import SLOMeasurement, SLOType
+import pytest
 
 
 class TestHighThroughputSLOTrackerRegistration:
@@ -28,7 +29,7 @@ class TestHighThroughputSLOTrackerRegistration:
         tracker.register_slo("slo", SLOType.AVAILABILITY, 0.99)
         tracker.register_slo("slo", SLOType.AVAILABILITY, 0.95)
         status = tracker.get_status("slo")
-        assert status.target.target_value == 0.95
+        assert status.target.target_value == pytest.approx(0.95)
 
 
 class TestHighThroughputSLOTrackerRecording:
@@ -40,7 +41,7 @@ class TestHighThroughputSLOTrackerRecording:
         tracker.record_measurement("avail", 1.0, success=True)
         status = tracker.get_status("avail")
         assert status.measurement_count == 1
-        assert status.current_value == 1.0
+        assert status.current_value == pytest.approx(1.0)
 
     def test_record_all_failures(self):
         tracker = HighThroughputSLOTracker()
@@ -48,7 +49,7 @@ class TestHighThroughputSLOTrackerRecording:
         for _ in range(10):
             tracker.record_measurement("avail", 1.0, success=False)
         status = tracker.get_status("avail")
-        assert status.current_value == 0.0
+        assert status.current_value == pytest.approx(0.0)
         assert status.compliance is False
 
     def test_record_mixed_availability(self):
@@ -84,7 +85,7 @@ class TestHighThroughputSLOTrackerRecording:
         # Register in local buffer directly with old timestamp
         local = tracker._get_local()
         local.deques.setdefault("avail", __import__("collections").deque(maxlen=50_000))
-        old_ts = datetime.now() - timedelta(seconds=10)
+        old_ts = datetime.now(UTC) - timedelta(seconds=10)
         local.deques["avail"].appendleft(
             SLOMeasurement(timestamp=old_ts, value=1.0, success=False)
         )
@@ -93,7 +94,7 @@ class TestHighThroughputSLOTrackerRecording:
 
         status = tracker.get_status("avail")
         # Only the recent success should be in window
-        assert status.current_value == 1.0
+        assert status.current_value == pytest.approx(1.0)
 
 
 class TestHighThroughputSLOTrackerLatency:
@@ -149,7 +150,7 @@ class TestHighThroughputSLOTrackerConcurrency:
         status = tracker.get_status("avail")
         assert status is not None
         # All measurements should be successes
-        assert status.current_value == 1.0
+        assert status.current_value == pytest.approx(1.0)
 
     def test_get_all_status_returns_all_registered(self):
         tracker = HighThroughputSLOTracker()
@@ -174,7 +175,7 @@ class TestMeasurementsInWindow:
 
     def _make_measurement(self, offset_s: float) -> SLOMeasurement:
         return SLOMeasurement(
-            timestamp=datetime.now() + timedelta(seconds=offset_s),
+            timestamp=datetime.now(UTC) + timedelta(seconds=offset_s),
             value=1.0,
             success=True,
         )
@@ -182,14 +183,14 @@ class TestMeasurementsInWindow:
     def test_all_in_window(self):
         measurements = [self._make_measurement(i) for i in range(5)]
         measurements.sort(key=lambda m: m.timestamp)
-        window_start = datetime.now() - timedelta(seconds=10)
+        window_start = datetime.now(UTC) - timedelta(seconds=10)
         result = measurements_in_window(measurements, window_start)
         assert len(result) == 5
 
     def test_none_in_window(self):
         measurements = [self._make_measurement(-100 + i) for i in range(5)]
         measurements.sort(key=lambda m: m.timestamp)
-        window_start = datetime.now()  # all are in the past
+        window_start = datetime.now(UTC)  # all are in the past
         result = measurements_in_window(measurements, window_start)
         assert len(result) == 0
 
@@ -199,7 +200,7 @@ class TestMeasurementsInWindow:
             + [self._make_measurement(i) for i in range(3)]       # recent
         )
         measurements.sort(key=lambda m: m.timestamp)
-        window_start = datetime.now() - timedelta(seconds=1)
+        window_start = datetime.now(UTC) - timedelta(seconds=1)
         result = measurements_in_window(measurements, window_start)
         # Only the recent ones should be included
         assert 0 < len(result) <= 3

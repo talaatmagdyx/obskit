@@ -7,14 +7,12 @@ on:
     - cron: "0 9 * * 1"   # Every Monday 09:00 UTC
   workflow_dispatch:
 
-permissions:
-  contents: read
-  security-events: write   # For uploading SARIF results
-
 jobs:
   pip-audit:
     name: pip-audit (CVE scan)
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@v4
 
@@ -68,6 +66,9 @@ jobs:
   bandit:
     name: Bandit (static security analysis)
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write   # for uploading SARIF results
     steps:
       - uses: actions/checkout@v4
 
@@ -108,7 +109,7 @@ jobs:
                     -c pyproject.toml \
                     -ll \
                     -f txt || exit_code=$?
-          if [ "${exit_code:-0}" -ne 0 ]; then
+          if [[ "${exit_code:-0}" -ne 0 ]]; then
             echo "❌ Bandit found security issues"
             exit 1
           fi
@@ -117,6 +118,8 @@ jobs:
   license-check:
     name: License compliance check
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@v4
 

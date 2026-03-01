@@ -23,7 +23,7 @@ from obskit.errors.responses import (
 
 
 @pytest.fixture(autouse=True)
-def reset_correlation_id():
+async def reset_correlation_id():
     """Reset correlation ID before each test to prevent contamination."""
     token = set_correlation_id(None)
     yield

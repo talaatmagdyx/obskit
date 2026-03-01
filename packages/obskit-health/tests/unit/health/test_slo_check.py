@@ -55,7 +55,7 @@ class TestSLOCheckResult:
         )
         assert result.healthy is True
         assert result.status == SLOHealthStatus.HEALTHY
-        assert result.error_budget_remaining == 0.8
+        assert result.error_budget_remaining == pytest.approx(0.8)
 
     def test_critical_result(self):
         result = SLOCheckResult(
@@ -69,7 +69,7 @@ class TestSLOCheckResult:
             details={"burn_rate": 10.0},
         )
         assert result.healthy is False
-        assert result.details["burn_rate"] == 10.0
+        assert result.details["burn_rate"] == pytest.approx(10.0)
 
 
 # =============================================================================
@@ -244,7 +244,7 @@ class TestAddSloReadinessCheck:
         )
         assert isinstance(result, SLOReadinessCheck)
         assert result.slo_name == "my_slo"
-        assert result.critical_threshold == 0.1
+        assert result.critical_threshold == pytest.approx(0.1)
 
     def test_registers_check_with_health_checker(self):
         mock_checker = MagicMock()
@@ -284,7 +284,7 @@ class TestAddSloReadinessCheck:
         )
         slo_check._slo_tracker = tracker
 
-        assert registered_fn is not None
+        assert registered_fn
         result = await registered_fn()
         # With critical_threshold=0.005 and budget_remaining=0.10, should be healthy => True
         assert result is True
@@ -319,7 +319,7 @@ class TestAddSloReadinessCheck:
         )
         slo_check._slo_tracker = tracker
 
-        assert registered_fn is not None
+        assert registered_fn
         result = await registered_fn()
         # Budget is 0 (clamped), which is less than critical_threshold=0.05
         if isinstance(result, dict):

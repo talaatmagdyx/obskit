@@ -38,7 +38,7 @@ from __future__ import annotations
 import bisect
 import threading
 from collections import deque
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 from obskit.slo.types import SLOMeasurement, SLOStatus, SLOTarget, SLOType
@@ -152,7 +152,7 @@ class HighThroughputSLOTracker:
             local.deques[name] = dq
 
         dq.append(SLOMeasurement(
-            timestamp=datetime.now(),
+            timestamp=datetime.now(UTC),
             value=value,
             success=success,
         ))
@@ -179,7 +179,7 @@ class HighThroughputSLOTracker:
             target = self._targets[name]
             thread_locals = list(self._thread_local_list)
 
-        window_end = datetime.now()
+        window_end = datetime.now(UTC)
         window_start = window_end - timedelta(seconds=target.window_seconds)
 
         # Collect all measurements in window from every thread

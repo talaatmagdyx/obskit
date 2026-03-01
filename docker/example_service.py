@@ -135,7 +135,7 @@ class MetricsHandler(BaseHTTPRequestHandler):
     
     def log_message(self, format, *args):
         # Suppress default logging
-        pass
+        pass  # NOSONAR
 
 
 def run_server():
@@ -151,7 +151,7 @@ def simulate_traffic():
     
     while True:
         try:
-            with correlation_context() as ctx:
+            with correlation_context():
                 # Simulate various operations
                 order_id = f"order-{random.randint(1000, 9999)}"
                 try:

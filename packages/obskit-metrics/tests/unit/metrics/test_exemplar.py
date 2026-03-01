@@ -184,7 +184,7 @@ class TestObserveWithExemplar:
         mock_metric = MagicMock()
         observe_with_exemplar(mock_metric, 42.0, exemplar={})
         args, _ = mock_metric.observe.call_args
-        assert args[0] == 42.0
+        assert args[0] == pytest.approx(42.0)
 
     def test_does_not_raise_on_general_exception(self) -> None:
         """A general exception in observe falls back silently."""

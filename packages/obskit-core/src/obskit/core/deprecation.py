@@ -37,7 +37,6 @@ class ObskitDeprecationWarning(DeprecationWarning):
     DeprecationWarning) to ensure users are aware of upcoming changes.
     """
 
-    pass
 
 
 # Ensure our deprecation warnings are always shown

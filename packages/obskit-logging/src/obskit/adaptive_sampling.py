@@ -27,7 +27,7 @@ import random
 import threading
 import time
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import UTC, datetime
 from enum import Enum
 from typing import Any
 
@@ -105,7 +105,7 @@ class SamplingStats:
     samples_taken: int
     samples_dropped: int
     load_factor: float
-    timestamp: datetime = field(default_factory=datetime.utcnow)
+    timestamp: datetime = field(default_factory=lambda: datetime.now(UTC))
 
     @property
     def sample_ratio(self) -> float:
@@ -178,7 +178,7 @@ class AdaptiveSampler:
         # Metrics tracking
         self._request_count = 0
         self._error_count = 0
-        self._last_adaptation = datetime.utcnow()
+        self._last_adaptation = datetime.now(UTC)
 
         self._lock = threading.Lock()
 
@@ -297,7 +297,7 @@ class AdaptiveSampler:
 
     def _maybe_adapt(self):
         """Adapt sampling rate based on load."""
-        now = datetime.utcnow()
+        now = datetime.now(UTC)
         elapsed = (now - self._last_adaptation).total_seconds()
 
         if elapsed < self.adapt_interval:

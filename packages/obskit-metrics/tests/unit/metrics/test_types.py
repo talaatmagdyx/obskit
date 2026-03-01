@@ -26,7 +26,7 @@ class TestCounter:
             name="test_counter",
             documentation="Test counter",
         )
-        assert counter is not None
+        assert isinstance(counter, Counter)
 
     def test_init_with_labels(self):
         """Test counter with labels."""
@@ -35,7 +35,7 @@ class TestCounter:
             documentation="Test counter",
             labelnames=["method", "status"],
         )
-        assert counter is not None
+        assert isinstance(counter, Counter)
 
     def test_inc(self):
         """Test counter increment."""
@@ -80,7 +80,7 @@ class TestGauge:
             name="test_gauge",
             documentation="Test gauge",
         )
-        assert gauge is not None
+        assert isinstance(gauge, Gauge)
 
     def test_set(self):
         """Test gauge set."""
@@ -124,7 +124,7 @@ class TestHistogram:
             name="test_histogram",
             documentation="Test histogram",
         )
-        assert histogram is not None
+        assert isinstance(histogram, Histogram)
 
     def test_init_with_buckets(self):
         """Test histogram with custom buckets."""
@@ -133,7 +133,7 @@ class TestHistogram:
             documentation="Test",
             buckets=[0.1, 0.5, 1.0, 5.0],
         )
-        assert histogram is not None
+        assert isinstance(histogram, Histogram)
 
     def test_observe(self):
         """Test histogram observe."""
@@ -161,7 +161,7 @@ class TestSummary:
             name="test_summary",
             documentation="Test summary",
         )
-        assert summary is not None
+        assert isinstance(summary, Summary)
 
     def test_observe(self):
         """Test summary observe."""
@@ -189,7 +189,7 @@ class TestSummary:
         summary2.observe(2.0)
 
         # Should not raise - second summary should work
-        assert summary2 is not None
+        assert isinstance(summary2, Summary)
 
     def test_labels(self):
         """Test summary with labels."""

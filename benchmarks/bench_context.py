@@ -85,7 +85,7 @@ class TestCorrelationContextBenchmarks:
 
         def use_context() -> None:
             with correlation_context("bench-id"):
-                pass
+                _ = 0  # Measure context manager overhead
 
         benchmark(use_context)
 
@@ -105,7 +105,7 @@ class TestCorrelationContextBenchmarks:
 
         async def use_context() -> None:
             async with async_correlation_context("bench-id"):
-                pass
+                _ = 0  # Measure context manager overhead
 
         def run() -> None:
             asyncio.run(use_context())
@@ -119,7 +119,7 @@ class TestCorrelationContextBenchmarks:
         def nested() -> None:
             with correlation_context("outer"):
                 with correlation_context("inner"):
-                    pass
+                    _ = 0  # Measure context manager overhead
 
         benchmark(nested)
 

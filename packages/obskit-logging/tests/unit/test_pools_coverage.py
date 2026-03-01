@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from unittest.mock import patch
+import pytest
 
 
 class TestPoolsBranchCoverage:
@@ -32,7 +33,7 @@ class TestPoolsBranchCoverage:
             max_size=0,  # Zero max size
         )
         stats = tracker.get_stats()
-        assert stats.utilization == 0.0
+        assert stats.utilization == pytest.approx(0.0)
 
     def test_get_pool_tracker_inner_lock_branch(self):
         """Lines 414->421: inner lock branch when pool tracker already exists."""

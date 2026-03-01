@@ -15,7 +15,7 @@ class TestDatabaseTracker:
     def test_init(self):
         """Test DatabaseTracker initialization."""
         tracker = DatabaseTracker(database_name="test_db")
-        assert tracker is not None
+        assert isinstance(tracker, DatabaseTracker)
         assert tracker.database_name == "test_db"
 
     def test_track_query_context(self):
@@ -79,9 +79,9 @@ class TestTrackQueryDecorator:
     def test_track_query_with_query(self):
         """Test track_query with query string."""
         with track_query(operation="SELECT", database_name="test", query="SELECT * FROM users"):
-            pass
+            pass  # NOSONAR
 
     def test_track_query_with_threshold(self):
         """Test track_query with slow query threshold."""
         with track_query(operation="UPDATE", database_name="test", slow_query_threshold_ms=5000.0):
-            pass
+            pass  # NOSONAR

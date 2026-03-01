@@ -3,8 +3,9 @@ from __future__ import annotations
 
 import threading
 import time
-from datetime import datetime
+from datetime import datetime, timezone, UTC
 from unittest.mock import MagicMock
+import pytest
 
 
 class TestCircuitDashboardPrivateAttrBranches:
@@ -88,7 +89,7 @@ class TestCircuitDashboardPrivateAttrBranches:
         mock_breaker._recovery_timeout = 30.0
 
         # Set opened_at so recovery time calculation triggers
-        mock_breaker.opened_at = datetime.utcnow()
+        mock_breaker.opened_at = datetime.now(UTC)
 
         status = dashboard._extract_status("test-recovery-private", mock_breaker, "external")
         assert status.state == CircuitState.OPEN
@@ -161,7 +162,6 @@ class TestCircuitDashboardMoreBranches:
         """Mock breaker with NO public OR private attribute for counts/timeouts."""
         class MinimalBreaker:
             """Breaker with no state, failure_count, etc. attributes."""
-            pass
 
         return MinimalBreaker()
 
@@ -172,7 +172,7 @@ class TestCircuitDashboardMoreBranches:
         dashboard = CircuitBreakerDashboard()
 
         class BreakerWithIntState:
-            state = 42  # int, not string, no .value attr
+            _state = 42  # int, not string, no .value attr
 
         status = dashboard._extract_status("test-int-state", BreakerWithIntState(), "external")
         # Falls through to default CLOSED
@@ -186,11 +186,11 @@ class TestCircuitDashboardMoreBranches:
 
         class BreakerNoState:
             # No state, no _state
-            failure_count = 0
-            success_count = 0
-            recovery_timeout = 30.0
-            opened_at = None
-            last_failure_time = None
+            _failure_count = 0
+            _success_count = 0
+            _recovery_timeout = 30.0
+            _opened_at = None
+            _last_failure_time = None
 
         status = dashboard._extract_status("test-no-state", BreakerNoState(), "external")
         # Uses default CLOSED
@@ -203,12 +203,12 @@ class TestCircuitDashboardMoreBranches:
         dashboard = CircuitBreakerDashboard()
 
         class BreakerNoFailureCount:
-            state = "closed"
+            _state = "closed"
             # No failure_count, no _failure_count -> uses default 0
-            success_count = 5
-            recovery_timeout = 30.0
-            opened_at = None
-            last_failure_time = None
+            _success_count = 5
+            _recovery_timeout = 30.0
+            _opened_at = None
+            _last_failure_time = None
 
         status = dashboard._extract_status("test-no-failure-count", BreakerNoFailureCount(), "external")
         assert status.failure_count == 0
@@ -220,12 +220,12 @@ class TestCircuitDashboardMoreBranches:
         dashboard = CircuitBreakerDashboard()
 
         class BreakerNoSuccessCount:
-            state = "closed"
-            failure_count = 2
+            _state = "closed"
+            _failure_count = 2
             # No success_count, no _success_count -> uses default 0
-            recovery_timeout = 30.0
-            opened_at = None
-            last_failure_time = None
+            _recovery_timeout = 30.0
+            _opened_at = None
+            _last_failure_time = None
 
         status = dashboard._extract_status("test-no-success-count", BreakerNoSuccessCount(), "external")
         assert status.success_count == 0
@@ -237,16 +237,16 @@ class TestCircuitDashboardMoreBranches:
         dashboard = CircuitBreakerDashboard()
 
         class BreakerNoThreshold:
-            state = "closed"
-            failure_count = 0
-            success_count = 0
+            _state = "closed"
+            _failure_count = 0
+            _success_count = 0
             # No failure_threshold, no _failure_threshold -> uses default 5
-            recovery_timeout = 30.0
-            opened_at = None
-            last_failure_time = None
+            _recovery_timeout = 30.0
+            _opened_at = None
+            _last_failure_time = None
 
         status = dashboard._extract_status("test-no-threshold", BreakerNoThreshold(), "external")
-        assert status.recovery_timeout == 30.0
+        assert status.recovery_timeout == pytest.approx(30.0)
 
     def test_extract_status_no_recovery_timeout_attrs(self):
         """Line 259->263: no recovery_timeout AND no _recovery_timeout."""
@@ -255,16 +255,16 @@ class TestCircuitDashboardMoreBranches:
         dashboard = CircuitBreakerDashboard()
 
         class BreakerNoRecoveryTimeout:
-            state = "closed"
-            failure_count = 0
-            success_count = 0
-            failure_threshold = 5
+            _state = "closed"
+            _failure_count = 0
+            _success_count = 0
+            _failure_threshold = 5
             # No recovery_timeout, no _recovery_timeout -> uses default 30.0
-            opened_at = None
-            last_failure_time = None
+            _opened_at = None
+            _last_failure_time = None
 
         status = dashboard._extract_status("test-no-recovery", BreakerNoRecoveryTimeout(), "external")
-        assert status.recovery_timeout == 30.0  # default value
+        assert status.recovery_timeout == pytest.approx(30.0)  # default value
 
     def test_extract_status_no_last_failure_time_attrs(self):
         """Line 265->268: no last_failure_time AND no _last_failure_time."""
@@ -273,12 +273,12 @@ class TestCircuitDashboardMoreBranches:
         dashboard = CircuitBreakerDashboard()
 
         class BreakerNoLastFailureTime:
-            state = "closed"
-            failure_count = 0
-            success_count = 0
-            failure_threshold = 5
-            recovery_timeout = 30.0
-            opened_at = None
+            _state = "closed"
+            _failure_count = 0
+            _success_count = 0
+            _failure_threshold = 5
+            _recovery_timeout = 30.0
+            _opened_at = None
             # No last_failure_time, no _last_failure_time -> stays None
 
         status = dashboard._extract_status("test-no-last-fail", BreakerNoLastFailureTime(), "external")
@@ -291,17 +291,17 @@ class TestCircuitDashboardMoreBranches:
         dashboard = CircuitBreakerDashboard()
 
         class BreakerNoOpenedAt:
-            state = "closed"
-            failure_count = 0
-            success_count = 0
-            failure_threshold = 5
-            recovery_timeout = 30.0
-            last_failure_time = None
+            _state = "closed"
+            _failure_count = 0
+            _success_count = 0
+            _failure_threshold = 5
+            _recovery_timeout = 30.0
+            _last_failure_time = None
             # No opened_at, no _opened_at -> last_state_change stays None
 
         status = dashboard._extract_status("test-no-opened-at", BreakerNoOpenedAt(), "external")
         # time_until_recovery stays 0.0 (no state change)
-        assert status.time_until_recovery == 0.0
+        assert status.time_until_recovery == pytest.approx(0.0)
 
     def test_get_circuit_dashboard_inner_lock_branch(self):
         """Line 361->364: inner lock branch when dashboard created concurrently."""

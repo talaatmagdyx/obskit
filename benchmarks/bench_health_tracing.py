@@ -16,6 +16,8 @@ import pytest
 from obskit.health.checker import CheckResult, HealthResult
 from obskit.core.types import HealthStatus
 
+_OTEL_NOT_INSTALLED = "opentelemetry-api not installed"
+
 
 def _make_valid_span(
     trace_id: int = 0x4BF92F3577B34DA6A3CE929D0E0E4736,
@@ -76,7 +78,7 @@ class TestHealthTracingBenchmarks:
         try:
             import opentelemetry.trace as otel_trace
         except ImportError:
-            pytest.skip("opentelemetry-api not installed")
+            pytest.skip(_OTEL_NOT_INSTALLED)
 
         result = _healthy_result()
         invalid_span = _make_invalid_span()
@@ -96,7 +98,7 @@ class TestHealthTracingBenchmarks:
         try:
             import opentelemetry.trace as otel_trace
         except ImportError:
-            pytest.skip("opentelemetry-api not installed")
+            pytest.skip(_OTEL_NOT_INSTALLED)
 
         result = _healthy_result()
         valid_span = _make_valid_span()
@@ -120,7 +122,7 @@ class TestHealthTracingBenchmarks:
         try:
             import opentelemetry.trace as otel_trace
         except ImportError:
-            pytest.skip("opentelemetry-api not installed")
+            pytest.skip(_OTEL_NOT_INSTALLED)
 
         result = _unhealthy_result()
         valid_span = _make_valid_span()

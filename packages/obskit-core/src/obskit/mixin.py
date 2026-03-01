@@ -298,6 +298,7 @@ class ObservabilityMixin:
                 )
                 if tenant_id:
                     self.tenant_metrics.observe_request(
+                        tenant_id=str(tenant_id),
                         operation=full_operation,
                         duration_seconds=duration,
                         status="success",
@@ -510,7 +511,7 @@ def create_service_mixin(service_name: str) -> ObservabilityMixin:
     """
 
     class StandaloneMixin(ObservabilityMixin):
-        pass
+        pass  # NOSONAR
 
     return StandaloneMixin(service_name=service_name)
 

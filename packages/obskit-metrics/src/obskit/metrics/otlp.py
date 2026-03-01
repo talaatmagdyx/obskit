@@ -104,10 +104,10 @@ try:
     OTLP_METRICS_AVAILABLE = True
 except ImportError:  # pragma: no cover
     OTLP_METRICS_AVAILABLE = False
-    GRPCMetricExporter = None  # type: ignore[misc, assignment]
-    MeterProvider = None  # type: ignore[misc, assignment]
-    PeriodicExportingMetricReader = None  # type: ignore[misc, assignment]
-    Resource = None  # type: ignore[misc, assignment]
+    GRPCMetricExporter = None  # type: ignore[assignment,misc]
+    MeterProvider = None  # type: ignore[assignment,misc]
+    PeriodicExportingMetricReader = None  # type: ignore[assignment,misc]
+    Resource = None  # type: ignore[assignment,misc]
     otel_metrics = None  # type: ignore[assignment]
 
 # Try HTTP exporter as fallback
@@ -119,7 +119,7 @@ try:
     HTTP_EXPORTER_AVAILABLE = True
 except ImportError:  # pragma: no cover
     HTTP_EXPORTER_AVAILABLE = False
-    HTTPMetricExporter = None  # type: ignore[misc, assignment]
+    HTTPMetricExporter = None  # type: ignore[assignment,misc]
 
 
 class OTLPMetricsExporter:
@@ -240,18 +240,17 @@ class OTLPMetricsExporter:
                 headers=self.headers or None,
                 timeout=int(self.timeout),
             )
-        else:
-            if not HTTP_EXPORTER_AVAILABLE or HTTPMetricExporter is None:  # pragma: no cover
-                raise ImportError(
-                    "HTTP metric exporter not available. "
-                    "Install with: pip install opentelemetry-exporter-otlp-proto-http"
-                )
-
-            return HTTPMetricExporter(
-                endpoint=self.endpoint,
-                headers=self.headers or None,
-                timeout=int(self.timeout),
+        if not HTTP_EXPORTER_AVAILABLE or HTTPMetricExporter is None:  # pragma: no cover
+            raise ImportError(
+                "HTTP metric exporter not available. "
+                "Install with: pip install opentelemetry-exporter-otlp-proto-http"
             )
+
+        return HTTPMetricExporter(
+            endpoint=self.endpoint,
+            headers=self.headers or None,
+            timeout=int(self.timeout),
+        )
 
     def start(self) -> None:
         """

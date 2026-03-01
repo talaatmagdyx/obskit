@@ -6,6 +6,8 @@ from obskit.adaptive_sampling import (
     SamplingStats,
     get_adaptive_sampler,
 )
+from datetime import UTC
+import pytest
 
 
 class TestAdaptiveSampler:
@@ -66,11 +68,11 @@ class TestAdaptiveSampler:
         sampler = AdaptiveSampler(base_rate=0.5)
 
         sampler.set_rate(0.9)
-        assert sampler.get_rate() == 0.9
+        assert sampler.get_rate() == pytest.approx(0.9)
 
         # Rate should be clamped to max
         sampler.set_rate(2.0)
-        assert sampler.get_rate() == 1.0
+        assert sampler.get_rate() == pytest.approx(1.0)
 
     def test_get_stats(self):
         """Test statistics retrieval."""
@@ -111,9 +113,9 @@ class TestSamplingConfig:
         )
 
         data = config.to_dict()
-        assert data["base_rate"] == 0.1
-        assert data["min_rate"] == 0.01
-        assert data["max_rate"] == 1.0
+        assert data["base_rate"] == pytest.approx(0.1)
+        assert data["min_rate"] == pytest.approx(0.01)
+        assert data["max_rate"] == pytest.approx(1.0)
 
 
 class TestSamplingStats:
@@ -129,7 +131,7 @@ class TestSamplingStats:
             load_factor=1.0,
         )
 
-        assert stats.sample_ratio == 0.6
+        assert stats.sample_ratio == pytest.approx(0.6)
 
     def test_to_dict(self):
         """Test SamplingStats serialization."""
@@ -143,7 +145,7 @@ class TestSamplingStats:
 
         data = stats.to_dict()
         assert data["sampler_name"] == "test"
-        assert data["sample_ratio"] == 0.5
+        assert data["sample_ratio"] == pytest.approx(0.5)
 
 
 class TestSingleton:
@@ -202,14 +204,14 @@ class TestAdaptiveSamplerCoverage:
 
     def test_maybe_adapt_high_error_rate(self):
         """Test _maybe_adapt runs adaptation logic (lines 306-339)."""
-        from datetime import datetime, timedelta
+        from datetime import datetime, timedelta, timezone
         sampler = AdaptiveSampler(base_rate=0.5, adapt_interval_seconds=0.0)
 
         # Set conditions to trigger adaptation with high error rate (>10%)
         sampler._request_count = 100
         sampler._error_count = 20  # 20% error rate > 10%, boosts rate
         sampler._samples_taken = 50  # normal load
-        sampler._last_adaptation = datetime.utcnow() - timedelta(seconds=10)
+        sampler._last_adaptation = datetime.now(UTC) - timedelta(seconds=10)
 
         sampler._maybe_adapt()
 
@@ -227,7 +229,7 @@ class TestAdaptiveSamplerCoverage:
         sampler._request_count = 10
         sampler._error_count = 0
         sampler._samples_taken = 100  # way more than expected (10 * 1.0 = 10)
-        sampler._last_adaptation = datetime.utcnow() - timedelta(seconds=10)
+        sampler._last_adaptation = datetime.now(UTC) - timedelta(seconds=10)
 
         sampler._maybe_adapt()
 
@@ -244,7 +246,7 @@ class TestAdaptiveSamplerCoverage:
         sampler._request_count = 200
         sampler._error_count = 0
         sampler._samples_taken = 0  # none sampled => load_factor = 0
-        sampler._last_adaptation = datetime.utcnow() - timedelta(seconds=10)
+        sampler._last_adaptation = datetime.now(UTC) - timedelta(seconds=10)
 
         sampler._maybe_adapt()
 
@@ -258,7 +260,7 @@ class TestAdaptiveSamplerCoverage:
 
         # Zero requests
         sampler._request_count = 0
-        sampler._last_adaptation = datetime.utcnow() - timedelta(seconds=10)
+        sampler._last_adaptation = datetime.now(UTC) - timedelta(seconds=10)
 
         # Should run without error
         sampler._maybe_adapt()

@@ -12,6 +12,7 @@ from obskit.shutdown import (
     shutdown,
     unregister_shutdown_hook,
 )
+import pytest
 
 
 class TestRegisterShutdownHook:
@@ -31,7 +32,7 @@ class TestRegisterShutdownHook:
         """Test registering a shutdown hook."""
 
         def my_hook():
-            pass
+            pass  # NOSONAR
 
         register_shutdown_hook(my_hook)
 
@@ -42,10 +43,10 @@ class TestRegisterShutdownHook:
         """Test registering multiple hooks."""
 
         def hook1():
-            pass
+            pass  # NOSONAR
 
         def hook2():
-            pass
+            pass  # NOSONAR
 
         register_shutdown_hook(hook1)
         register_shutdown_hook(hook2)
@@ -73,7 +74,7 @@ class TestUnregisterShutdownHook:
         """Test unregistering a hook."""
 
         def my_hook():
-            pass
+            pass  # NOSONAR
 
         register_shutdown_hook(my_hook)
         unregister_shutdown_hook(my_hook)
@@ -85,7 +86,7 @@ class TestUnregisterShutdownHook:
         """Test unregistering a hook that wasn't registered."""
 
         def my_hook():
-            pass
+            pass  # NOSONAR
 
         # Should not raise
         unregister_shutdown_hook(my_hook)
@@ -317,7 +318,7 @@ class TestShutdownEdgeCases:
         self._reset_shutdown_state()
 
         def named_hook():
-            pass
+            pass  # NOSONAR
 
         register_shutdown_hook(named_hook)
 
@@ -344,7 +345,7 @@ class TestGracefulShutdown:
     def test_init_defaults(self):
         from obskit.shutdown import GracefulShutdown
         gs = GracefulShutdown()
-        assert gs.timeout == 30.0
+        assert gs.timeout == pytest.approx(30.0)
         assert gs.exit_code == 0
         assert gs.auto_exit is True
         assert gs._is_shutting_down is False
@@ -486,7 +487,7 @@ class TestGracefulShutdown:
         self._reset_shutdown_state()
         gs = GracefulShutdown(auto_exit=False)
         gs._shutdown_count = 1
-        with patch.object(gs, "_initiate_shutdown") as mock_init:
+        with patch.object(gs, "_initiate_shutdown"):
             gs._signal_handler(15, None)
             assert gs._shutdown_count == 2
 
@@ -593,13 +594,12 @@ class TestShutdownOuterException:
     def test_shutdown_outer_exception(self):
         from unittest.mock import patch
 
-        import pytest
 
         import obskit.shutdown as _mod
         self._reset_shutdown_state()
         # Make the logger.info ("shutdown_complete") raise to trigger outer except
         original_info = _mod.logger.info
-        call_count = [0]
+        _call_count = [0]
         def patched_info(msg, **kwargs):
             if msg == "shutdown_complete":
                 raise RuntimeError("simulated shutdown error")

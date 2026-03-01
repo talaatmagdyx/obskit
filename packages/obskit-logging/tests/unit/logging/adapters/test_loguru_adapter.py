@@ -9,7 +9,7 @@ class TestLoguruAdapter:
     def test_init(self):
         """Test adapter initialization."""
         adapter = LoguruAdapter()
-        assert adapter is not None
+        assert isinstance(adapter, LoguruAdapter)
 
     def test_configure(self):
         """Test configure method."""

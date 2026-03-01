@@ -21,7 +21,7 @@ class TestObskitTestCaseSetup:
     def test_mock_metrics_initialized(self):
         class MyTest(ObskitTestCase):
             def runTest(self):
-                pass
+                pass  # NOSONAR
 
         t = MyTest()
         t.__class__.setUpClass()
@@ -32,7 +32,7 @@ class TestObskitTestCaseSetup:
     def test_mock_tracer_initialized(self):
         class MyTest(ObskitTestCase):
             def runTest(self):
-                pass
+                pass  # NOSONAR
 
         t = MyTest()
         t.__class__.setUpClass()
@@ -43,7 +43,7 @@ class TestObskitTestCaseSetup:
     def test_mock_slo_initialized(self):
         class MyTest(ObskitTestCase):
             def runTest(self):
-                pass
+                pass  # NOSONAR
 
         t = MyTest()
         t.__class__.setUpClass()
@@ -54,7 +54,7 @@ class TestObskitTestCaseSetup:
     def test_mocks_reset_between_setup_calls(self):
         class MyTest(ObskitTestCase):
             def runTest(self):
-                pass
+                pass  # NOSONAR
 
         t = MyTest()
         t.__class__.setUpClass()
@@ -74,7 +74,7 @@ class TestObskitTestCaseSetup:
     def test_obskit_context_set_on_setup(self):
         class MyTest(ObskitTestCase):
             def runTest(self):
-                pass
+                pass  # NOSONAR
 
         t = MyTest()
         t.__class__.setUpClass()
@@ -85,7 +85,7 @@ class TestObskitTestCaseSetup:
     def test_obskit_context_cleared_on_teardown(self):
         class MyTest(ObskitTestCase):
             def runTest(self):
-                pass
+                pass  # NOSONAR
 
         t = MyTest()
         t.__class__.setUpClass()
@@ -100,7 +100,7 @@ class TestObskitTestCaseAssertions:
     def _make_test(self):
         class MyTest(ObskitTestCase):
             def runTest(self):
-                pass
+                pass  # NOSONAR
 
         t = MyTest()
         t.__class__.setUpClass()
@@ -147,7 +147,7 @@ class TestObskitTestCaseAssertions:
     def test_assert_span_created_passes(self):
         t = self._make_test()
         with t.mock_tracer.trace_span("my_span"):
-            pass
+            pass  # NOSONAR
         t.assertSpanCreated("my_span")  # should not raise
         t.tearDown()
 
@@ -188,9 +188,9 @@ class TestObskitTestCaseAssertions:
     def test_get_span_count(self):
         t = self._make_test()
         with t.mock_tracer.trace_span("my_span"):
-            pass
+            pass  # NOSONAR
         with t.mock_tracer.trace_span("my_span"):
-            pass
+            pass  # NOSONAR
         count = t.getSpanCount("my_span")
         assert count == 2
         t.tearDown()
@@ -224,7 +224,7 @@ class TestObskitTestCaseAsSubclass(ObskitTestCase):
 
     def test_span_tracking(self):
         with self.mock_tracer.trace_span("test_span"):
-            pass
+            pass  # NOSONAR
         self.assertSpanCreated("test_span")
         self.assertEqual(self.getSpanCount("test_span"), 1)
 
@@ -244,7 +244,7 @@ class TestAsyncObskitTestCaseSetup:
     def _make_async_test(self):
         class MyAsyncTest(AsyncObskitTestCase):
             def runTest(self):
-                pass
+                pass  # NOSONAR
 
         t = MyAsyncTest()
         t.__class__.setUpClass()
@@ -265,7 +265,7 @@ class TestAsyncObskitTestCaseSetup:
     def test_run_async_executes_coroutine(self):
         t = self._make_async_test()
 
-        async def simple_coro():
+        async def simple_coro():  # NOSONAR
             return "async_result"
 
         result = t.run_async(simple_coro())
@@ -275,7 +275,7 @@ class TestAsyncObskitTestCaseSetup:
     def test_run_async_without_loop_raises(self):
         class MyAsyncTest(AsyncObskitTestCase):
             def runTest(self):
-                pass
+                pass  # NOSONAR
 
         t = MyAsyncTest()
         t.__class__.setUpClass()
@@ -283,7 +283,7 @@ class TestAsyncObskitTestCaseSetup:
         t._loop = None  # Simulate no loop
 
         async def coro():
-            pass
+            pass  # NOSONAR
 
         with pytest.raises(RuntimeError, match="No event loop"):
             t.run_async(coro())
@@ -306,7 +306,7 @@ class TestAsyncObskitTestCaseAsSubclass(AsyncObskitTestCase):
     """Test AsyncObskitTestCase as an actual subclass."""
 
     def test_run_async_with_simple_coro(self):
-        async def add(a, b):
+        async def add(a, b):  # NOSONAR
             return a + b
 
         result = self.run_async(add(3, 7))
@@ -357,7 +357,7 @@ class TestAsyncObskitTestCase:
         t = MyAsyncTest()
         t.__class__.setUpClass()
         t.setUp()
-        async def my_coroutine():
+        async def my_coroutine():  # NOSONAR
             return 42
         result = t.run_async(my_coroutine())
         assert result == 42

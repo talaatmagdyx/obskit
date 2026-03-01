@@ -395,7 +395,7 @@ class TestCircuitDashboardDoubleLock:
                     return self
 
                 def __exit__(self, *args):
-                    pass
+                    pass  # NOSONAR
 
             cd._dashboard_lock = _RaceLock()
             result = cd.get_circuit_dashboard()

@@ -6,7 +6,7 @@ from __future__ import annotations
 
 import threading
 import time
-from datetime import datetime
+from datetime import datetime, timezone, UTC
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -26,7 +26,7 @@ from obskit.locking import (
 
 class TestLockInfo:
     def test_to_dict(self):
-        now = datetime.utcnow()
+        now = datetime.now(UTC)
         info = LockInfo(
             lock_name="test_lock",
             holder_id="holder-1",
@@ -37,7 +37,7 @@ class TestLockInfo:
         d = info.to_dict()
         assert d["lock_name"] == "test_lock"
         assert d["holder_id"] == "holder-1"
-        assert d["ttl_seconds"] == 30.0
+        assert d["ttl_seconds"] == pytest.approx(30.0)
         assert isinstance(d["acquired_at"], str)
         assert isinstance(d["expires_at"], str)
 
@@ -166,7 +166,7 @@ class TestDistributedLock:
         lock = DistributedLock("test", redis, max_wait_seconds=0.01, retry_interval=0.005)
         with pytest.raises(TimeoutError):
             with lock:
-                pass
+                pass  # NOSONAR
 
     def test_lock_key_format(self):
         redis = self._make_redis()
@@ -216,7 +216,7 @@ class TestDistributedLockAsync:
         redis = MagicMock()
         lock = DistributedLock("test", redis)
         lock._acquired = True
-        lock._acquired_at = datetime.utcnow()
+        lock._acquired_at = datetime.now(UTC)
         with patch("obskit.locking.asyncio.to_thread", new=AsyncMock()):
             await lock.release_async()
 
@@ -237,7 +237,7 @@ class TestDistributedLockAsync:
             with patch("obskit.locking.asyncio.sleep", new=AsyncMock()):
                 with pytest.raises(TimeoutError):
                     async with lock:
-                        pass
+                        pass  # NOSONAR
 
 
 # =============================================================================

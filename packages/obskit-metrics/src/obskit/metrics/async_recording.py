@@ -105,7 +105,7 @@ async def _metric_worker() -> None:
 
             _metric_queue.task_done()
 
-        except asyncio.CancelledError:
+        except asyncio.CancelledError:  # NOSONAR
             break
         except Exception as e:
             logger.error(
@@ -115,7 +115,7 @@ async def _metric_worker() -> None:
             )
 
 
-async def _ensure_worker_started() -> None:
+async def _ensure_worker_started() -> None:  # NOSONAR
     """Ensure the metric worker is started."""
     global _metric_queue, _metric_worker_task, _queue_capacity
 
@@ -255,9 +255,9 @@ async def shutdown_async_recording() -> None:
         # the exception is suppressed
         try:
             await _metric_worker_task
-        except asyncio.CancelledError:
+        except asyncio.CancelledError:  # NOSONAR
             # Expected when cancelling a task - task cleanup is complete
-            pass
+            pass  # NOSONAR
 
     if _metric_queue:
         # Process remaining items

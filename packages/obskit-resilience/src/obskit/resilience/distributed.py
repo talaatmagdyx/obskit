@@ -61,9 +61,11 @@ from obskit.resilience.circuit_breaker import (
 )
 
 if TYPE_CHECKING:
-    pass
+    pass  # NOSONAR
 
 logger = get_logger("obskit.resilience.distributed")
+
+_SYNC_IN_ASYNC_MSG = "Calling sync Redis method from async context"
 
 try:
     import importlib.util
@@ -355,7 +357,7 @@ class DistributedCircuitBreaker(CircuitBreaker):
                     # If we're in an async context, this shouldn't be called
                     logger.warning(
                         "sync_redis_call_in_async_context",
-                        message="Calling sync Redis method from async context",
+                        message=_SYNC_IN_ASYNC_MSG,
                     )
                     return None
                 return loop.run_until_complete(self._get_state_from_redis_async())
@@ -372,7 +374,7 @@ class DistributedCircuitBreaker(CircuitBreaker):
                 if loop.is_running():  # pragma: no cover
                     logger.warning(
                         "sync_redis_call_in_async_context",
-                        message="Calling sync Redis method from async context",
+                        message=_SYNC_IN_ASYNC_MSG,
                     )
                     return
                 loop.run_until_complete(self._save_state_to_redis_async(state))
@@ -389,7 +391,7 @@ class DistributedCircuitBreaker(CircuitBreaker):
                 if loop.is_running():  # pragma: no cover
                     logger.warning(
                         "sync_redis_call_in_async_context",
-                        message="Calling sync Redis method from async context",
+                        message=_SYNC_IN_ASYNC_MSG,
                     )
                     return
                 loop.run_until_complete(self._sync_with_redis_async())

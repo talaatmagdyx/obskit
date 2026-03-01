@@ -60,8 +60,8 @@ class TestPoolStats:
         assert stats.wait_queue == 0
         assert stats.checkouts_total == 0
         assert stats.errors_total == 0
-        assert stats.avg_checkout_latency_ms == 0.0
-        assert stats.utilization == 0.0
+        assert stats.avg_checkout_latency_ms == pytest.approx(0.0)
+        assert stats.utilization == pytest.approx(0.0)
 
     def test_to_dict(self):
         stats = PoolStats(pool_name="redis", pool_type=PoolType.CACHE)
@@ -90,7 +90,7 @@ class TestConnectionPoolTrackerInit:
 
     def test_alert_threshold_stored(self):
         tracker = ConnectionPoolTracker("db", alert_threshold=0.9)
-        assert tracker.alert_threshold == 0.9
+        assert tracker.alert_threshold == pytest.approx(0.9)
 
     def test_on_exhausted_callback_stored(self):
         callback = MagicMock()
@@ -195,14 +195,14 @@ class TestConnectionPoolTrackerTrackCheckout:
         tracker = ConnectionPoolTracker("db_trim", max_size=10)
         tracker._checkout_latencies = list(range(1000))
         with tracker.track_checkout():
-            pass
+            pass  # NOSONAR
         assert len(tracker._checkout_latencies) == 1000
 
     def test_multiple_checkouts_accumulate(self):
         tracker = ConnectionPoolTracker("db_multi", max_size=10)
         for _ in range(5):
             with tracker.track_checkout():
-                pass
+                pass  # NOSONAR
         assert tracker._checkouts_total == 5
 
 
@@ -289,7 +289,7 @@ class TestConnectionPoolTrackerGetStats:
     def test_get_stats_zero_latency_when_no_checkouts(self):
         tracker = ConnectionPoolTracker("db_no_checkouts", max_size=10)
         stats = tracker.get_stats()
-        assert stats.avg_checkout_latency_ms == 0.0
+        assert stats.avg_checkout_latency_ms == pytest.approx(0.0)
 
     def test_get_stats_utilization_calculated(self):
         tracker = ConnectionPoolTracker("db_util", max_size=10)

@@ -10,7 +10,7 @@ Tests cover:
 - Registry helper: get_quota_tracker
 """
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone, UTC
 from unittest.mock import MagicMock, call, patch
 
 import pytest
@@ -52,7 +52,7 @@ class TestQuotaLimit:
         assert ql.limit == 1000
         assert ql.period == QuotaPeriod.HOUR
         assert ql.burst_limit is None
-        assert ql.soft_limit_percent == 80.0
+        assert ql.soft_limit_percent == pytest.approx(80.0)
 
     def test_with_burst(self):
         ql = QuotaLimit(
@@ -80,7 +80,7 @@ class TestTenantUsage:
 
     def test_usage_percent_with_zero_limit(self):
         usage = TenantUsage(tenant_id="t1", resource="requests", limit=0)
-        assert usage.usage_percent == 0.0
+        assert usage.usage_percent == pytest.approx(0.0)
 
     def test_usage_percent_calculated(self):
         usage = TenantUsage(
@@ -89,7 +89,7 @@ class TestTenantUsage:
             current_usage=50,
             limit=100,
         )
-        assert usage.usage_percent == 50.0
+        assert usage.usage_percent == pytest.approx(50.0)
 
     def test_remaining(self):
         usage = TenantUsage(
@@ -123,7 +123,7 @@ class TestTenantUsage:
         assert d["resource"] == "api_calls"
         assert d["current_usage"] == 75
         assert d["limit"] == 100
-        assert d["usage_percent"] == 75.0
+        assert d["usage_percent"] == pytest.approx(75.0)
         assert d["remaining"] == 25
         assert d["period"] == "HOUR"
         assert d["exceeded_count"] == 2
@@ -134,7 +134,7 @@ class TestTenantUsage:
         usage = TenantUsage(
             tenant_id="t1",
             resource="r",
-            last_exceeded=datetime.utcnow(),
+            last_exceeded=datetime.now(UTC),
         )
         d = usage.to_dict()
         assert d["last_exceeded"] is not None
@@ -315,7 +315,7 @@ class TestQuotaTrackerCheckAndIncrement:
             tracker.check_and_increment("t1")
         # Manually expire the period
         usage = tracker._usage["t1"]["requests"]
-        usage.period_start = datetime.utcnow() - timedelta(seconds=70)
+        usage.period_start = datetime.now(UTC) - timedelta(seconds=70)
         # Now should reset and allow
         result = tracker.check_and_increment("t1")
         assert result is True
@@ -346,7 +346,7 @@ class TestQuotaTrackerGetUsage:
         tracker.check_and_increment("t1", amount=50)
         # Expire the period
         tracker._usage["t1"]["requests"].period_start = (
-            datetime.utcnow() - timedelta(seconds=70)
+            datetime.now(UTC) - timedelta(seconds=70)
         )
         usage = tracker.get_usage("t1")
         assert usage.current_usage == 0  # Reset

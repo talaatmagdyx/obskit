@@ -90,7 +90,7 @@ class ValidationTracker:
         @tracker.validated
         def process_data(data: dict):
             # data is pre-validated
-            pass
+            pass  # NOSONAR
 
         # Get validation stats
         stats = tracker.get_stats()
@@ -143,7 +143,7 @@ class ValidationTracker:
                 result = self._validate_with_schema(data, schema, result)
             else:
                 # No validation - just pass through
-                pass
+                pass  # NOSONAR
 
         except Exception as e:
             result.valid = False

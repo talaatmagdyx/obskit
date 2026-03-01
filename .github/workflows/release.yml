@@ -5,15 +5,13 @@ on:
     types: [published]
   workflow_call:
 
-permissions:
-  contents: write   # needed to upload release assets (SBOM, signatures)
-  id-token: write   # needed for OIDC PyPI publish and Sigstore signing
-
 # All 17 packages published on every release (in dependency order)
 jobs:
   build:
     name: Build (${{ matrix.package }})
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     strategy:
       fail-fast: false
       matrix:
@@ -64,6 +62,8 @@ jobs:
     name: Generate SBOM
     runs-on: ubuntu-latest
     needs: build
+    permissions:
+      contents: write   # needed to upload release assets (SBOM)
     steps:
       - uses: actions/checkout@v4
 
@@ -113,6 +113,9 @@ jobs:
     name: Publish to PyPI (${{ matrix.package }})
     runs-on: ubuntu-latest
     needs: [build, sbom]
+    permissions:
+      id-token: write   # needed for OIDC PyPI publish and Sigstore signing
+      contents: write   # needed to upload Sigstore signatures to release
     strategy:
       # Publish in dependency order — core first, meta last
       max-parallel: 1
@@ -164,6 +167,8 @@ jobs:
     runs-on: ubuntu-latest
     needs: build
     if: github.event_name == 'release' && github.event.release.prerelease == true
+    permissions:
+      id-token: write   # needed for OIDC TestPyPI publish
     strategy:
       max-parallel: 1
       matrix:

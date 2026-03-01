@@ -18,6 +18,8 @@ from obskit.metrics.exemplar import (
     observe_with_exemplar,
 )
 
+_OTEL_NOT_INSTALLED = "opentelemetry-api not installed"
+
 
 def _make_valid_span(
     trace_id: int = 0x4BF92F3577B34DA6A3CE929D0E0E4736,
@@ -53,7 +55,7 @@ class TestExemplarBenchmarks:
         try:
             import opentelemetry.trace as otel_trace
         except ImportError:
-            pytest.skip("opentelemetry-api not installed")
+            pytest.skip(_OTEL_NOT_INSTALLED)
 
         def run() -> dict:
             with patch.object(otel_trace, "get_current_span",
@@ -69,7 +71,7 @@ class TestExemplarBenchmarks:
         try:
             import opentelemetry.trace as otel_trace
         except ImportError:
-            pytest.skip("opentelemetry-api not installed")
+            pytest.skip(_OTEL_NOT_INSTALLED)
 
         valid_span = _make_valid_span()
 
@@ -102,7 +104,7 @@ class TestExemplarBenchmarks:
         try:
             import opentelemetry.trace as otel_trace
         except ImportError:
-            pytest.skip("opentelemetry-api not installed")
+            pytest.skip(_OTEL_NOT_INSTALLED)
 
         mock_metric = MagicMock()
         valid_span = _make_valid_span()
@@ -121,7 +123,7 @@ class TestExemplarBenchmarks:
         try:
             import opentelemetry.trace as otel_trace
         except ImportError:
-            pytest.skip("opentelemetry-api not installed")
+            pytest.skip(_OTEL_NOT_INSTALLED)
 
         mock_metric = MagicMock()
         invalid_span = _make_invalid_span()

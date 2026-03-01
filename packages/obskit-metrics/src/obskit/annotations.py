@@ -150,15 +150,14 @@ class GrafanaAnnotator:
                     type=annotation.annotation_type.value,
                 )
                 return result
-            else:
-                logger.warning(
-                    "annotation_creation_failed",
-                    status_code=response.status_code,
-                    response=response.text,
-                )
-                # Store locally as fallback
-                self._local_annotations.append(annotation)
-                return None
+            logger.warning(
+                "annotation_creation_failed",
+                status_code=response.status_code,
+                response=response.text,
+            )
+            # Store locally as fallback
+            self._local_annotations.append(annotation)
+            return None
 
         except Exception as e:
             logger.warning("annotation_creation_error", error=str(e), text=annotation.text)

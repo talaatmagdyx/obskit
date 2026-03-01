@@ -9,6 +9,7 @@ from obskit.logging.sampling import (
     SamplingRule,
     get_sampling_stats,
 )
+import pytest
 
 
 class TestSamplingConfig:
@@ -18,13 +19,13 @@ class TestSamplingConfig:
         """Test default configuration values."""
         config = SamplingConfig()
 
-        assert config.debug_rate == 0.01
-        assert config.info_rate == 0.1
-        assert config.warning_rate == 1.0
-        assert config.error_rate == 1.0
-        assert config.critical_rate == 1.0
-        assert config.slow_threshold_seconds == 1.0
-        assert config.dedupe_window_seconds == 60.0
+        assert config.debug_rate == pytest.approx(0.01)
+        assert config.info_rate == pytest.approx(0.1)
+        assert config.warning_rate == pytest.approx(1.0)
+        assert config.error_rate == pytest.approx(1.0)
+        assert config.critical_rate == pytest.approx(1.0)
+        assert config.slow_threshold_seconds == pytest.approx(1.0)
+        assert config.dedupe_window_seconds == pytest.approx(60.0)
         assert config.always_log_first_n == 3
 
     def test_custom_config(self):
@@ -36,10 +37,10 @@ class TestSamplingConfig:
             dedupe_window_seconds=120.0,
         )
 
-        assert config.debug_rate == 0.001
-        assert config.info_rate == 0.05
-        assert config.slow_threshold_seconds == 2.0
-        assert config.dedupe_window_seconds == 120.0
+        assert config.debug_rate == pytest.approx(0.001)
+        assert config.info_rate == pytest.approx(0.05)
+        assert config.slow_threshold_seconds == pytest.approx(2.0)
+        assert config.dedupe_window_seconds == pytest.approx(120.0)
 
     def test_always_log_events(self):
         """Test always_log_events configuration."""
@@ -63,8 +64,8 @@ class TestSamplingRule:
         rule = SamplingRule(level="info")
 
         assert rule.level == "info"
-        assert rule.sample_rate == 1.0
-        assert rule.min_interval_seconds == 0.0
+        assert rule.sample_rate == pytest.approx(1.0)
+        assert rule.min_interval_seconds == pytest.approx(0.0)
         assert rule.dedupe_key is None
         assert rule.always_log_first_n == 0
 
@@ -78,8 +79,8 @@ class TestSamplingRule:
             always_log_first_n=5,
         )
 
-        assert rule.sample_rate == 0.1
-        assert rule.min_interval_seconds == 5.0
+        assert rule.sample_rate == pytest.approx(0.1)
+        assert rule.min_interval_seconds == pytest.approx(5.0)
         assert rule.always_log_first_n == 5
 
 
@@ -98,7 +99,7 @@ class TestSampledLogger:
         config = SamplingConfig(info_rate=0.5)
         logger = SampledLogger("test_logger", config=config)
 
-        assert logger.config.info_rate == 0.5
+        assert logger.config.info_rate == pytest.approx(0.5)
 
     def test_always_log_events(self):
         """Test always_log_events are always logged."""
@@ -167,7 +168,7 @@ class TestSampledLogger:
         assert reason1 is None or isinstance(reason1, str)  # Verify reason format
 
         # Immediate duplicate
-        should_log2, reason2 = logger._should_log("info", "dedupe_event", key="same")
+        _, reason2 = logger._should_log("info", "dedupe_event", key="same")
         assert reason2 is None or isinstance(reason2, str)  # Verify reason format
 
         # Different key should log
@@ -231,8 +232,8 @@ class TestAdaptiveSampledLogger:
         logger = AdaptiveSampledLogger(name="adaptive_test", target_logs_per_second=100)
 
         assert logger.target_lps == 100
-        assert logger.min_rate == 0.001
-        assert logger.max_rate == 1.0
+        assert logger.min_rate == pytest.approx(0.001)
+        assert logger.max_rate == pytest.approx(1.0)
 
     def test_init_custom_rates(self):
         """Test adaptive logger with custom rate bounds."""
@@ -243,14 +244,14 @@ class TestAdaptiveSampledLogger:
             max_sample_rate=0.5,
         )
 
-        assert logger.min_rate == 0.01
-        assert logger.max_rate == 0.5
+        assert logger.min_rate == pytest.approx(0.01)
+        assert logger.max_rate == pytest.approx(0.5)
 
     def test_rate_starts_at_max(self):
         """Test initial rate is max."""
         logger = AdaptiveSampledLogger(name="adaptive_test", target_logs_per_second=100)
 
-        assert logger._current_rate == 1.0
+        assert logger._current_rate == pytest.approx(1.0)
 
     def test_high_volume_reduces_rate(self):
         """Test high log volume reduces sampling rate."""

@@ -33,7 +33,7 @@ import time
 from collections.abc import Callable, Generator
 from contextlib import contextmanager
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 from prometheus_client import Counter, Gauge, Histogram
@@ -256,7 +256,7 @@ class ExternalAPISLATracker:
             latency = time.perf_counter() - start_time
 
             record = APICallRecord(
-                timestamp=datetime.utcnow(),
+                timestamp=datetime.now(UTC),
                 latency_seconds=latency,
                 success=success,
                 status_code=status_code,
@@ -290,7 +290,7 @@ class ExternalAPISLATracker:
             Error type if failed
         """
         record = APICallRecord(
-            timestamp=datetime.utcnow(),
+            timestamp=datetime.now(UTC),
             latency_seconds=latency_seconds,
             success=success,
             status_code=status_code,
@@ -329,7 +329,7 @@ class ExternalAPISLATracker:
 
     def _cleanup_old_records(self):
         """Remove records outside the window."""
-        cutoff = datetime.utcnow() - timedelta(seconds=self.window_seconds)
+        cutoff = datetime.now(UTC) - timedelta(seconds=self.window_seconds)
         self._records = [r for r in self._records if r.timestamp > cutoff]
 
     def _update_gauges(self):
@@ -371,7 +371,7 @@ class ExternalAPISLATracker:
         )
 
         # Report breaches
-        now = datetime.utcnow()
+        now = datetime.now(UTC)
 
         for breach in report.sla_breaches:
             # Check cooldown
@@ -410,7 +410,7 @@ class ExternalAPISLATracker:
         with self._lock:
             self._cleanup_old_records()
 
-            now = datetime.utcnow()
+            now = datetime.now(UTC)
             window_start = now - timedelta(seconds=self.window_seconds)
 
             total = len(self._records)

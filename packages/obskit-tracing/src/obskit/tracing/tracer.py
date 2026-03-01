@@ -12,7 +12,7 @@ from obskit.config import get_settings
 from obskit.tracing._version import __version__ as _OBSKIT_TRACING_VERSION
 
 if TYPE_CHECKING:
-    pass
+    pass  # NOSONAR
 
 # Check if OpenTelemetry is available
 try:
@@ -28,13 +28,13 @@ try:
 except ImportError:  # pragma: no cover
     OPENTELEMETRY_AVAILABLE = False
     trace = None  # type: ignore[assignment]
-    TracerProvider = None  # type: ignore[misc, assignment]
-    BatchSpanProcessor = None  # type: ignore[misc, assignment]
-    SimpleSpanProcessor = None  # type: ignore[misc, assignment]
-    Resource = None  # type: ignore[misc, assignment]
-    Status = None  # type: ignore[misc, assignment]
-    StatusCode = None  # type: ignore[misc, assignment]
-    Tracer = None  # type: ignore[misc, assignment]
+    TracerProvider = None  # type: ignore[assignment,misc]
+    BatchSpanProcessor = None  # type: ignore[assignment,misc]
+    SimpleSpanProcessor = None  # type: ignore[assignment,misc]
+    Resource = None  # type: ignore[assignment,misc]
+    Status = None  # type: ignore[assignment,misc]
+    StatusCode = None  # type: ignore[assignment,misc]
+    Tracer = None  # type: ignore[assignment,misc]
     baggage_api = None  # type: ignore[assignment]
     context_api = None  # type: ignore[assignment]
 
@@ -144,7 +144,7 @@ def configure_tracing(
 
             provider.add_span_processor(SimpleSpanProcessor(_console_exporter))
         except ImportError:  # pragma: no cover
-            pass
+            pass  # NOSONAR
 
     # ── OTLP exporter ────────────────────────────────────────────────────
     # Track whether provider was registered in the OTLP branch so the
@@ -175,7 +175,7 @@ def configure_tracing(
             )
             provider.add_span_processor(processor)
         except ImportError:  # pragma: no cover
-            pass
+            pass  # NOSONAR
 
         # Set global provider
         trace.set_tracer_provider(provider)
@@ -405,7 +405,7 @@ def inject_trace_context(headers: dict[str, str] | None = None) -> dict[str, str
 
         TraceContextTextMapPropagator().inject(headers)  # pragma: no cover
     except Exception:  # pragma: no cover  # nosec B110
-        pass
+        pass  # NOSONAR
 
     return headers
 
@@ -563,7 +563,7 @@ def clear_baggage(token: Any) -> None:
     try:
         context_api.detach(token)
     except Exception:  # pragma: no cover  # nosec B110
-        pass
+        pass  # NOSONAR
 
 
 # ---------------------------------------------------------------------------
@@ -587,7 +587,7 @@ def get_current_trace_id() -> str | None:
         if ctx and ctx.is_valid:
             return format(ctx.trace_id, "032x")
     except Exception:  # pragma: no cover  # nosec B110
-        pass
+        pass  # NOSONAR
     return None
 
 
@@ -607,7 +607,7 @@ def get_current_span_id() -> str | None:
         if ctx and ctx.is_valid:
             return format(ctx.span_id, "016x")
     except Exception:  # pragma: no cover  # nosec B110
-        pass
+        pass  # NOSONAR
     return None
 
 
@@ -656,4 +656,4 @@ def shutdown_tracing() -> None:
                 if hasattr(provider, "shutdown"):  # pragma: no cover
                     provider.shutdown()
             except Exception:  # pragma: no cover  # nosec B110
-                pass
+                pass  # NOSONAR

@@ -1,6 +1,6 @@
 """Unit tests for Audit Trail."""
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone, UTC
 
 from obskit.audit import (
     AuditAction,
@@ -111,8 +111,8 @@ class TestAuditTrail:
         audit.record(action=AuditAction.CREATE, actor="user:1", resource="a")
 
         query = AuditQuery(
-            start_time=datetime.utcnow() - timedelta(hours=1),
-            end_time=datetime.utcnow() + timedelta(hours=1),
+            start_time=datetime.now(UTC) - timedelta(hours=1),
+            end_time=datetime.now(UTC) + timedelta(hours=1),
         )
         results = audit.query(query)
 
@@ -165,8 +165,8 @@ class TestAuditTrail:
         audit.record(action=AuditAction.UPDATE, actor="user:2", resource="b")
 
         export = audit.export_for_compliance(
-            start_time=datetime.utcnow() - timedelta(hours=1),
-            end_time=datetime.utcnow() + timedelta(hours=1),
+            start_time=datetime.now(UTC) - timedelta(hours=1),
+            end_time=datetime.now(UTC) + timedelta(hours=1),
         )
 
         assert len(export) == 2
@@ -180,7 +180,7 @@ class TestAuditEntry:
         """Test AuditEntry serialization."""
         entry = AuditEntry(
             entry_id="audit-1",
-            timestamp=datetime.utcnow(),
+            timestamp=datetime.now(UTC),
             service="test",
             action="create",
             actor="user:1",
@@ -198,7 +198,7 @@ class TestAuditEntry:
         """Test AuditEntry JSON serialization."""
         entry = AuditEntry(
             entry_id="audit-1",
-            timestamp=datetime.utcnow(),
+            timestamp=datetime.now(UTC),
             service="test",
             action="create",
             actor="user:1",
@@ -254,7 +254,7 @@ class TestAuditTrailCoverage:
         for i in range(10001):
             entry = AuditEntry(
                 entry_id=f'e-{i}',
-                timestamp=datetime.utcnow(),
+                timestamp=datetime.now(UTC),
                 service='cover-service-trim',
                 action='read',
                 actor='u:1',
@@ -365,14 +365,14 @@ class TestAuditTrailCoverage:
 
         # Query with start_time filter that excludes old entries
         query = AuditQuery(
-            start_time=datetime.utcnow() + timedelta(hours=1),  # in the future => skip all
+            start_time=datetime.now(UTC) + timedelta(hours=1),  # in the future => skip all
         )
         results = audit.query(query)
         assert results == []
 
         # Query with end_time that excludes entries
         query = AuditQuery(
-            end_time=datetime.utcnow() - timedelta(hours=1),  # in the past => skip all
+            end_time=datetime.now(UTC) - timedelta(hours=1),  # in the past => skip all
         )
         results = audit.query(query)
         assert results == []

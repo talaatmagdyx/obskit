@@ -67,7 +67,7 @@ class TestDependencyHealth:
         assert data["name"] == "postgres"
         assert data["healthy"] is True
         assert data["status"] == "healthy"
-        assert data["latency_ms"] == 15.5
+        assert data["latency_ms"] == pytest.approx(15.5)
         assert data["details"]["version"] == "14.0"
 
 
@@ -122,8 +122,8 @@ class TestDependencyHealthAggregator:
         """Test default initialization."""
         aggregator = DependencyHealthAggregator()
         assert aggregator.service_name == "default"
-        assert aggregator.timeout_seconds == 5.0
-        assert aggregator.cache_seconds == 5.0
+        assert aggregator.timeout_seconds == pytest.approx(5.0)
+        assert aggregator.cache_seconds == pytest.approx(5.0)
 
     def test_init_with_options(self):
         """Test initialization with options."""
@@ -135,14 +135,14 @@ class TestDependencyHealthAggregator:
         )
 
         assert aggregator.service_name == "my-service"
-        assert aggregator.timeout_seconds == 10.0
+        assert aggregator.timeout_seconds == pytest.approx(10.0)
         assert "postgres" in aggregator.critical_dependencies
 
     def test_add_dependency(self):
         """Test adding a dependency."""
         aggregator = DependencyHealthAggregator()
 
-        async def check_db():
+        async def check_db():  # NOSONAR
             return True
 
         aggregator.add_dependency(
@@ -156,7 +156,7 @@ class TestDependencyHealthAggregator:
         """Test removing a dependency."""
         aggregator = DependencyHealthAggregator()
 
-        async def check_db():
+        async def check_db():  # NOSONAR
             return True
 
         aggregator.add_dependency("postgres", check_db)
@@ -169,7 +169,7 @@ class TestDependencyHealthAggregator:
         """Test checking a healthy dependency."""
         aggregator = DependencyHealthAggregator()
 
-        async def check_healthy():
+        async def check_healthy():  # NOSONAR
             return True
 
         aggregator.add_dependency("healthy_dep", check_healthy)
@@ -184,7 +184,7 @@ class TestDependencyHealthAggregator:
         """Test checking an unhealthy dependency."""
         aggregator = DependencyHealthAggregator()
 
-        async def check_unhealthy():
+        async def check_unhealthy():  # NOSONAR
             return False
 
         aggregator.add_dependency("unhealthy_dep", check_unhealthy)
@@ -199,7 +199,7 @@ class TestDependencyHealthAggregator:
         """Test checking dependency returning dict result."""
         aggregator = DependencyHealthAggregator()
 
-        async def check_with_details():
+        async def check_with_details():  # NOSONAR
             return {"healthy": True, "status": "healthy", "details": {"connections": 5}}
 
         aggregator.add_dependency("detailed_dep", check_with_details)
@@ -256,7 +256,7 @@ class TestDependencyHealthAggregator:
         aggregator = DependencyHealthAggregator(cache_seconds=60)
         call_count = 0
 
-        async def counting_check():
+        async def counting_check():  # NOSONAR
             nonlocal call_count
             call_count += 1
             return True
@@ -275,10 +275,10 @@ class TestDependencyHealthAggregator:
         """Test checking all dependencies."""
         aggregator = DependencyHealthAggregator()
 
-        async def healthy_check():
+        async def healthy_check():  # NOSONAR
             return True
 
-        async def unhealthy_check():
+        async def unhealthy_check():  # NOSONAR
             return False
 
         aggregator.add_dependency("dep1", healthy_check)
@@ -295,10 +295,10 @@ class TestDependencyHealthAggregator:
         """Test overall health when critical deps are healthy."""
         aggregator = DependencyHealthAggregator(critical_dependencies=["postgres"])
 
-        async def healthy():
+        async def healthy():  # NOSONAR
             return True
 
-        async def unhealthy():
+        async def unhealthy():  # NOSONAR
             return False
 
         aggregator.add_dependency("postgres", healthy, critical=True)
@@ -315,7 +315,7 @@ class TestDependencyHealthAggregator:
         """Test overall health when critical deps are unhealthy."""
         aggregator = DependencyHealthAggregator(critical_dependencies=["postgres"])
 
-        async def unhealthy():
+        async def unhealthy():  # NOSONAR
             return False
 
         aggregator.add_dependency("postgres", unhealthy, critical=True)
@@ -333,7 +333,7 @@ class TestDependencyHealthAggregator:
         healthy_after = 2
         call_count = 0
 
-        async def eventually_healthy():
+        async def eventually_healthy():  # NOSONAR
             nonlocal call_count
             call_count += 1
             return call_count >= healthy_after
@@ -350,7 +350,7 @@ class TestDependencyHealthAggregator:
         """Test wait_for_healthy times out."""
         aggregator = DependencyHealthAggregator()
 
-        async def always_unhealthy():
+        async def always_unhealthy():  # NOSONAR
             return False
 
         aggregator.add_dependency("dep", always_unhealthy, critical=True)

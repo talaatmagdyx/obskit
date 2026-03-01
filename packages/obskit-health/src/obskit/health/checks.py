@@ -227,7 +227,7 @@ def create_memory_check(
     >>> checker.add_liveness_check("memory", memory_check)
     """
 
-    async def check() -> bool | dict[str, Any]:
+    async def check() -> bool | dict[str, Any]:  # NOSONAR
         try:
             import psutil
 
@@ -289,7 +289,7 @@ def create_disk_check(
     >>> checker.add_readiness_check("disk", disk_check)
     """
 
-    async def check() -> bool | dict[str, Any]:
+    async def check() -> bool | dict[str, Any]:  # NOSONAR
         try:
             import psutil
 
@@ -560,7 +560,7 @@ def create_database_pool_check(
     >>> checker.add_readiness_check("db_pool", db_pool_check)
     """
 
-    async def check() -> bool | dict[str, Any]:
+    async def check() -> bool | dict[str, Any]:  # NOSONAR
         try:
             pool = engine.pool
 

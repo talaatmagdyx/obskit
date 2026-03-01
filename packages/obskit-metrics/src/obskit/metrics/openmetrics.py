@@ -122,14 +122,7 @@ def generate_openmetrics(registry: Any | None = None) -> bytes:
             labels = _format_labels(sample.labels)
             value = _format_value(sample.value)
 
-            if sample.name.endswith("_total"):
-                # Counter samples need special handling
-                output_lines.append(f"{sample.name}{labels} {value}")
-            elif sample.name.endswith("_bucket"):
-                # Histogram buckets
-                output_lines.append(f"{sample.name}{labels} {value}")
-            else:
-                output_lines.append(f"{sample.name}{labels} {value}")
+            output_lines.append(f"{sample.name}{labels} {value}")
 
     # OpenMetrics requires EOF marker
     output_lines.append("# EOF")
@@ -175,15 +168,14 @@ def _format_value(value: float) -> str:
 
     if value == float("inf"):
         return "+Inf"
-    elif value == float("-inf"):
+    if value == float("-inf"):
         return "-Inf"
-    elif math.isnan(value):
+    if math.isnan(value):
         return "NaN"
-    else:
-        # Use scientific notation for very large/small values
-        if abs(value) >= 1e15 or (abs(value) < 1e-4 and value != 0):
-            return f"{value:.6e}"
-        return str(value)
+    # Use scientific notation for very large/small values
+    if abs(value) >= 1e15 or (abs(value) < 1e-4 and value != 0):
+        return f"{value:.6e}"
+    return str(value)
 
 
 class OpenMetricsExemplar:

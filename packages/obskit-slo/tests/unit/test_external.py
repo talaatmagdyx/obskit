@@ -5,7 +5,7 @@ Tests for obskit.external module — ExternalAPISLATracker.
 from __future__ import annotations
 
 import time
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone, UTC
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -27,9 +27,9 @@ from obskit.external import (
 class TestSLADefinition:
     def test_defaults(self):
         sla = SLADefinition()
-        assert sla.availability == 0.99
+        assert sla.availability == pytest.approx(0.99)
         assert sla.latency_p95_ms == 500
-        assert sla.error_rate_percent == 1.0
+        assert sla.error_rate_percent == pytest.approx(1.0)
 
     def test_custom_values(self):
         sla = SLADefinition(
@@ -37,7 +37,7 @@ class TestSLADefinition:
             latency_p95_ms=100,
             error_rate_percent=0.1,
         )
-        assert sla.availability == 0.999
+        assert sla.availability == pytest.approx(0.999)
         assert sla.latency_p95_ms == 100
 
 
@@ -49,19 +49,19 @@ class TestSLADefinition:
 class TestAPICallRecord:
     def test_success_record(self):
         record = APICallRecord(
-            timestamp=datetime.utcnow(),
+            timestamp=datetime.now(UTC),
             latency_seconds=0.1,
             success=True,
             status_code=200,
         )
         assert record.success is True
-        assert record.latency_seconds == 0.1
+        assert record.latency_seconds == pytest.approx(0.1)
         assert record.status_code == 200
         assert record.error_type is None
 
     def test_failure_record(self):
         record = APICallRecord(
-            timestamp=datetime.utcnow(),
+            timestamp=datetime.now(UTC),
             latency_seconds=5.0,
             success=False,
             error_type="TimeoutError",
@@ -77,7 +77,7 @@ class TestAPICallRecord:
 
 class TestSLAComplianceReport:
     def _make_report(self, **kwargs):
-        now = datetime.utcnow()
+        now = datetime.now(UTC)
         defaults = dict(
             api_name="test_api",
             window_start=now - timedelta(hours=1),
@@ -137,7 +137,7 @@ class TestExternalAPISLATracker:
 
     def test_init(self):
         assert self.tracker.api_name == "test_api"
-        assert self.tracker.sla.availability == 0.99
+        assert self.tracker.sla.availability == pytest.approx(0.99)
         assert self.tracker.sla.latency_p95_ms == 500
 
     def test_record_call_success(self):
@@ -210,7 +210,7 @@ class TestExternalAPISLATracker:
         tracker = ExternalAPISLATracker("empty_api")
         report = tracker.get_compliance_report()
         assert report.total_requests == 0
-        assert report.availability == 1.0  # Default to 100% when no data
+        assert report.availability == pytest.approx(1.0)  # Default to 100% when no data
         assert report.overall_compliant is True
 
     def test_is_compliant_true(self):
@@ -248,13 +248,13 @@ class TestExternalAPISLATracker:
 
     def test_set_expected_sla(self):
         self.tracker.set_expected_sla(availability=0.999, latency_p95_ms=100)
-        assert self.tracker.sla.availability == 0.999
+        assert self.tracker.sla.availability == pytest.approx(0.999)
         assert self.tracker.sla.latency_p95_ms == 100
 
     def test_set_expected_sla_partial(self):
         original_latency = self.tracker.sla.latency_p95_ms
         self.tracker.set_expected_sla(availability=0.995)
-        assert self.tracker.sla.availability == 0.995
+        assert self.tracker.sla.availability == pytest.approx(0.995)
         assert self.tracker.sla.latency_p95_ms == original_latency
 
     def test_sla_breach_callback(self):
@@ -288,7 +288,7 @@ class TestExternalAPISLATracker:
         tracker.record_call(latency_seconds=0.1, success=True)
         time.sleep(0.01)
         # Force cleanup by calling get_compliance_report
-        tracker._records[0].timestamp = datetime.utcnow() - timedelta(seconds=10)
+        tracker._records[0].timestamp = datetime.now(UTC) - timedelta(seconds=10)
         report = tracker.get_compliance_report()
         # Record should have been cleaned up
         assert report.total_requests == 0

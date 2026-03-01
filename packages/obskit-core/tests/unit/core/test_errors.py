@@ -162,7 +162,7 @@ class TestCircuitOpenError:
     def test_attributes(self):
         err = CircuitOpenError("my_breaker", 5.5)
         assert err.breaker_name == "my_breaker"
-        assert err.time_until_retry == 5.5
+        assert err.time_until_retry == pytest.approx(5.5)
 
     def test_message_format(self):
         err = CircuitOpenError("my_breaker", 10.0)
@@ -171,7 +171,7 @@ class TestCircuitOpenError:
 
     def test_details_include_time(self):
         err = CircuitOpenError("svc", 3.2)
-        assert err.details["time_until_retry"] == 3.2
+        assert err.details["time_until_retry"] == pytest.approx(3.2)
 
     def test_is_circuit_breaker_error(self):
         err = CircuitOpenError("svc", 1.0)
@@ -247,14 +247,14 @@ class TestRateLimitExceeded:
     def test_limit_and_window_stored(self):
         err = RateLimitExceeded(limit=100, window_seconds=60.0)
         assert err.limit == 100
-        assert err.window_seconds == 60.0
+        assert err.window_seconds == pytest.approx(60.0)
         assert err.details["limit"] == 100
-        assert err.details["window_seconds"] == 60.0
+        assert err.details["window_seconds"] == pytest.approx(60.0)
 
     def test_retry_after_in_details_when_set(self):
         err = RateLimitExceeded(retry_after=30.0)
-        assert err.retry_after == 30.0
-        assert err.details["retry_after"] == 30.0
+        assert err.retry_after == pytest.approx(30.0)
+        assert err.details["retry_after"] == pytest.approx(30.0)
 
     def test_retry_after_absent_when_none(self):
         err = RateLimitExceeded()

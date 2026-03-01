@@ -24,7 +24,7 @@ import hashlib
 import threading
 from collections.abc import Callable
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 from prometheus_client import Counter, Gauge
@@ -183,7 +183,7 @@ class AlertDeduplicator:
         bool
             Whether alert should be sent
         """
-        now = datetime.utcnow()
+        now = datetime.now(UTC)
         fingerprint = self._create_fingerprint(alert_name, severity, labels)
 
         ALERTS_TOTAL.labels(alert_name=alert_name, severity=severity).inc()
@@ -289,7 +289,7 @@ class AlertDeduplicator:
         labels : dict, optional
             Labels to match
         """
-        now = datetime.utcnow()
+        now = datetime.now(UTC)
 
         if severity:
             fingerprint = self._create_fingerprint(alert_name, severity, labels)
@@ -332,7 +332,7 @@ class AlertDeduplicator:
 
     def get_active_alerts(self) -> list[AlertRecord]:
         """Get all active alert records."""
-        now = datetime.utcnow()
+        now = datetime.now(UTC)
         window_start = now - timedelta(minutes=self.window_minutes)
 
         with self._lock:
@@ -340,7 +340,7 @@ class AlertDeduplicator:
 
     def get_suppressed_alerts(self) -> dict[str, datetime]:
         """Get currently suppressed alerts with end times."""
-        now = datetime.utcnow()
+        now = datetime.now(UTC)
 
         with self._lock:
             return {
@@ -349,7 +349,7 @@ class AlertDeduplicator:
 
     def cleanup(self):
         """Clean up old records."""
-        now = datetime.utcnow()
+        now = datetime.now(UTC)
         window_start = now - timedelta(minutes=self.window_minutes * 2)
 
         with self._lock:

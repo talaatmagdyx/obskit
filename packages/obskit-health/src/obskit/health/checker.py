@@ -79,7 +79,7 @@ def _get_health_trace_context() -> dict[str, str]:
                 "span_id": format(ctx.span_id, "016x"),
             }
     except Exception:  # nosec B110
-        pass
+        pass  # NOSONAR
     return {}
 
 # Type alias for check functions
@@ -496,7 +496,7 @@ class HealthChecker:
                     healthy=result,
                     duration_ms=duration_ms,
                 )
-            elif isinstance(result, dict):
+            if isinstance(result, dict):
                 return CheckResult(
                     name=check.name,
                     healthy=result.get("healthy", True),
@@ -505,13 +505,12 @@ class HealthChecker:
                     details=result.get("details", {}),
                     error=result.get("error"),
                 )
-            else:
-                # Treat truthy values as healthy
-                return CheckResult(
-                    name=check.name,
-                    healthy=bool(result),
-                    duration_ms=duration_ms,
-                )
+            # Treat truthy values as healthy
+            return CheckResult(
+                name=check.name,
+                healthy=bool(result),
+                duration_ms=duration_ms,
+            )
 
         except TimeoutError:
             duration_ms = (time.perf_counter() - start_time) * 1000

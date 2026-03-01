@@ -25,7 +25,7 @@ class TestLRUCache:
         """Test LRUCache initialization."""
         cache = LRUCache(max_size=10, ttl_seconds=60.0)
         assert cache.max_size == 10
-        assert cache.ttl_seconds == 60.0
+        assert cache.ttl_seconds == pytest.approx(60.0)
         assert len(cache) == 0
 
     def test_put_and_get(self):
@@ -152,7 +152,7 @@ class TestCardinalityConfig:
         """Test default configuration."""
         config = CardinalityConfig()
         assert config.default_limit == 1000
-        assert config.ttl_seconds == 3600.0
+        assert config.ttl_seconds == pytest.approx(3600.0)
         assert config.label_limits == {}
 
     def test_custom_config(self):
@@ -163,7 +163,7 @@ class TestCardinalityConfig:
             label_limits={"user_id": 10000},
         )
         assert config.default_limit == 500
-        assert config.ttl_seconds == 1800.0
+        assert config.ttl_seconds == pytest.approx(1800.0)
         assert config.label_limits == {"user_id": 10000}
 
 
@@ -267,7 +267,7 @@ class TestCardinalityProtector:
         assert stats["label_name"] == "label"
         assert stats["current_count"] == 5
         assert stats["limit"] == 10
-        assert stats["utilization"] == 0.5
+        assert stats["utilization"] == pytest.approx(0.5)
         assert stats["at_limit"] is False
 
     def test_get_stats_at_limit(self):
@@ -280,7 +280,7 @@ class TestCardinalityProtector:
 
         stats = protector.get_stats("label")
         assert stats["at_limit"] is True
-        assert stats["utilization"] == 1.0
+        assert stats["utilization"] == pytest.approx(1.0)
 
     def test_reset_specific_label(self):
         """Test resetting a specific label."""

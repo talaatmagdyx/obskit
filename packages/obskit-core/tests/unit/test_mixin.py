@@ -24,7 +24,7 @@ def _make_service(name="test_service"):
          patch("obskit.mixin.get_health_checker"):
 
         class TestService(ObservabilityMixin):
-            pass
+            pass  # NOSONAR
 
         svc = TestService(service_name=name)
 
@@ -46,7 +46,7 @@ class TestObservabilityMixinInit:
              patch("obskit.mixin.get_health_checker"):
 
             class TestSvc(ObservabilityMixin):
-                pass
+                pass  # NOSONAR
 
             svc = TestSvc(service_name="my_service")
 
@@ -61,7 +61,7 @@ class TestObservabilityMixinInit:
              patch("obskit.mixin.get_health_checker"):
 
             class TestSvc(ObservabilityMixin):
-                pass
+                pass  # NOSONAR
 
             svc = TestSvc()
 
@@ -76,7 +76,7 @@ class TestObservabilityMixinInit:
              patch("obskit.mixin.get_health_checker"):
 
             class TestSvc(ObservabilityMixin):
-                pass
+                pass  # NOSONAR
 
             svc = TestSvc()
 
@@ -93,9 +93,9 @@ class TestObservabilityMixinInit:
              patch("obskit.mixin.get_health_checker"):
 
             class TestSvc(ObservabilityMixin):
-                pass
+                pass  # NOSONAR
 
-            svc = TestSvc(service_name="test_svc")
+            _svc = TestSvc(service_name="test_svc")
 
         mock_cls.assert_called_with(name="test_svc")
 
@@ -108,7 +108,7 @@ class TestObservabilityMixinInit:
              patch("obskit.mixin.get_health_checker"):
 
             class TestSvc(ObservabilityMixin):
-                pass
+                pass  # NOSONAR
 
             svc = TestSvc()
 
@@ -158,7 +158,7 @@ class TestObservabilityMixinProperties:
              patch("obskit.mixin.get_health_checker"):
 
             class TestSvc(ObservabilityMixin):
-                pass
+                pass  # NOSONAR
 
             svc = TestSvc()
             svc._metrics = None  # Force re-init
@@ -179,7 +179,7 @@ class TestTrackOperation:
         svc._metrics = mock_metrics
 
         with svc.track_operation("my_op", enable_tracing=False):
-            pass
+            pass  # NOSONAR
 
         mock_metrics.observe_request.assert_called_once()
         kwargs = mock_metrics.observe_request.call_args[1]
@@ -205,7 +205,7 @@ class TestTrackOperation:
         svc._metrics = mock_metrics
 
         with svc.track_operation("my_op", enable_tracing=False):
-            pass
+            pass  # NOSONAR
 
         kwargs = mock_metrics.observe_request.call_args[1]
         assert "TestService" in kwargs["operation"] or "ObservabilityMixin" in kwargs["operation"]
@@ -216,7 +216,7 @@ class TestTrackOperation:
         svc._metrics = mock_metrics
 
         with svc.track_operation("op", enable_metrics=False, enable_tracing=False):
-            pass
+            pass  # NOSONAR
 
         mock_metrics.observe_request.assert_not_called()
 
@@ -228,7 +228,7 @@ class TestTrackOperation:
         svc._slo_tracker = mock_slo
 
         with svc.track_operation("op", slo_name="my_slo", enable_tracing=False):
-            pass
+            pass  # NOSONAR
 
         mock_slo.record_measurement.assert_called_once()
         call_args = mock_slo.record_measurement.call_args
@@ -242,7 +242,7 @@ class TestTrackOperation:
         svc._slo_tracker = mock_slo
 
         with svc.track_operation("op", enable_tracing=False):
-            pass
+            pass  # NOSONAR
 
         mock_slo.record_measurement.assert_not_called()
 
@@ -255,7 +255,7 @@ class TestTrackOperation:
 
         params = {"tenant_id": "tenant-123"}
         with svc.track_operation("op", params=params, enable_tracing=False):
-            pass
+            pass  # NOSONAR
 
         mock_tenant_metrics.observe_request.assert_called_once()
 
@@ -268,7 +268,7 @@ class TestTrackOperation:
 
         params = {"company_id": "company-456"}
         with svc.track_operation("op", params=params, enable_tracing=False):
-            pass
+            pass  # NOSONAR
 
         mock_tenant_metrics.observe_request.assert_called_once()
 
@@ -300,7 +300,7 @@ class TestTrackOperation:
             enable_slow_alert=True,
             slow_threshold_ms=0.0,  # Always trigger
         ):
-            pass
+            pass  # NOSONAR
 
         mock_logger.warning.assert_called()
 
@@ -404,7 +404,7 @@ class TestUtilityMethods:
 
         result = svc.get_slo_status("availability")
         assert result is not None
-        assert result["current_value"] == 0.99
+        assert result["current_value"] == pytest.approx(0.99)
 
     def test_get_slo_status_returns_none_on_exception(self):
         svc = _make_service()
@@ -474,7 +474,7 @@ class TestObservabilityMixinCoverageGaps:
              patch("obskit.mixin.get_health_checker"):
 
             class TestSvc(ObservabilityMixin):
-                pass
+                pass  # NOSONAR
 
             svc = TestSvc()
 
@@ -541,7 +541,7 @@ class TestObservabilityMixinCoverageGaps:
             "operation_type": "read",
         }
         with svc.track_operation("op", params=params, enable_tracing=False):
-            pass
+            pass  # NOSONAR
 
         mock_metrics.observe_request.assert_called_once()
 
@@ -557,7 +557,7 @@ class TestObservabilityMixinCoverageGaps:
 
         with patch("obskit.mixin.trace_span", return_value=mock_span):
             with svc.track_operation("op", enable_tracing=True):
-                pass
+                pass  # NOSONAR
 
         mock_span.__enter__.assert_called_once()
         mock_span.__exit__.assert_called_once()
@@ -570,7 +570,7 @@ class TestObservabilityMixinCoverageGaps:
 
         with patch("obskit.mixin.trace_span", side_effect=RuntimeError("tracer unavailable")):
             with svc.track_operation("op", enable_tracing=True):
-                pass
+                pass  # NOSONAR
 
         # Should complete without error
         mock_metrics.observe_request.assert_called_once()
@@ -586,7 +586,7 @@ class TestObservabilityMixinCoverageGaps:
 
         # Should complete without error despite SLO failure
         with svc.track_operation("op", slo_name="my_slo", enable_tracing=False):
-            pass
+            pass  # NOSONAR
 
         mock_slo.record_measurement.assert_called_once()
 
@@ -634,7 +634,7 @@ class TestObservabilityMixinCoverageGaps:
 
         with patch("obskit.mixin.trace_span", return_value=mock_span):
             with svc.track_operation("op", enable_tracing=True):
-                pass
+                pass  # NOSONAR
 
         # Should complete without propagating the span error
         mock_span.__exit__.assert_called_once()

@@ -1,13 +1,14 @@
 """Unit tests for business metrics helpers."""
 
 import time
-from datetime import datetime
+from datetime import datetime, timezone, UTC
 
 from obskit.business import (
     BusinessEvent,
     BusinessMetrics,
     FunnelTracker,
 )
+import pytest
 
 
 class TestBusinessEvent:
@@ -33,7 +34,7 @@ class TestBusinessEvent:
             metadata={"product_id": "prod-456"},
         )
         assert event.channel == "web"
-        assert event.value == 99.99
+        assert event.value == pytest.approx(99.99)
         assert event.metadata["product_id"] == "prod-456"
 
 
@@ -227,8 +228,8 @@ class TestFunnelTracker:
 
         assert "signup_to_verify" in rates
         assert "verify_to_complete" in rates
-        assert rates["signup_to_verify"] == 0.8
-        assert rates["verify_to_complete"] == 0.625  # 5/8
+        assert rates["signup_to_verify"] == pytest.approx(0.8)
+        assert rates["verify_to_complete"] == pytest.approx(0.625)  # 5/8
 
 
 class TestBusinessMetricsEdgeCases:
@@ -236,7 +237,7 @@ class TestBusinessMetricsEdgeCases:
         from obskit.business import BusinessMetrics
         bm = BusinessMetrics("test_svc")
         with bm.track_engagement("test_tenant", "click", user_id="user123"):
-            pass
+            pass  # NOSONAR
 
     def test_get_recent_events_with_since_filter(self):
         import time
@@ -246,7 +247,7 @@ class TestBusinessMetricsEdgeCases:
         bm = BusinessMetrics("test_svc")
         bm.track_event("event1", tenant_id="test_tenant")
         time.sleep(0.05)
-        since_time = datetime.utcnow()
+        since_time = datetime.now(UTC)
         time.sleep(0.05)
         bm.track_event("event2", tenant_id="test_tenant")
         events = bm.get_recent_events(limit=10, since=since_time)
@@ -300,7 +301,7 @@ class TestBusinessCoverageGaps:
         from obskit.business import BusinessMetrics
         bm = BusinessMetrics("test_svc")
         with bm.track_engagement("tenant1", "click", user_id="user123"):
-            pass
+            pass  # NOSONAR
         # Should track active user without error
 
     def test_funnel_complete_user_in_stages(self):
@@ -352,7 +353,7 @@ class TestBusinessMissingBranches:
         bm = BusinessMetrics("test_svc_no_uid")
         # Without user_id, track_active_user should NOT be called
         with bm.track_engagement("view_page", tenant_id="tenant1"):
-            pass
+            pass  # NOSONAR
         # No active users should be tracked
         assert len(bm._active_users) == 0
 

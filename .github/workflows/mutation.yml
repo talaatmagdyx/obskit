@@ -11,13 +11,12 @@ on:
         required: false
         default: "all"
 
-permissions:
-  contents: read
-
 jobs:
   mutmut:
     name: mutmut — ${{ matrix.module }}
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     strategy:
       fail-fast: false
       matrix:
@@ -66,7 +65,7 @@ jobs:
           mutmut results
           SURVIVED=$(mutmut results | grep -c "survived" || true)
           echo "Survived mutants: $SURVIVED"
-          if [ "$SURVIVED" -gt 5 ]; then
+          if [[ "$SURVIVED" -gt 5 ]]; then
             echo "❌ Too many survived mutants ($SURVIVED). Add more targeted tests."
             exit 1
           fi

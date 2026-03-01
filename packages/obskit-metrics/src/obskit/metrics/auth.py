@@ -118,6 +118,9 @@ def _get_rate_limiter() -> RateLimiter | None:
 
     return _metrics_rate_limiter
 
+_CONTENT_TYPE_TEXT = "text/plain"
+
+
 
 class AuthenticatedMetricsHandler(BaseHTTPRequestHandler):
     """
@@ -137,7 +140,7 @@ class AuthenticatedMetricsHandler(BaseHTTPRequestHandler):
         rate_limiter = _get_rate_limiter()
         if rate_limiter is not None and not rate_limiter.is_allowed():
             self.send_response(429)
-            self.send_header("Content-Type", "text/plain")
+            self.send_header("Content-Type", _CONTENT_TYPE_TEXT)
             self.send_header("Retry-After", "60")
             self.end_headers()
             self.wfile.write(b"Too Many Requests: Rate limit exceeded\n")
@@ -149,7 +152,7 @@ class AuthenticatedMetricsHandler(BaseHTTPRequestHandler):
             auth_header = self.headers.get("Authorization", "")
             if not auth_header.startswith("Bearer "):
                 self.send_response(401)
-                self.send_header("Content-Type", "text/plain")
+                self.send_header("Content-Type", _CONTENT_TYPE_TEXT)
                 self.send_header("WWW-Authenticate", 'Bearer realm="metrics"')
                 self.end_headers()
                 self.wfile.write(b"Unauthorized: Missing or invalid Authorization header\n")
@@ -158,7 +161,7 @@ class AuthenticatedMetricsHandler(BaseHTTPRequestHandler):
             token = auth_header[7:]  # Remove "Bearer " prefix
             if not hmac.compare_digest(token, self.auth_token):
                 self.send_response(403)
-                self.send_header("Content-Type", "text/plain")
+                self.send_header("Content-Type", _CONTENT_TYPE_TEXT)
                 self.end_headers()
                 self.wfile.write(b"Forbidden: Invalid token\n")
                 return
@@ -174,7 +177,7 @@ class AuthenticatedMetricsHandler(BaseHTTPRequestHandler):
             else:
                 # 404 for other paths
                 self.send_response(404)
-                self.send_header("Content-Type", "text/plain")
+                self.send_header("Content-Type", _CONTENT_TYPE_TEXT)
                 self.end_headers()
                 self.wfile.write(b"Not Found\n")
         except Exception as e:  # pragma: no cover
@@ -184,7 +187,7 @@ class AuthenticatedMetricsHandler(BaseHTTPRequestHandler):
                 error_type=type(e).__name__,
             )
             self.send_response(500)
-            self.send_header("Content-Type", "text/plain")
+            self.send_header("Content-Type", _CONTENT_TYPE_TEXT)
             self.end_headers()
             self.wfile.write(f"Internal Server Error: {e}\n".encode())
 

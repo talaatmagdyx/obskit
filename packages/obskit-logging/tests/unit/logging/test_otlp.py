@@ -205,7 +205,7 @@ class TestOTLPLogHandler:
 
     def test_flush_interval_stored(self):
         handler = self._create_handler()
-        assert handler.flush_interval == 0.1
+        assert handler.flush_interval == pytest.approx(0.1)
         handler.close()
 
     def test_queue_created(self):

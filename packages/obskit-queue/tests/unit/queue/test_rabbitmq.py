@@ -85,7 +85,7 @@ class TestInstrumentedConsume:
         instrument_rabbitmq(mock_channel, queue_name="test_queue")
 
         def my_callback(ch, method, props, body):
-            pass
+            pass  # NOSONAR
 
         mock_channel.basic_consume(on_message_callback=my_callback)
 
@@ -104,7 +104,7 @@ class TestInstrumentedConsume:
         instrument_rabbitmq(mock_channel, queue_name="test_queue")
 
         def my_callback(ch, method, props, body):
-            pass
+            pass  # NOSONAR
 
         # Pass callback as positional arg
         mock_channel.basic_consume(my_callback)

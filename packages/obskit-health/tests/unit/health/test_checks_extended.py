@@ -129,7 +129,7 @@ class TestCreateMemoryCheck:
         with patch("psutil.virtual_memory", return_value=mock_mem):
             result = await check()
         assert result["healthy"] is True
-        assert result["usage_percent"] == 50.0
+        assert result["usage_percent"] == pytest.approx(50.0)
 
     @pytest.mark.asyncio
     async def test_unhealthy_memory(self):
@@ -193,7 +193,7 @@ class TestCreateDiskCheck:
             result = await check()
         assert result["healthy"] is True
         assert result["path"] == "/"
-        assert result["usage_percent"] == 50.0
+        assert result["usage_percent"] == pytest.approx(50.0)
 
     @pytest.mark.asyncio
     async def test_unhealthy_disk(self):

@@ -23,15 +23,15 @@ class TestPhaseRecord:
     def test_basic_creation(self):
         record = PhaseRecord(name="query", start_time=1.0)
         assert record.name == "query"
-        assert record.start_time == 1.0
+        assert record.start_time == pytest.approx(1.0)
         assert record.end_time is None
-        assert record.duration_seconds == 0.0
+        assert record.duration_seconds == pytest.approx(0.0)
 
     def test_to_dict(self):
         record = PhaseRecord(name="query", start_time=1.0, end_time=1.5, duration_seconds=0.5)
         d = record.to_dict()
         assert d["name"] == "query"
-        assert d["duration_seconds"] == 0.5
+        assert d["duration_seconds"] == pytest.approx(0.5)
         assert d["duration_ms"] == pytest.approx(500.0, rel=1e-3)
 
 
@@ -50,8 +50,8 @@ class TestBreakdownSummary:
         )
         d = summary.to_dict()
         assert d["operation"] == "my_op"
-        assert d["total_duration_seconds"] == 1.0
-        assert d["total_duration_ms"] == 1000.0
+        assert d["total_duration_seconds"] == pytest.approx(1.0)
+        assert d["total_duration_ms"] == pytest.approx(1000.0)
 
     def test_to_dict_with_phases(self):
         phase = PhaseRecord(name="db", start_time=0.0, end_time=0.5, duration_seconds=0.5)
@@ -66,7 +66,7 @@ class TestBreakdownSummary:
         d = summary.to_dict()
         assert len(d["phases"]) == 1
         assert d["bottleneck"] == "db"
-        assert d["bottleneck_percent"] == 50.0
+        assert d["bottleneck_percent"] == pytest.approx(50.0)
 
     def test_to_dict_includes_timestamp(self):
         summary = BreakdownSummary(
@@ -88,7 +88,7 @@ class TestLatencyBreakdownBasic:
     def test_enter_exit_as_context_manager(self):
         bd = LatencyBreakdown("test_op", log_breakdown=False)
         with bd:
-            pass
+            pass  # NOSONAR
         # No exception should be raised
 
     def test_start_time_set_on_enter(self):
@@ -99,7 +99,7 @@ class TestLatencyBreakdownBasic:
     def test_end_time_set_on_exit(self):
         bd = LatencyBreakdown("test_op", log_breakdown=False)
         with bd:
-            pass
+            pass  # NOSONAR
         assert bd._end_time is not None
 
     def test_operation_name_stored(self):
@@ -129,7 +129,7 @@ class TestLatencyBreakdownPhases:
         bd._start_time = time.perf_counter()
 
         with bd.phase("query"):
-            pass
+            pass  # NOSONAR
 
         assert len(bd._phases) == 1
         assert bd._phases[0].name == "query"
@@ -148,11 +148,11 @@ class TestLatencyBreakdownPhases:
         bd._start_time = time.perf_counter()
 
         with bd.phase("phase1"):
-            pass
+            pass  # NOSONAR
         with bd.phase("phase2"):
-            pass
+            pass  # NOSONAR
         with bd.phase("phase3"):
-            pass
+            pass  # NOSONAR
 
         assert len(bd._phases) == 3
         phase_names = [p.name for p in bd._phases]
@@ -166,7 +166,7 @@ class TestLatencyBreakdownPhases:
 
         assert len(bd._phases) == 1
         assert bd._phases[0].name == "manual_phase"
-        assert bd._phases[0].duration_seconds == 0.25
+        assert bd._phases[0].duration_seconds == pytest.approx(0.25)
 
     def test_record_phase_manually_multiple(self):
         bd = LatencyBreakdown("op", log_breakdown=False)
@@ -179,9 +179,9 @@ class TestLatencyBreakdownPhases:
         bd = LatencyBreakdown("op", log_breakdown=False)
         with bd:
             with bd.phase("step1"):
-                pass
+                pass  # NOSONAR
             with bd.phase("step2"):
-                pass
+                pass  # NOSONAR
 
         assert len(bd._phases) == 2
 
@@ -325,7 +325,7 @@ class TestLatencyBreakdownLogging:
         with patch("obskit.breakdown.logger", mock_logger):
             bd = LatencyBreakdown("silent_op", log_breakdown=False)
             with bd:
-                pass
+                pass  # NOSONAR
 
         mock_logger.debug.assert_not_called()
         mock_logger.warning.assert_not_called()
@@ -356,4 +356,4 @@ class TestTrackBreakdown:
     def test_kwargs_passed_through(self):
         bd = track_breakdown("op", log_breakdown=False, alert_bottleneck_percent=50.0)
         assert bd.log_breakdown is False
-        assert bd.alert_bottleneck_percent == 50.0
+        assert bd.alert_bottleneck_percent == pytest.approx(50.0)

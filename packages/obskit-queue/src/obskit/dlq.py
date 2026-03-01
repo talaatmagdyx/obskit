@@ -33,7 +33,7 @@ import time
 from collections.abc import Callable, Generator
 from contextlib import contextmanager
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import UTC, datetime
 from enum import Enum
 from typing import Any
 
@@ -106,7 +106,7 @@ class DLQMessage:
     message_id: str
     original_queue: str
     reason: str
-    timestamp: datetime = field(default_factory=datetime.utcnow)
+    timestamp: datetime = field(default_factory=lambda: datetime.now(UTC))
     age_seconds: float = 0.0
     retry_count: int = 0
     error_message: str | None = None
@@ -351,7 +351,7 @@ class DLQTracker:
                 return
 
             oldest = min(self._messages.values(), key=lambda m: m.timestamp)
-            age = (datetime.utcnow() - oldest.timestamp).total_seconds()
+            age = (datetime.now(UTC) - oldest.timestamp).total_seconds()
             DLQ_OLDEST_MESSAGE_AGE.labels(dlq_name=self.dlq_name).set(age)
 
     def get_stats(self) -> DLQStats:
@@ -369,7 +369,7 @@ class DLQTracker:
             oldest_age = 0.0
             if self._messages:
                 oldest = min(self._messages.values(), key=lambda m: m.timestamp)
-                oldest_age = (datetime.utcnow() - oldest.timestamp).total_seconds()
+                oldest_age = (datetime.now(UTC) - oldest.timestamp).total_seconds()
 
             total_processed = self._processing_success + self._processing_failure
             success_rate = 1.0

@@ -47,7 +47,7 @@ class TestDeprecatedDecorator:
     def test_warning_message_contains_version_info(self):
         @deprecated("1.2.0", "3.0.0")
         def old_func():
-            pass
+            pass  # NOSONAR
 
         with pytest.warns(ObskitDeprecationWarning, match="1.2.0"):
             old_func()
@@ -55,7 +55,7 @@ class TestDeprecatedDecorator:
     def test_warning_message_contains_removed_in(self):
         @deprecated("1.2.0", "3.0.0")
         def old_func():
-            pass
+            pass  # NOSONAR
 
         with pytest.warns(ObskitDeprecationWarning, match="3.0.0"):
             old_func()
@@ -63,7 +63,7 @@ class TestDeprecatedDecorator:
     def test_warning_includes_alternative_when_provided(self):
         @deprecated("1.0.0", "2.0.0", alternative="new_func")
         def old_func():
-            pass
+            pass  # NOSONAR
 
         with pytest.warns(ObskitDeprecationWarning, match="new_func"):
             old_func()
@@ -71,7 +71,7 @@ class TestDeprecatedDecorator:
     def test_warning_includes_reason_when_provided(self):
         @deprecated("1.0.0", "2.0.0", reason="Use the better API")
         def old_func():
-            pass
+            pass  # NOSONAR
 
         with pytest.warns(ObskitDeprecationWarning, match="Use the better API"):
             old_func()
@@ -79,7 +79,7 @@ class TestDeprecatedDecorator:
     def test_no_alternative_in_warning_when_not_provided(self):
         @deprecated("1.0.0", "2.0.0")
         def old_func():
-            pass
+            pass  # NOSONAR
 
         with warnings.catch_warnings(record=True) as w:
             warnings.simplefilter("always")
@@ -90,7 +90,7 @@ class TestDeprecatedDecorator:
     def test_preserves_function_name(self):
         @deprecated("1.0.0", "2.0.0")
         def my_special_function():
-            pass
+            pass  # NOSONAR
 
         assert my_special_function.__name__ == "my_special_function"
 
@@ -118,7 +118,6 @@ class TestDeprecatedDecorator:
         @deprecated("1.0.0", "2.0.0", alternative="better_func")
         def old_func():
             """Original docstring."""
-            pass
 
         assert "deprecated" in old_func.__doc__.lower()
         assert "1.0.0" in old_func.__doc__
@@ -127,7 +126,6 @@ class TestDeprecatedDecorator:
         @deprecated("1.0.0", "2.0.0")
         def old_func():
             """Original docstring."""
-            pass
 
         assert "Original docstring" in old_func.__doc__
 
@@ -173,7 +171,7 @@ class TestDeprecatedParameterDecorator:
     def test_warning_includes_param_name(self):
         @deprecated_parameter("old_param", "1.0.0")
         def func(new_param=None, old_param=None):
-            pass
+            pass  # NOSONAR
 
         with pytest.warns(ObskitDeprecationWarning, match="old_param"):
             func(old_param="value")
@@ -181,7 +179,7 @@ class TestDeprecatedParameterDecorator:
     def test_warning_includes_removed_in_version(self):
         @deprecated_parameter("old_param", "1.0.0", removed_in="3.0.0")
         def func(new_param=None, old_param=None):
-            pass
+            pass  # NOSONAR
 
         with pytest.warns(ObskitDeprecationWarning, match="3.0.0"):
             func(old_param="value")
@@ -189,7 +187,7 @@ class TestDeprecatedParameterDecorator:
     def test_warning_includes_alternative_when_provided(self):
         @deprecated_parameter("old_param", "1.0.0", alternative="new_param")
         def func(new_param=None, old_param=None):
-            pass
+            pass  # NOSONAR
 
         with pytest.warns(ObskitDeprecationWarning, match="new_param"):
             func(old_param="value")
@@ -206,7 +204,7 @@ class TestDeprecatedParameterDecorator:
     def test_no_removed_in_does_not_crash(self):
         @deprecated_parameter("old_name", "1.0.0")
         def func(new_name=None, old_name=None):
-            pass
+            pass  # NOSONAR
 
         # Should not raise when removed_in is not provided
         with pytest.warns(ObskitDeprecationWarning):
@@ -222,7 +220,7 @@ class TestDeprecatedClassDecorator:
     def test_emits_warning_on_instantiation(self):
         @deprecated_class("1.0.0", "2.0.0")
         class OldClass:
-            pass
+            pass  # NOSONAR
 
         with pytest.warns(ObskitDeprecationWarning):
             obj = OldClass()
@@ -232,7 +230,7 @@ class TestDeprecatedClassDecorator:
     def test_warning_contains_version_info(self):
         @deprecated_class("1.5.0", "2.5.0")
         class OldClass:
-            pass
+            pass  # NOSONAR
 
         with pytest.warns(ObskitDeprecationWarning, match="1.5.0"):
             OldClass()
@@ -240,7 +238,7 @@ class TestDeprecatedClassDecorator:
     def test_warning_includes_alternative(self):
         @deprecated_class("1.0.0", "2.0.0", alternative="NewClass")
         class OldClass:
-            pass
+            pass  # NOSONAR
 
         with pytest.warns(ObskitDeprecationWarning, match="NewClass"):
             OldClass()
@@ -248,7 +246,7 @@ class TestDeprecatedClassDecorator:
     def test_warning_includes_reason(self):
         @deprecated_class("1.0.0", "2.0.0", reason="Redesigned API")
         class OldClass:
-            pass
+            pass  # NOSONAR
 
         with pytest.warns(ObskitDeprecationWarning, match="Redesigned API"):
             OldClass()
@@ -281,14 +279,13 @@ class TestDeprecatedClassDecorator:
         @deprecated_class("1.0.0", "2.0.0")
         class OldClass:
             """Original docstring."""
-            pass
 
         assert "deprecated" in OldClass.__doc__.lower()
 
     def test_no_alternative_in_message_when_not_provided(self):
         @deprecated_class("1.0.0", "2.0.0")
         class OldClass:
-            pass
+            pass  # NOSONAR
 
         with warnings.catch_warnings(record=True) as w:
             warnings.simplefilter("always")

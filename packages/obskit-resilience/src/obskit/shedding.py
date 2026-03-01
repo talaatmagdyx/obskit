@@ -29,7 +29,7 @@ import random
 import threading
 from collections.abc import Callable
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import UTC, datetime
 from enum import IntEnum
 from typing import Any
 
@@ -106,7 +106,7 @@ class SheddingStats:
     requests_processed: int
     requests_shed: int
     shed_by_priority: dict[str, int]
-    timestamp: datetime = field(default_factory=datetime.utcnow)
+    timestamp: datetime = field(default_factory=lambda: datetime.now(UTC))
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -173,7 +173,7 @@ class LoadShedder:
         self._requests_shed = 0
         self._shed_by_priority: dict[str, int] = {}
         self._lock = threading.Lock()
-        self._last_evaluation = datetime.utcnow()
+        self._last_evaluation = datetime.now(UTC)
 
     def should_process(
         self,
@@ -247,14 +247,13 @@ class LoadShedder:
                 self.on_shed(priority)
 
             return False
-        else:
-            SHEDDER_REQUESTS_TOTAL.labels(shedder_name=self.name, decision="process").inc()
-            self._requests_processed += 1
-            return True
+        SHEDDER_REQUESTS_TOTAL.labels(shedder_name=self.name, decision="process").inc()
+        self._requests_processed += 1
+        return True
 
     def _evaluate_shed_rate(self):
         """Evaluate and adjust shedding rate."""
-        now = datetime.utcnow()
+        now = datetime.now(UTC)
 
         # Only evaluate periodically
         if (now - self._last_evaluation).total_seconds() < self.config.evaluation_window_seconds:

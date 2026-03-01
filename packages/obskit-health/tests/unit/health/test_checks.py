@@ -165,7 +165,7 @@ class TestMemoryCheck:
             result = await check()
 
             assert result["healthy"] is True
-            assert result["usage_percent"] == 50.0
+            assert result["usage_percent"] == pytest.approx(50.0)
 
     @pytest.mark.asyncio
     async def test_memory_check_unhealthy(self) -> None:
@@ -183,7 +183,7 @@ class TestMemoryCheck:
             result = await check()
 
             assert result["healthy"] is False
-            assert result["usage_percent"] == 95.0
+            assert result["usage_percent"] == pytest.approx(95.0)
 
     @pytest.mark.asyncio
     async def test_memory_check_exception(self) -> None:

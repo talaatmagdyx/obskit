@@ -31,7 +31,7 @@ import uuid
 from collections.abc import Callable, Generator
 from contextlib import contextmanager
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import UTC, datetime
 from functools import wraps
 from typing import Any, TypeVar
 
@@ -243,7 +243,7 @@ class SlowOperationDetector:
             operation=operation,
             duration_ms=round(duration_ms, 2),
             threshold_ms=threshold_ms,
-            timestamp=datetime.utcnow(),
+            timestamp=datetime.now(UTC),
             alert_id=alert_id,
             component=self.component,
             tenant_id=tenant_id,

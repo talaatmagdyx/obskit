@@ -220,13 +220,13 @@ class TestObskitFlaskMiddleware:
         # Create a simple object without extensions
         class MockApp:
             def before_request(self, f):
-                pass
+                pass  # NOSONAR
 
             def after_request(self, f):
-                pass
+                pass  # NOSONAR
 
             def teardown_request(self, f):
-                pass
+                pass  # NOSONAR
 
         mock_app = MockApp()
 

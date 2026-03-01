@@ -1,7 +1,7 @@
 """Additional coverage tests for audit.py."""
 from __future__ import annotations
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone, UTC
 
 import obskit.audit as module
 from obskit.audit import (
@@ -32,7 +32,7 @@ class TestAuditTrailCoverage:
         for i in range(10001):
             entry = AuditEntry(
                 entry_id=f"e-{i}",
-                timestamp=datetime.utcnow(),
+                timestamp=datetime.now(UTC),
                 service="cov-service-trim",
                 action="read",
                 actor="u:1",
@@ -93,7 +93,7 @@ class TestAuditTrailCoverage:
         """Line 335: start_time filter skips old entries."""
         audit = AuditTrail("cov-service-q-start")
         audit.record(action=AuditAction.CREATE, actor="user:1", resource="doc:1")
-        query = AuditQuery(start_time=datetime.utcnow() + timedelta(hours=1))
+        query = AuditQuery(start_time=datetime.now(UTC) + timedelta(hours=1))
         results = audit.query(query)
         assert results == []
 
@@ -101,7 +101,7 @@ class TestAuditTrailCoverage:
         """Line 337: end_time filter skips future entries."""
         audit = AuditTrail("cov-service-q-end")
         audit.record(action=AuditAction.CREATE, actor="user:1", resource="doc:1")
-        query = AuditQuery(end_time=datetime.utcnow() - timedelta(hours=1))
+        query = AuditQuery(end_time=datetime.now(UTC) - timedelta(hours=1))
         results = audit.query(query)
         assert results == []
 

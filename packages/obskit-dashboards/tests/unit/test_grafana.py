@@ -1420,7 +1420,7 @@ class TestIntegration:
 
     def test_generate_and_save_round_trip(self):
         """generate_grafana_dashboard -> save -> reload produces valid dashboard."""
-        dashboard = generate_grafana_dashboard("svc", slo_names=["avail"], include_red=True)
+        _dashboard = generate_grafana_dashboard("svc", slo_names=["avail"], include_red=True)
         builder = DashboardBuilder("svc")
         with tempfile.NamedTemporaryFile(suffix=".json", delete=False) as tmp:
             path = tmp.name

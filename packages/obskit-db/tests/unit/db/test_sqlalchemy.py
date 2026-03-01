@@ -127,7 +127,7 @@ class TestInstrumentSqlalchemy:
                     instrument_sqlalchemy(mock_engine, database_name="test")
                 except ImportError:
                     # This is expected if sqlalchemy is not available
-                    pass
+                    pass  # NOSONAR
         finally:
             # Restore original modules
             sys.modules.update(original_modules)

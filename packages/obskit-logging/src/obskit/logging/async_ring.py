@@ -168,5 +168,5 @@ class AsyncLogRing:
                 self._emit_fn(record)
             except Exception:  # noqa: BLE001
                 # Never let an emit error kill the drain thread
-                pass
+                pass  # NOSONAR
             emitted += 1

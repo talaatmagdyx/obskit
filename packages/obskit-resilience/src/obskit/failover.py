@@ -24,7 +24,7 @@ Example:
 import threading
 from collections.abc import Callable
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import UTC, datetime
 from enum import Enum
 from typing import Any
 
@@ -110,7 +110,7 @@ class FailoverEvent:
     from_endpoint: str
     to_endpoint: str
     reason: str
-    timestamp: datetime = field(default_factory=datetime.utcnow)
+    timestamp: datetime = field(default_factory=lambda: datetime.now(UTC))
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -257,8 +257,7 @@ class FailoverCoordinator:
         with self._lock:
             if self._state in (FailoverState.PRIMARY, FailoverState.RECOVERING):
                 return self._primary
-            else:
-                return self._backup
+            return self._backup
 
     def get_active_address(self) -> str | None:
         """Get the address of the active endpoint."""
@@ -295,7 +294,7 @@ class FailoverCoordinator:
     def _update_endpoint_health(self, endpoint: Endpoint, healthy: bool):
         """Update endpoint health status."""
         with self._lock:
-            endpoint.last_check = datetime.utcnow()
+            endpoint.last_check = datetime.now(UTC)
 
             if healthy:
                 endpoint.is_healthy = True
@@ -333,7 +332,7 @@ class FailoverCoordinator:
 
             # Update recovery time metric
             if self._failover_time:
-                recovery_seconds = (datetime.utcnow() - self._failover_time).total_seconds()
+                recovery_seconds = (datetime.now(UTC) - self._failover_time).total_seconds()
                 RECOVERY_TIME.labels(coordinator=self.name).set(recovery_seconds)
 
     def _do_failover(self):
@@ -349,7 +348,7 @@ class FailoverCoordinator:
         self._events.append(event)
 
         self._state = FailoverState.BACKUP
-        self._failover_time = datetime.utcnow()
+        self._failover_time = datetime.now(UTC)
         self._recovery_successes = 0
 
         FAILOVER_STATE.labels(
@@ -380,7 +379,7 @@ class FailoverCoordinator:
         self._state = FailoverState.PRIMARY
 
         if self._failover_time:
-            recovery_seconds = (datetime.utcnow() - self._failover_time).total_seconds()
+            recovery_seconds = (datetime.now(UTC) - self._failover_time).total_seconds()
             logger.info(
                 "recovered_to_primary",
                 coordinator=self.name,
@@ -411,7 +410,7 @@ class FailoverCoordinator:
                 self._events.append(event)
 
                 self._state = FailoverState.BACKUP
-                self._failover_time = datetime.utcnow()
+                self._failover_time = datetime.now(UTC)
 
                 FAILOVER_STATE.labels(
                     coordinator=self.name,

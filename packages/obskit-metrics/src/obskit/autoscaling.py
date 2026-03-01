@@ -26,7 +26,7 @@ Example:
 
 import threading
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import UTC, datetime
 from enum import Enum
 from typing import Any
 
@@ -121,7 +121,7 @@ class ScalingRecommendation:
     reason: str
     confidence: float
     metrics: dict[str, float]
-    timestamp: datetime = field(default_factory=datetime.utcnow)
+    timestamp: datetime = field(default_factory=lambda: datetime.now(UTC))
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -143,7 +143,7 @@ class PodMetrics:
     cpu_utilization: float = 0.0
     memory_utilization: float = 0.0
     request_count: int = 0
-    last_updated: datetime = field(default_factory=datetime.utcnow)
+    last_updated: datetime = field(default_factory=lambda: datetime.now(UTC))
 
 
 # =============================================================================
@@ -330,7 +330,7 @@ class AutoScalingMetrics:
 
         # Check cooldown
         if self._last_scaling:
-            elapsed = (datetime.utcnow() - self._last_scaling).total_seconds()
+            elapsed = (datetime.now(UTC) - self._last_scaling).total_seconds()
             if elapsed < self.config.cooldown_seconds:
                 direction = ScalingDirection.NONE
                 target = current
@@ -378,7 +378,7 @@ class AutoScalingMetrics:
     def record_scaling_event(self, direction: ScalingDirection, new_replicas: int):
         """Record that a scaling event occurred."""
         with self._lock:
-            self._last_scaling = datetime.utcnow()
+            self._last_scaling = datetime.now(UTC)
             self._current_replicas = new_replicas
 
         SCALING_EVENTS.labels(service=self.service_name, direction=direction.value).inc()

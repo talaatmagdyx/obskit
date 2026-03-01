@@ -422,13 +422,12 @@ def with_resilience(
                 return await executor.execute(func, *args, **kwargs)
 
             return async_wrapper
-        else:
 
-            @wraps(func)
-            def sync_wrapper(*args, **kwargs):
-                return executor.execute_sync(func, *args, **kwargs)
+        @wraps(func)
+        def sync_wrapper(*args, **kwargs):
+            return executor.execute_sync(func, *args, **kwargs)
 
-            return sync_wrapper
+        return sync_wrapper
 
     return decorator
 

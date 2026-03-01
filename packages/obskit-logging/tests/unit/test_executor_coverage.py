@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from obskit.executor import ExecutorTracker
+import pytest
 
 
 class TestExecutorCoverage:
@@ -41,7 +42,7 @@ class TestExecutorBranchCoverage:
 
         tracker = ExecutorTracker(executor_name="stats-zero", max_workers=0)
         stats = tracker.get_stats()
-        assert stats.utilization == 0.0
+        assert stats.utilization == pytest.approx(0.0)
 
     def test_tracked_executor_shutdown_no_shutdown_method(self):
         """Line 381->exit: shutdown when executor has no shutdown method."""
