@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.2.1](https://github.com/talaatmagdyx/obskit/compare/v2.2.0...v2.2.1) (2026-03-01)
+
+
+### 🔧 CI/CD
+
+* fix release-please version bumping for all 16 packages and cyclonedx-py SBOM command ([ea66e1b](https://github.com/talaatmagdyx/obskit/commit/ea66e1b147fcb0c8bf1afa66b455500d47afb9ad))
+
 ## [2.2.0](https://github.com/talaatmagdyx/obskit/compare/v2.1.0...v2.2.0) (2026-03-01)
 
 
