@@ -1,6 +1,6 @@
 [project]
 name = "obskit-decorators"
-version = "2.0.0"
+version = "2.2.0"
 description = "Observability decorators for obskit — @with_observability, @observe, context managers"
 readme = "README.md"
 license = "MIT"

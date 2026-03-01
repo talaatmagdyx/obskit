@@ -1,6 +1,6 @@
 [project]
 name = "obskit-resilience"
-version = "2.0.0"
+version = "2.2.0"
 description = "Resilience patterns for obskit: circuit breaker, retry, rate limiting, adaptive resilience"
 readme = "README.md"
 license = "MIT"

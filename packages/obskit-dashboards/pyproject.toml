@@ -1,6 +1,6 @@
 [project]
 name = "obskit-dashboards"
-version = "2.0.0"
+version = "2.2.0"
 description = "Grafana dashboard generators and visualization helpers for obskit"
 readme = "README.md"
 license = "MIT"

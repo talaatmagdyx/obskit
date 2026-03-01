@@ -1,6 +1,6 @@
 [project]
 name = "obskit-db"
-version = "2.0.0"
+version = "2.2.0"
 description = "SQLAlchemy and database instrumentation for obskit"
 readme = "README.md"
 license = "MIT"

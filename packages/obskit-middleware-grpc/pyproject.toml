@@ -1,6 +1,6 @@
 [project]
 name = "obskit-middleware-grpc"
-version = "2.0.0"
+version = "2.2.0"
 description = "gRPC interceptor middleware for obskit: correlation ID and distributed tracing"
 readme = "README.md"
 license = "MIT"

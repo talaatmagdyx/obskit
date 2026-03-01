@@ -1,6 +1,6 @@
 [project]
 name = "obskit-queue"
-version = "2.0.0"
+version = "2.2.0"
 description = "Kafka and RabbitMQ message queue tracing and instrumentation for obskit"
 readme = "README.md"
 license = "MIT"
