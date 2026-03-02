@@ -68,14 +68,14 @@ If you are on Python 3.9 or 3.10, upgrade your runtime first. obskit v2 uses `to
 
     ```text
     # Full equivalent to obskit[all] (includes every extra)
-    "obskit[all]==2.2.0"
+    "obskit[all]==3.0.0"
     ```
 
 === "After (v2) — focused install (recommended)"
 
     ```text
     # Focused install — only what you need
-    "obskit[prometheus,otlp,fastapi]==2.2.0"
+    "obskit[prometheus,otlp,fastapi]==3.0.0"
     ```
 
 !!! tip "Discover what you actually use"
@@ -376,7 +376,7 @@ Add the new packages to `requirements.txt` without removing `obskit`:
 obskit==1.5.0
 
 # NEW (add)
-"obskit[prometheus,otlp,fastapi]==2.2.0"
+"obskit[prometheus,otlp,fastapi]==3.0.0"
 ```
 
 !!! warning "v1 and v2 packages coexist but share the obskit.* namespace"

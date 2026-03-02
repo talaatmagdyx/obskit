@@ -112,13 +112,13 @@ CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
 ### Example `requirements.txt`
 
 ```text
-"obskit[prometheus,otlp,fastapi]==2.2.0"
+"obskit[prometheus,otlp,fastapi]==3.0.0"
 fastapi==0.115.0
 uvicorn[standard]==0.30.0
 ```
 
 !!! tip "Pin exact versions in production"
-    Use `pip-compile` (from `pip-tools`) or `uv lock` to generate a fully-resolved lockfile. Pinning obskit to `==2.2.0` prevents accidental upgrades from breaking your observability config.
+    Use `pip-compile` (from `pip-tools`) or `uv lock` to generate a fully-resolved lockfile. Pinning obskit to `==3.0.0` prevents accidental upgrades from breaking your observability config.
 
 ### Multi-Stage Build (smaller image)
 
@@ -167,11 +167,11 @@ python -m obskit.core.diagnose
 Expected output (all extras installed, OTLP reachable):
 
 ```
-obskit v2.2.0 — Diagnostic Report
+obskit v3.0.0 — Diagnostic Report
 ══════════════════════════════════════════════════════════════
   Component          Status
   ─────────────────────────────────────────────────────────
-  obskit             2.2.0     OK
+  obskit             3.0.0     OK
   prometheus         OK
   otlp               OK
   fastapi            OK
@@ -280,7 +280,7 @@ obskit reads its configuration exclusively from environment variables (no config
 # .env (local development)
 OBSKIT_SERVICE_NAME=order-service
 OBSKIT_ENVIRONMENT=development
-OBSKIT_VERSION=2.2.0
+OBSKIT_VERSION=3.0.0
 
 OBSKIT_OTLP_ENDPOINT=http://localhost:4317
 OBSKIT_TRACE_SAMPLE_RATE=1.0
@@ -295,7 +295,7 @@ OBSKIT_METRICS_PORT=9090
 # .env.production
 OBSKIT_SERVICE_NAME=order-service
 OBSKIT_ENVIRONMENT=production
-OBSKIT_VERSION=2.2.0
+OBSKIT_VERSION=3.0.0
 
 OBSKIT_OTLP_ENDPOINT=http://otel-collector.monitoring.svc.cluster.local:4317
 OBSKIT_OTLP_INSECURE=false

@@ -473,7 +473,7 @@ python -m obskit.core.diagnose
 obskit diagnostics
 ==================
 Core
-  version         2.2.0    ✓
+  version         3.0.0    ✓
   python          3.11.8   ✓
 Logging
   structlog       23.2.0   ✓

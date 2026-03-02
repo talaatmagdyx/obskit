@@ -164,7 +164,7 @@ sprints.  Each sub-system migration is independently verifiable.
 
     ```diff
     -obskit==1.5.0
-    +obskit[prometheus,otlp]==2.2.0
+    +obskit[prometheus,otlp]==3.0.0
     ```
 
 === "pyproject.toml"
@@ -313,7 +313,7 @@ If you pin individual packages:
 - name: Install dependencies
   run: |
     pip install \
-      "obskit[prometheus,otlp]==2.2.0"
+      "obskit[prometheus,otlp]==3.0.0"
 ```
 
 ### Docker
@@ -323,7 +323,7 @@ If you pin individual packages:
 RUN pip install obskit==1.5.0
 
 # After (minimal image)
-RUN pip install "obskit[prometheus,otlp]==2.2.0"
+RUN pip install "obskit[prometheus,otlp]==3.0.0"
 
 # After (full)
 RUN pip install "obskit[all]==2.0.0"
@@ -360,7 +360,7 @@ obskit Package Diagnostics
 ==========================
 Package              Version  Status
 --------------------  -------  ------
-obskit                2.2.0   ✓
+obskit                3.0.0   ✓
 prometheus            ✓
 otlp                  ✓
 fastapi               ✓

@@ -23,7 +23,7 @@ obskit environment diagnostics
 ────────────────────────────────────────────────────────────────────────────────
 Component                  Version    Status         Notes
 ────────────────────────────────────────────────────────────────────────────────
-obskit                     2.2.0      ✓ installed
+obskit                     3.0.0      ✓ installed
 
 prometheus-client          0.20.0     ✓ available
   └─ trace-exemplars                  ✓ available
@@ -45,7 +45,7 @@ redis                                 ✗ not installed  (optional)
 ────────────────────────────────────────────────────────────────────────────────
 Python                     3.12.2
 Platform                   macOS-15.0-arm64
-obskit                     2.2.0
+obskit                     3.0.0
 ────────────────────────────────────────────────────────────────────────────────
 ```
 
@@ -187,7 +187,7 @@ Example curl output for `/diagnose/json`:
 [
   {
     "package": "obskit",
-    "version": "2.2.0",
+    "version": "3.0.0",
     "installed": true,
     "integrations": [
       {"name": "opentelemetry-api", "version": "1.27.0", "available": true, "optional": false, "note": null},

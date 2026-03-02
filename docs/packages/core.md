@@ -229,7 +229,7 @@ obskit environment diagnostics
 ────────────────────────────────────────────────────────────────────────
 Component                    Version      Status
 ────────────────────────────────────────────────────────────────────────
-obskit                       2.2.0        ✅ installed
+obskit                       3.0.0        ✅ installed
   └─ pydantic-settings        2.1.0        ✅
   └─ structlog                24.1.0       ✅
   └─ trace-correlation                     ✅ active

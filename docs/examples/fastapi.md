@@ -44,7 +44,7 @@ uvicorn[standard]>=0.29.0
 httpx>=0.27.0
 pydantic>=2.0.0
 
-"obskit[prometheus,otlp,fastapi]>=2.2.0"
+"obskit[prometheus,otlp,fastapi]>=3.0.0"
 fastapi>=0.100.0
 uvicorn[standard]>=0.30.0
 ```

@@ -1,6 +1,6 @@
 # Architecture Overview
 
-This document describes the internal architecture of obskit v2.2.0 — the
+This document describes the internal architecture of obskit v3.0.0 — the
 single-package layout, optional extras design, dependency graph, and key data flows.
 
 ---

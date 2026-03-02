@@ -30,8 +30,8 @@ Histogram observation (0.045 s)
 
 | Package | Minimum version | Role |
 |---------|-----------------|------|
-| `obskit[prometheus]` | 2.2.0 | `observe_with_exemplar()` / `get_trace_exemplar()` |
-| `obskit[otlp]` | 2.2.0 | Active OTel span context |
+| `obskit[prometheus]` | 3.0.0 | `observe_with_exemplar()` / `get_trace_exemplar()` |
+| `obskit[otlp]` | 3.0.0 | Active OTel span context |
 | `prometheus_client` | 0.16.0 | Exemplar storage and OpenMetrics exposition |
 | `opentelemetry-sdk` | 1.20.0 | OTel span context |
 

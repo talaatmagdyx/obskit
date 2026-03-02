@@ -40,8 +40,8 @@ a clickable link to the corresponding Tempo trace.
 
 | Package | Minimum version | Role |
 |---------|-----------------|------|
-| `obskit` | 2.2.0 | Provides `get_logger()` and the structlog processor |
-| `obskit[otlp]` | 2.2.0 | Provides the OTel SDK configuration |
+| `obskit` | 3.0.0 | Provides `get_logger()` and the structlog processor |
+| `obskit[otlp]` | 3.0.0 | Provides the OTel SDK configuration |
 | `opentelemetry-sdk` | 1.20.0 | OTel span context storage |
 | `structlog` | 23.0.0 | Structured logging backend |
 

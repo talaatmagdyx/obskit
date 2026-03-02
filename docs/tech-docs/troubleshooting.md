@@ -535,7 +535,7 @@ Health
   timeout     : 5.0 s
 
 Packages installed
-  obskit               2.2.0          ✓
+  obskit               3.0.0          ✓
   prometheus           ✓
   otlp                 ✓
   fastapi              ✓

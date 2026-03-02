@@ -52,7 +52,7 @@ order-service/
 === "requirements.txt"
 
     ```text
-    "obskit[prometheus,otlp,fastapi]==2.2.0"
+    "obskit[prometheus,otlp,fastapi]==3.0.0"
 
     # Web framework
     fastapi==0.115.0
@@ -67,7 +67,7 @@ order-service/
 
     ```bash
     pip install \
-      "obskit[prometheus,otlp,fastapi]==2.2.0" \
+      "obskit[prometheus,otlp,fastapi]==3.0.0" \
       "fastapi==0.115.0" \
       "uvicorn[standard]==0.30.0"
     ```
@@ -76,7 +76,7 @@ order-service/
 
     ```bash
     uv pip install \
-      "obskit[prometheus,otlp,fastapi]==2.2.0" \
+      "obskit[prometheus,otlp,fastapi]==3.0.0" \
       "fastapi==0.115.0" \
       "uvicorn[standard]==0.30.0"
     ```

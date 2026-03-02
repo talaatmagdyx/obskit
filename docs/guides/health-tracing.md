@@ -30,8 +30,8 @@ With health check tracing:
 
 | Package | Minimum version | Role |
 |---------|-----------------|------|
-| `obskit` | 2.2.0 | `HealthChecker`, `HealthResult`, built-in checks |
-| `obskit[otlp]` | 2.2.0 | OTel span context injection |
+| `obskit` | 3.0.0 | `HealthChecker`, `HealthResult`, built-in checks |
+| `obskit[otlp]` | 3.0.0 | OTel span context injection |
 | `opentelemetry-sdk` | 1.20.0 | Active span context |
 
 ---

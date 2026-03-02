@@ -326,11 +326,11 @@ After wiring everything up, run the built-in diagnostic to confirm the full stac
 === "Expected output"
 
     ```
-    obskit v2.2.0 — Diagnostic Report
+    obskit v3.0.0 — Diagnostic Report
     ══════════════════════════════════════════════════════════════
       Component          Status
       ─────────────────────────────────────────────────────────
-      obskit             2.2.0     OK
+      obskit             3.0.0     OK
       prometheus         OK
       otlp               OK
       fastapi            OK
