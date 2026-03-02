@@ -213,7 +213,7 @@ class DistributedLock:
 
             time.sleep(self.retry_interval)
 
-    def release(self):
+    def release(self) -> None:
         """Release the lock."""
         if not self._acquired:
             return
@@ -243,7 +243,7 @@ class DistributedLock:
 
         logger.debug("lock_released", lock_name=self.lock_name, holder_id=self._holder_id)
 
-    def extend(self, additional_seconds: float = None) -> bool:
+    def extend(self, additional_seconds: float | None = None) -> bool:
         """Extend lock TTL."""
         if not self._acquired:
             return False
@@ -264,7 +264,7 @@ class DistributedLock:
 
     def is_held(self) -> bool:
         """Check if lock is currently held by anyone."""
-        return self.redis.exists(self._lock_key) > 0
+        return bool(self.redis.exists(self._lock_key) > 0)
 
     def get_holder(self) -> str | None:
         """Get current lock holder."""
@@ -276,9 +276,8 @@ class DistributedLock:
             raise TimeoutError(f"Could not acquire lock: {self.lock_name}")
         return self
 
-    def __exit__(self, exc_type, exc_val, exc_tb):
+    def __exit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None:
         self.release()
-        return False
 
     async def acquire_async(self, blocking: bool = True) -> bool:
         """Async version of acquire."""
@@ -314,7 +313,7 @@ class DistributedLock:
 
             await asyncio.sleep(self.retry_interval)
 
-    async def release_async(self):
+    async def release_async(self) -> None:
         """Async version of release."""
         await asyncio.to_thread(self.release)
 
@@ -323,7 +322,7 @@ class DistributedLock:
             raise TimeoutError(f"Could not acquire lock: {self.lock_name}")
         return self
 
-    async def __aexit__(self, exc_type, exc_val, exc_tb):
+    async def __aexit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> bool:
         await self.release_async()
         return False
 
@@ -411,7 +410,7 @@ class LeaderElection:
     def am_i_leader(self) -> bool:
         """Check if this instance is the current leader."""
         current_leader = self.redis.get(self._leader_key)
-        is_leader = current_leader and current_leader.decode() == self._instance_id
+        is_leader = bool(current_leader and current_leader.decode() == self._instance_id)
         self._is_leader = is_leader
         LEADER_ELECTION_STATUS.labels(election_name=self.election_name).set(1 if is_leader else 0)
         return is_leader
@@ -421,7 +420,7 @@ class LeaderElection:
         leader = self.redis.get(self._leader_key)
         return leader.decode() if leader else None
 
-    def resign(self):
+    def resign(self) -> None:
         """Resign from leadership."""
         if not self._is_leader:
             return
@@ -445,20 +444,20 @@ class LeaderElection:
             instance_id=self._instance_id,
         )
 
-    def start_campaign(self):
+    def start_campaign(self) -> None:
         """Start continuous leader election campaign."""
         self._stop_renewal.clear()
         self._renewal_thread = threading.Thread(target=self._campaign_loop, daemon=True)
         self._renewal_thread.start()
 
-    def stop_campaign(self):
+    def stop_campaign(self) -> None:
         """Stop leader election campaign."""
         self._stop_renewal.set()
         if self._renewal_thread:
             self._renewal_thread.join(timeout=5)
         self.resign()
 
-    def _campaign_loop(self):
+    def _campaign_loop(self) -> None:
         """Background loop for leader election."""
         while not self._stop_renewal.is_set():
             try:
@@ -477,7 +476,7 @@ class LeaderElection:
 def create_distributed_lock(
     lock_name: str,
     redis_client: Any,
-    **kwargs,
+    **kwargs: Any,
 ) -> DistributedLock:
     """Create a distributed lock."""
     return DistributedLock(lock_name, redis_client, **kwargs)
@@ -486,7 +485,7 @@ def create_distributed_lock(
 def create_leader_election(
     election_name: str,
     redis_client: Any,
-    **kwargs,
+    **kwargs: Any,
 ) -> LeaderElection:
     """Create a leader election."""
     return LeaderElection(election_name, redis_client, **kwargs)

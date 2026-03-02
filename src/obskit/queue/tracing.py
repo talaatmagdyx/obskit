@@ -96,7 +96,7 @@ class MessageTracer:
         routing_key: str | None = None,
         message_size: int | None = None,
         attributes: dict[str, Any] | None = None,
-    ):
+    ) -> Any:
         """
         Context manager for tracing message publishing.
 
@@ -147,7 +147,7 @@ class MessageTracer:
         message_id: str | None = None,
         message_size: int | None = None,
         attributes: dict[str, Any] | None = None,
-    ):
+    ) -> Any:
         """
         Context manager for tracing message consumption.
 
@@ -219,7 +219,7 @@ def traced_message_handler(
 
     def decorator(func: F) -> F:
         @functools.wraps(func)
-        async def async_wrapper(*args, **kwargs):
+        async def async_wrapper(*args: Any, **kwargs: Any) -> Any:
             headers = {}
             if extract_headers and args:
                 try:
@@ -231,7 +231,7 @@ def traced_message_handler(
                 return await func(*args, **kwargs)
 
         @functools.wraps(func)
-        def sync_wrapper(*args, **kwargs):
+        def sync_wrapper(*args: Any, **kwargs: Any) -> Any:
             headers = {}
             if extract_headers and args:
                 try:
@@ -276,11 +276,11 @@ class TracedMessagePublisher:
     async def publish(
         self,
         routing_key: str,
-        body: dict | str | bytes,
+        body: dict[str, Any] | str | bytes,
         exchange: str | None = None,
         headers: dict[str, str] | None = None,
-        **kwargs,
-    ):
+        **kwargs: Any,
+    ) -> None:
         """
         Publish message with trace context.
 

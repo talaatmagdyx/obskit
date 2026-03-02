@@ -72,7 +72,7 @@ class DashboardBuilder:
         self._panel_id += 1
         return pid
 
-    def _add_panel(self, panel: dict[str, Any], width: int = 12, height: int = 8):
+    def _add_panel(self, panel: dict[str, Any], width: int = 12, height: int = 8) -> None:
         """Add a panel to the dashboard."""
         panel["id"] = self._next_panel_id()
         panel["gridPos"] = {
@@ -85,7 +85,7 @@ class DashboardBuilder:
             self._current_y += height
         self.panels.append(panel)
 
-    def add_row(self, title: str):
+    def add_row(self, title: str) -> None:
         """Add a row separator."""
         self.panels.append(
             {
@@ -103,8 +103,8 @@ class DashboardBuilder:
         title: str,
         query: str,
         unit: str = "percent",
-        thresholds: list[dict] | None = None,
-    ):
+        thresholds: list[dict[str, Any]] | None = None,
+    ) -> None:
         """Add a stat panel."""
         panel = {
             "title": title,
@@ -146,7 +146,7 @@ class DashboardBuilder:
         unit: str = "percent",
         min_val: float = 0,
         max_val: float = 1,
-    ):
+    ) -> None:
         """Add a gauge panel."""
         panel = {
             "title": title,
@@ -185,7 +185,7 @@ class DashboardBuilder:
         title: str,
         queries: list[dict[str, str]],
         unit: str = "short",
-    ):
+    ) -> None:
         """Add a time series panel."""
         targets = [
             {"expr": q["expr"], "legendFormat": q.get("legend", ""), "refId": chr(65 + i)}
@@ -212,7 +212,7 @@ class DashboardBuilder:
         }
         self._add_panel(panel, width=12, height=8)
 
-    def add_slo_compliance_panel(self, slo_name: str, target: float = 0.999):
+    def add_slo_compliance_panel(self, slo_name: str, target: float = 0.999) -> None:
         """Add SLO compliance stat panel."""
         self.add_stat_panel(
             title=f"SLO: {slo_name}",
@@ -225,7 +225,7 @@ class DashboardBuilder:
             ],
         )
 
-    def add_error_budget_panel(self, slo_name: str = ""):
+    def add_error_budget_panel(self, slo_name: str = "") -> None:
         """Add error budget remaining panel."""
         query = (
             f'obskit_slo_error_budget_remaining{{slo=~"{slo_name}.*"}}'
@@ -238,7 +238,7 @@ class DashboardBuilder:
             unit="percentunit",
         )
 
-    def add_red_metrics_row(self):
+    def add_red_metrics_row(self) -> None:
         """Add a row with RED metrics panels."""
         self.add_row("RED Metrics")
 
@@ -286,7 +286,7 @@ class DashboardBuilder:
             unit="s",
         )
 
-    def add_golden_signals_row(self):
+    def add_golden_signals_row(self) -> None:
         """Add a row with Golden Signals panels."""
         self.add_row("Golden Signals")
 
@@ -314,7 +314,7 @@ class DashboardBuilder:
             unit="percentunit",
         )
 
-    def add_slo_row(self, slo_names: list[str]):
+    def add_slo_row(self, slo_names: list[str]) -> None:
         """Add a row with SLO panels."""
         self.add_row("SLO Status")
 
@@ -351,7 +351,7 @@ class DashboardBuilder:
         """Export dashboard as JSON string."""
         return json.dumps(self.build(), indent=indent)
 
-    def save(self, filepath: str):
+    def save(self, filepath: str) -> None:
         """Save dashboard to file."""
         with open(filepath, "w") as f:
             f.write(self.to_json())

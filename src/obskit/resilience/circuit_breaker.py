@@ -154,7 +154,7 @@ from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 from enum import StrEnum
 from functools import wraps
-from typing import Any, ParamSpec, TypeVar
+from typing import Any, Literal, ParamSpec, TypeVar
 
 from obskit.config import get_settings
 from obskit.logging import get_logger
@@ -674,7 +674,7 @@ class CircuitBreaker:
         exc_type: type[BaseException] | None,
         exc_val: BaseException | None,
         exc_tb: Any,
-    ) -> bool:
+    ) -> Literal[False]:
         """
         Exit the circuit breaker context (sync version).
 
@@ -813,6 +813,7 @@ class CircuitBreaker:
         """
         with self:
             return func(*args, **kwargs)
+        raise RuntimeError("unreachable")  # pragma: no cover
 
 
 def with_circuit_breaker_sync(
@@ -858,6 +859,7 @@ def with_circuit_breaker_sync(
         def wrapper(*args: Any, **kwargs: Any) -> T:
             with breaker:
                 return func(*args, **kwargs)
+            raise RuntimeError("unreachable")  # pragma: no cover
 
         return wrapper
 

@@ -139,7 +139,7 @@ class CircuitBreakerDashboard:
     Collects and exports circuit breaker states for monitoring.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         self._breakers: dict[str, Any] = {}  # name -> circuit breaker instance
         self._dependency_types: dict[str, str] = {}  # name -> type
         self._lock = threading.Lock()
@@ -149,7 +149,7 @@ class CircuitBreakerDashboard:
         name: str,
         breaker: Any,
         dependency_type: str = "external",
-    ):
+    ) -> None:
         """
         Register a circuit breaker for monitoring.
 
@@ -172,7 +172,7 @@ class CircuitBreakerDashboard:
             dependency_type=dependency_type,
         )
 
-    def unregister_breaker(self, name: str):
+    def unregister_breaker(self, name: str) -> None:
         """Unregister a circuit breaker."""
         with self._lock:
             if name in self._breakers:
@@ -368,7 +368,7 @@ def register_circuit_breaker(
     name: str,
     breaker: Any,
     dependency_type: str = "external",
-):
+) -> None:
     """Register a circuit breaker with the global dashboard."""
     get_circuit_dashboard().register_breaker(name, breaker, dependency_type)
 

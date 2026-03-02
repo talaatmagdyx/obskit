@@ -162,7 +162,7 @@ class DependencyHealthAggregator:
         self.cache_seconds = cache_seconds
         self.critical_dependencies = set(critical_dependencies or [])
 
-        self._dependencies: dict[str, tuple] = {}  # name -> (check_func, type)
+        self._dependencies: dict[str, tuple[HealthCheckFunc, DependencyType, float | None]] = {}  # name -> (check_func, type)
         self._cached_health: dict[str, DependencyHealth] = {}
         self._last_aggregated: AggregatedHealth | None = None
 
@@ -173,7 +173,7 @@ class DependencyHealthAggregator:
         type: DependencyType = DependencyType.CUSTOM,
         critical: bool = False,
         timeout_seconds: float | None = None,
-    ):
+    ) -> None:
         """
         Add a dependency to track.
 
@@ -194,7 +194,7 @@ class DependencyHealthAggregator:
 
         logger.info("dependency_registered", dependency=name, type=type.value, critical=critical)
 
-    def remove_dependency(self, name: str):
+    def remove_dependency(self, name: str) -> None:
         """Remove a dependency."""
         if name in self._dependencies:
             del self._dependencies[name]

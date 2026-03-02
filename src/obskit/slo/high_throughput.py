@@ -244,7 +244,7 @@ class HighThroughputSLOTracker:
         """Return the per-thread deque registry, registering on first use."""
         local = self._local
         if not hasattr(local, "_registered"):
-            local._registered = True  # type: ignore[attr-defined]
+            local._registered = True
             local.deques = {}
             with self._register_lock:
                 self._thread_local_list.append(local)

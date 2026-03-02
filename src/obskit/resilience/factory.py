@@ -31,6 +31,7 @@ from __future__ import annotations
 
 import threading
 from enum import Enum
+from typing import Any
 
 from obskit.logging import get_logger
 from obskit.resilience.circuit_breaker import CircuitBreaker
@@ -203,7 +204,9 @@ def get_circuit_breaker(
 
                 _circuit_breakers[name] = CircuitBreaker(
                     name=name,
-                    **config,
+                    failure_threshold=int(config.get("failure_threshold", 5)),
+                    recovery_timeout=float(config.get("recovery_timeout", 30.0)),
+                    half_open_requests=int(config.get("half_open_requests", 1)),
                 )
 
                 logger.info(
@@ -264,7 +267,7 @@ def get_rate_limiter(
                     config["requests_per_minute"] = requests_per_minute
 
                 rpm = config["requests_per_minute"]
-                _rate_limiters[name] = TokenBucketRateLimiter(
+                _rate_limiters[name] = TokenBucketRateLimiter(  # type: ignore[assignment]
                     bucket_size=rpm,  # Max burst capacity
                     refill_rate=rpm / 60.0,  # Tokens per second
                 )
@@ -303,7 +306,7 @@ def reset_circuit_breaker(name: str) -> bool:
     return False
 
 
-def get_circuit_breaker_status(name: str) -> dict | None:
+def get_circuit_breaker_status(name: str) -> dict[str, Any] | None:
     """
     Get status of a circuit breaker.
 
@@ -328,9 +331,13 @@ def get_circuit_breaker_status(name: str) -> dict | None:
     return None
 
 
-def list_circuit_breakers() -> dict[str, dict]:
+def list_circuit_breakers() -> dict[str, dict[str, Any]]:
     """List all registered circuit breakers with their status."""
-    return {name: get_circuit_breaker_status(name) for name in _circuit_breakers}
+    return {
+        name: status
+        for name in _circuit_breakers
+        if (status := get_circuit_breaker_status(name)) is not None
+    }
 
 
 def list_rate_limiters() -> dict[str, str]:

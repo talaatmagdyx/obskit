@@ -15,7 +15,7 @@ from __future__ import annotations
 import time
 from collections.abc import Generator
 from contextlib import contextmanager
-from typing import Any
+from typing import Any, Literal
 
 from obskit.logging import get_logger
 from obskit.metrics.red import get_red_metrics
@@ -27,7 +27,7 @@ _tracer = None
 _slo_tracker = None
 
 
-def _get_tracer():
+def _get_tracer() -> Any:
     """Get tracer lazily."""
     global _tracer
     if _tracer is None:
@@ -40,7 +40,7 @@ def _get_tracer():
     return _tracer
 
 
-def _get_slo_tracker():
+def _get_slo_tracker() -> Any:
     """Get SLO tracker lazily."""
     global _slo_tracker
     if _slo_tracker is None:
@@ -308,7 +308,7 @@ class DatabaseTracker:
             SLO name for latency tracking.
         """
         full_operation = f"{self.database_name}.{operation}"
-        status = "success" if success else "failure"
+        status: Literal["success", "failure", "error"] = "success" if success else "failure"
         slo = slo_name or self.default_slo_name
 
         # Record RED metrics

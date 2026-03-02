@@ -251,7 +251,7 @@ class LoadShedder:
         self._requests_processed += 1
         return True
 
-    def _evaluate_shed_rate(self):
+    def _evaluate_shed_rate(self) -> None:
         """Evaluate and adjust shedding rate."""
         now = datetime.now(UTC)
 
@@ -303,12 +303,12 @@ class LoadShedder:
                 latency_ms=self._current_latency_ms,
             )
 
-    def set_queue_size(self, size: int):
+    def set_queue_size(self, size: int) -> None:
         """Update current queue size."""
         self._current_queue_size = size
         SHEDDER_QUEUE_SIZE.labels(shedder_name=self.name).set(size)
 
-    def record_latency(self, latency_ms: float):
+    def record_latency(self, latency_ms: float) -> None:
         """Record a latency observation."""
         with self._lock:
             self._latency_samples.append(latency_ms)
@@ -317,7 +317,7 @@ class LoadShedder:
             self._current_latency_ms = sum(self._latency_samples) / len(self._latency_samples)
         SHEDDER_LATENCY_MS.labels(shedder_name=self.name).set(self._current_latency_ms)
 
-    def force_shed_rate(self, rate: float):
+    def force_shed_rate(self, rate: float) -> None:
         """Force a specific shed rate (disables adaptive)."""
         self._current_shed_rate = min(self.config.max_shed_rate, max(0, rate))
         SHEDDER_SHED_RATE.labels(shedder_name=self.name).set(self._current_shed_rate)
@@ -328,7 +328,7 @@ class LoadShedder:
             shed_rate=self._current_shed_rate,
         )
 
-    def reset(self):
+    def reset(self) -> None:
         """Reset shedding state."""
         self._current_shed_rate = 0.0
         self._latency_samples = []
@@ -367,7 +367,7 @@ _shedders: dict[str, LoadShedder] = {}
 _shedders_lock = threading.Lock()
 
 
-def get_load_shedder(name: str = "default", **kwargs) -> LoadShedder:
+def get_load_shedder(name: str = "default", **kwargs: Any) -> LoadShedder:
     """Get or create a load shedder."""
     if name not in _shedders:
         with _shedders_lock:

@@ -52,7 +52,7 @@ from __future__ import annotations
 import asyncio
 import json
 import time
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Literal
 
 from obskit.logging import get_logger
 from obskit.resilience.circuit_breaker import (
@@ -498,7 +498,7 @@ class DistributedCircuitBreaker(CircuitBreaker):
         exc_type: type[BaseException] | None,
         exc_val: BaseException | None,
         exc_tb: Any,
-    ) -> None:
+    ) -> Literal[False]:
         """Exit circuit breaker context (sync) and sync to Redis."""
         if exc_type is not None:
             self._record_failure_sync(exc_val)
@@ -507,6 +507,7 @@ class DistributedCircuitBreaker(CircuitBreaker):
 
         # Sync state to Redis after update
         self._save_state_to_redis_sync(self._get_state_dict())
+        return False
 
 
 class AsyncDistributedCircuitBreaker(DistributedCircuitBreaker):

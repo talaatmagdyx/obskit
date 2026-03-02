@@ -40,7 +40,7 @@ try:
     PROMETHEUS_AVAILABLE = True
 except ImportError:  # pragma: no cover
     PROMETHEUS_AVAILABLE = False
-    Gauge = None  # type: ignore[assignment, misc]
+    Gauge = None  # type: ignore[misc, assignment]
 
 # Global SLO metrics
 _slo_metrics: dict[str, Gauge] | None = None

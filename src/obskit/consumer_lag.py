@@ -194,7 +194,7 @@ class ConsumerLagTracker:
         self,
         messages: int,
         bytes: int = 0,
-    ):
+    ) -> None:
         """
         Set current lag.
 
@@ -247,11 +247,11 @@ class ConsumerLagTracker:
         # Check threshold
         self._check_threshold(messages)
 
-    def message_consumed(self):
+    def message_consumed(self) -> None:
         """Record a single message consumed."""
         self.messages_consumed(1)
 
-    def messages_consumed(self, count: int = 1):
+    def messages_consumed(self, count: int = 1) -> None:
         """
         Record messages consumed.
 
@@ -320,7 +320,7 @@ class ConsumerLagTracker:
 
             return len(recent) / time_span
 
-    def _check_threshold(self, lag: int):
+    def _check_threshold(self, lag: int) -> None:
         """Check if lag exceeds threshold."""
         if lag < self.lag_threshold:
             return
@@ -395,7 +395,7 @@ _lag_lock = threading.Lock()
 def get_consumer_lag_tracker(
     queue_name: str,
     consumer_group: str = "default",
-    **kwargs,
+    **kwargs: Any,
 ) -> ConsumerLagTracker:
     """Get or create a consumer lag tracker."""
     key = f"{queue_name}:{consumer_group}"

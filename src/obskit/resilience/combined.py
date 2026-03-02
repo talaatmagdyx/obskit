@@ -34,7 +34,7 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from enum import Enum
 from functools import wraps
-from typing import TypeVar
+from typing import Any, TypeVar, cast
 
 from obskit.logging import get_logger
 from obskit.resilience.circuit_breaker import CircuitBreaker
@@ -62,7 +62,7 @@ class RetryConfig:
     base_delay: float = 1.0
     max_delay: float = 60.0
     backoff: BackoffStrategy = BackoffStrategy.EXPONENTIAL_JITTER
-    retryable_exceptions: tuple[type, ...] = (Exception,)
+    retryable_exceptions: tuple[type[BaseException], ...] = (Exception,)
 
     def get_delay(self, attempt: int) -> float:
         """Calculate delay for a given attempt."""
@@ -108,7 +108,7 @@ class ResilientExecutor:
         base_delay: float = 1.0,
         max_delay: float = 60.0,
         backoff: str | BackoffStrategy = BackoffStrategy.EXPONENTIAL_JITTER,
-        retryable_exceptions: tuple[type, ...] = (Exception,),
+        retryable_exceptions: tuple[type[BaseException], ...] = (Exception,),
         on_retry: Callable[[int, Exception], None] | None = None,
         on_circuit_open: Callable[[], None] | None = None,
     ):
@@ -137,6 +137,7 @@ class ResilientExecutor:
             Callback called when circuit opens.
         """
         # Set up circuit breaker
+        self._circuit_breaker: CircuitBreaker | None
         if isinstance(circuit_breaker, str):
             self._circuit_breaker = get_circuit_breaker(
                 circuit_breaker,
@@ -165,8 +166,8 @@ class ResilientExecutor:
     async def execute(
         self,
         func: Callable[..., T],
-        *args,
-        **kwargs,
+        *args: Any,
+        **kwargs: Any,
     ) -> T:
         """
         Execute function with retry and circuit breaker (async).
@@ -201,7 +202,7 @@ class ResilientExecutor:
                     if state and hasattr(state, "name") and state.name == "OPEN":
                         if self._on_circuit_open:
                             self._on_circuit_open()
-                        from obskit import CircuitOpenError
+                        from obskit.resilience.circuit_breaker import CircuitOpenError
 
                         raise CircuitOpenError(
                             breaker_name=getattr(self._circuit_breaker, "name", "unknown"),
@@ -221,10 +222,10 @@ class ResilientExecutor:
                     else:
                         result = func(*args, **kwargs)
 
-                return result
+                return cast(T, result)
 
             except self._retry_config.retryable_exceptions as e:
-                last_exception = e
+                last_exception = e  # type: ignore[assignment]
 
                 # Don't retry on circuit open
                 if "Circuit" in type(e).__name__:
@@ -242,7 +243,7 @@ class ResilientExecutor:
                     )
 
                     if self._on_retry:
-                        self._on_retry(attempt, e)
+                        self._on_retry(attempt, e)  # type: ignore[arg-type]
 
                     await asyncio.sleep(delay)
                 else:
@@ -260,8 +261,8 @@ class ResilientExecutor:
     def execute_sync(
         self,
         func: Callable[..., T],
-        *args,
-        **kwargs,
+        *args: Any,
+        **kwargs: Any,
     ) -> T:
         """
         Execute function with retry and circuit breaker (sync).
@@ -293,7 +294,7 @@ class ResilientExecutor:
                 return result
 
             except self._retry_config.retryable_exceptions as e:
-                last_exception = e
+                last_exception = e  # type: ignore[assignment]
 
                 if "Circuit" in type(e).__name__:
                     raise
@@ -309,7 +310,7 @@ class ResilientExecutor:
                     )
 
                     if self._on_retry:
-                        self._on_retry(attempt, e)
+                        self._on_retry(attempt, e)  # type: ignore[arg-type]
 
                     time.sleep(delay)
                 else:
@@ -322,8 +323,8 @@ class ResilientExecutor:
 
 async def resilient_call(
     func: Callable[..., T],
-    args: tuple = (),
-    kwargs: dict | None = None,
+    args: tuple[Any, ...] = (),
+    kwargs: dict[str, Any] | None = None,
     circuit_breaker: str | CircuitBreaker | None = None,
     circuit_breaker_preset: CircuitBreakerPreset | None = None,
     max_retries: int = 3,
@@ -376,8 +377,8 @@ async def resilient_call(
 
 def resilient_call_sync(
     func: Callable[..., T],
-    args: tuple = (),
-    kwargs: dict | None = None,
+    args: tuple[Any, ...] = (),
+    kwargs: dict[str, Any] | None = None,
     circuit_breaker: str | CircuitBreaker | None = None,
     max_retries: int = 3,
     backoff: str = "exponential_jitter",
@@ -396,7 +397,7 @@ def with_resilience(
     circuit_breaker_preset: CircuitBreakerPreset | None = None,
     max_retries: int = 3,
     backoff: str = "exponential_jitter",
-):
+) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
     """
     Decorator for adding resilience to a function.
 
@@ -407,7 +408,7 @@ def with_resilience(
     ...     return await payment_api.charge(amount)
     """
 
-    def decorator(func: Callable[..., T]) -> Callable[..., T]:
+    def decorator(func: Callable[..., Any]) -> Callable[..., Any]:
         executor = ResilientExecutor(
             circuit_breaker=circuit_breaker,
             circuit_breaker_preset=circuit_breaker_preset,
@@ -418,13 +419,13 @@ def with_resilience(
         if asyncio.iscoroutinefunction(func):
 
             @wraps(func)
-            async def async_wrapper(*args, **kwargs):
+            async def async_wrapper(*args: Any, **kwargs: Any) -> Any:
                 return await executor.execute(func, *args, **kwargs)
 
             return async_wrapper
 
         @wraps(func)
-        def sync_wrapper(*args, **kwargs):
+        def sync_wrapper(*args: Any, **kwargs: Any) -> Any:
             return executor.execute_sync(func, *args, **kwargs)
 
         return sync_wrapper

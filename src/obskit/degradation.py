@@ -79,7 +79,7 @@ class Feature:
     name: str
     priority: int  # Lower = more important, degrade last
     enabled: bool = True
-    fallback: Callable | None = None
+    fallback: Callable[..., Any] | None = None
     degradation_threshold: int = 50  # Degrade at this level
     dependencies: list[str] = field(default_factory=list)
     metadata: dict[str, Any] = field(default_factory=dict)
@@ -155,11 +155,11 @@ class DegradationManager:
         self,
         name: str,
         priority: int = 50,
-        fallback: Callable | None = None,
+        fallback: Callable[..., Any] | None = None,
         degradation_threshold: int = 50,
         dependencies: list[str] | None = None,
         metadata: dict[str, Any] | None = None,
-    ):
+    ) -> None:
         """
         Register a degradable feature.
 
@@ -228,8 +228,8 @@ class DegradationManager:
     def execute_with_fallback(
         self,
         feature_name: str,
-        primary: Callable,
-        fallback: Callable | None = None,
+        primary: Callable[..., Any],
+        fallback: Callable[..., Any] | None = None,
     ) -> Any:
         """
         Execute primary or fallback based on feature state.
@@ -262,7 +262,7 @@ class DegradationManager:
 
         return None
 
-    def set_level(self, level: DegradationLevel | int, reason: str | None = None):
+    def set_level(self, level: DegradationLevel | int, reason: str | None = None) -> None:
         """
         Set the degradation level.
 
@@ -321,7 +321,7 @@ class DegradationManager:
                 reason=reason,
             )
 
-    def degrade_feature(self, feature_name: str, reason: str | None = None):
+    def degrade_feature(self, feature_name: str, reason: str | None = None) -> None:
         """Manually degrade a specific feature."""
         with self._lock:
             if feature_name in self._features:
@@ -335,7 +335,7 @@ class DegradationManager:
                     reason=reason,
                 )
 
-    def restore_feature(self, feature_name: str):
+    def restore_feature(self, feature_name: str) -> None:
         """Manually restore a specific feature."""
         with self._lock:
             if feature_name in self._features:
@@ -354,7 +354,7 @@ class DegradationManager:
         latency_ms: float | None = None,
         cpu_percent: float | None = None,
         memory_percent: float | None = None,
-    ):
+    ) -> None:
         """
         Evaluate metrics and adjust degradation level.
 
@@ -373,7 +373,7 @@ class DegradationManager:
             return
 
         # Calculate degradation score
-        score = 0
+        score: float = 0
         reasons = []
 
         if error_rate is not None and error_rate > self._error_rate_threshold:
@@ -429,7 +429,7 @@ class DegradationManager:
         with self._lock:
             return list(self._features.values())
 
-    def reset(self):
+    def reset(self) -> None:
         """Reset all features to enabled."""
         with self._lock:
             for feature in self._features.values():
@@ -449,7 +449,7 @@ _managers: dict[str, DegradationManager] = {}
 _manager_lock = threading.Lock()
 
 
-def get_degradation_manager(service_name: str = "default", **kwargs) -> DegradationManager:
+def get_degradation_manager(service_name: str = "default", **kwargs: Any) -> DegradationManager:
     """Get or create a degradation manager."""
     if service_name not in _managers:
         with _manager_lock:

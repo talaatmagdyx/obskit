@@ -11,11 +11,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### ⚠ BREAKING CHANGES
 
 * consolidate 16-package monorepo into single obskit package
+* full mypy strict type coverage — some `Any`-typed APIs now carry explicit type annotations
 
 ### 🐛 Bug Fixes
 
 * **tests:** restore sys.modules properly in TestTenantGaps to prevent test pollution ([9eb58e4](https://github.com/talaatmagdyx/obskit/commit/9eb58e40f7d0055d3723309ed61f6148132eda76))
 * use patch.dict(sys.modules, {...}) which auto-restores originals on exit. ([9eb58e4](https://github.com/talaatmagdyx/obskit/commit/9eb58e40f7d0055d3723309ed61f6148132eda76))
+* **diagnose:** fix `obskit diagnose` to use `obskit` package name for all sub-component version lookups
+* **circuit-breaker:** fix `__exit__` return type to `Literal[False]` in base and distributed variants
+* **locking:** fix `DistributedLock.__exit__` return type to `None` (was incorrectly typed as `bool`)
+
+### 🔍 Type Safety
+
+* achieve zero mypy strict errors across all 136 source files (from 212 errors in 28 files)
+* add complete return type annotations to all public and private methods
+* fix bare generics (`deque`, `tuple`, `dict`, `Callable`) with proper type parameters
+* add `**kwargs: Any` annotations to all decorator wrappers
+* fix `Literal["success", "failure", "error"]` usage in SLO and RED metrics tracking
+* add correct `# type: ignore` annotations for optional-dependency except-ImportError stubs
 
 
 ### 📚 Documentation

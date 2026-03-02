@@ -195,8 +195,8 @@ class DLQTracker:
         message_age_seconds: float = 0.0,
         retry_count: int = 0,
         error_message: str | None = None,
-        **metadata,
-    ):
+        **metadata: Any,
+    ) -> None:
         """
         Track a message sent to DLQ.
 
@@ -326,7 +326,7 @@ class DLQTracker:
                 duration_seconds=duration,
             )
 
-    def track_message_removed(self, message_id: str, reason: str = "processed"):
+    def track_message_removed(self, message_id: str, reason: str = "processed") -> None:
         """Track a message removed from DLQ."""
         with self._lock:
             if message_id in self._messages:
@@ -335,15 +335,15 @@ class DLQTracker:
         DLQ_SIZE.labels(dlq_name=self.dlq_name).set(len(self._messages))
         self._update_oldest_age()
 
-    def set_dlq_size(self, size: int):
+    def set_dlq_size(self, size: int) -> None:
         """Manually set DLQ size (from external source)."""
         DLQ_SIZE.labels(dlq_name=self.dlq_name).set(size)
 
-    def set_oldest_message_age(self, age_seconds: float):
+    def set_oldest_message_age(self, age_seconds: float) -> None:
         """Manually set oldest message age."""
         DLQ_OLDEST_MESSAGE_AGE.labels(dlq_name=self.dlq_name).set(age_seconds)
 
-    def _update_oldest_age(self):
+    def _update_oldest_age(self) -> None:
         """Update oldest message age metric."""
         with self._lock:
             if not self._messages:
@@ -409,7 +409,7 @@ _dlq_lock = threading.Lock()
 
 def get_dlq_tracker(
     dlq_name: str,
-    **kwargs,
+    **kwargs: Any,
 ) -> DLQTracker:
     """Get or create a DLQ tracker."""
     if dlq_name not in _dlq_trackers:

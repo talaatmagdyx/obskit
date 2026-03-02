@@ -119,32 +119,32 @@ class PerformanceBudget:
         self.on_violation = on_violation
 
         # Rolling window data
-        self._latencies: deque = deque()
-        self._errors: deque = deque()
-        self._requests: deque = deque()
+        self._latencies: deque[tuple[float, float]] = deque()
+        self._errors: deque[float] = deque()
+        self._requests: deque[float] = deque()
 
         # Initialize metrics
         BUDGET_STATUS.labels(budget_name=name).set(1)
 
-    def record_latency(self, latency_ms: float):
+    def record_latency(self, latency_ms: float) -> None:
         """Record a latency measurement."""
         now = time.time()
         self._latencies.append((now, latency_ms))
         self._requests.append(now)
         self._cleanup_old_data()
 
-    def record_error(self):
+    def record_error(self) -> None:
         """Record an error."""
         now = time.time()
         self._errors.append(now)
         self._requests.append(now)
         self._cleanup_old_data()
 
-    def record_success(self, latency_ms: float):
+    def record_success(self, latency_ms: float) -> None:
         """Record a successful request."""
         self.record_latency(latency_ms)
 
-    def _cleanup_old_data(self):
+    def _cleanup_old_data(self) -> None:
         """Remove data outside the window."""
         cutoff = time.time() - self.window_seconds
 
@@ -254,8 +254,9 @@ class PerformanceBudget:
             ("latency_p99_ms", self.latency_p99_ms),
             ("error_rate_percent", self.error_rate_percent),
         ]:
-            if threshold and metrics.get(metric) is not None:
-                utilization[metric] = metrics[metric] / threshold * 100
+            metric_value = metrics.get(metric)
+            if threshold and metric_value is not None:
+                utilization[metric] = metric_value / threshold * 100
 
         return BudgetStatus(
             name=self.name,
@@ -273,7 +274,7 @@ class PerformanceBudget:
         """
 
         @functools.wraps(func)
-        def wrapper(*args, **kwargs):
+        def wrapper(*args: Any, **kwargs: Any) -> Any:
             start_time = time.time()
             try:
                 result = func(*args, **kwargs)
@@ -296,7 +297,7 @@ class PerformanceBudget:
                 raise
 
         @functools.wraps(func)
-        async def async_wrapper(*args, **kwargs):
+        async def async_wrapper(*args: Any, **kwargs: Any) -> Any:
             start_time = time.time()
             try:
                 result = await func(*args, **kwargs)
@@ -351,10 +352,10 @@ class BudgetManager:
         status = manager.check_all()
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         self._budgets: dict[str, PerformanceBudget] = {}
 
-    def register(self, budget: PerformanceBudget):
+    def register(self, budget: PerformanceBudget) -> None:
         """Register a budget."""
         self._budgets[budget.name] = budget
 

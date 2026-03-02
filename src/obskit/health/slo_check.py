@@ -244,7 +244,7 @@ def add_slo_readiness_check(
     )
 
     # Create async check function
-    async def check_slo():  # NOSONAR
+    async def check_slo() -> dict[str, Any] | bool:  # NOSONAR
         result = slo_check.check()
         if not result.healthy:
             return {

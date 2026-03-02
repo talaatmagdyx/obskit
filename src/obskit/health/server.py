@@ -49,10 +49,10 @@ class HealthRequestHandler(BaseHTTPRequestHandler):
     """HTTP request handler for health endpoints."""
 
     # Suppress default logging
-    def log_message(self, format, *args):
+    def log_message(self, format: str, *args: Any) -> None:
         pass  # NOSONAR
 
-    def _send_json(self, status_code: int, data: dict[str, Any]):
+    def _send_json(self, status_code: int, data: dict[str, Any]) -> None:
         """Send JSON response."""
         self.send_response(status_code)
         self.send_header("Content-Type", "application/json")
@@ -60,7 +60,7 @@ class HealthRequestHandler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(json.dumps(data, indent=2).encode("utf-8"))
 
-    def do_GET(self):
+    def do_GET(self) -> None:
         """Handle GET requests."""
         parsed = urlparse(self.path)
         path = parsed.path.rstrip("/")
@@ -95,7 +95,7 @@ class HealthRequestHandler(BaseHTTPRequestHandler):
         else:
             self.send_error(404, "Not Found")
 
-    def _handle_health(self):
+    def _handle_health(self) -> None:
         """Handle overall health check."""
         try:
             _ = get_health_checker()  # Ensure health checker is initialized
@@ -125,7 +125,7 @@ class HealthRequestHandler(BaseHTTPRequestHandler):
             logger.error("health_check_error", error=str(e))
             self._send_json(503, {"status": "error", "error": str(e)})
 
-    def _handle_liveness(self):
+    def _handle_liveness(self) -> None:
         """Handle liveness probe - is the process running?"""
         self._send_json(
             200,
@@ -135,7 +135,7 @@ class HealthRequestHandler(BaseHTTPRequestHandler):
             },
         )
 
-    def _handle_readiness(self):
+    def _handle_readiness(self) -> None:
         """Handle readiness probe - can we process requests?"""
         try:
             # Check SLO compliance for readiness
@@ -171,7 +171,7 @@ class HealthRequestHandler(BaseHTTPRequestHandler):
                 },
             )
 
-    def _handle_slo(self):
+    def _handle_slo(self) -> None:
         """Handle SLO status endpoint."""
         try:
             slo_status = self._get_slo_status()
@@ -251,7 +251,7 @@ def start_health_server(
             raise
 
 
-def stop_health_server():
+def stop_health_server() -> None:
     """
     Stop the HTTP health server.
 
@@ -284,7 +284,7 @@ def stop_health_server():
 def register_health_endpoint(
     path: str,
     handler: Callable[[], dict[str, Any]],
-):
+) -> None:
     """
     Register a custom health endpoint.
 

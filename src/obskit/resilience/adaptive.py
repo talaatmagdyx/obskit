@@ -138,8 +138,8 @@ class AdaptiveRetry:
         }
 
         # Tracking for adaptation
-        self._results: deque = deque(maxlen=self.config.window_size)
-        self._latencies: deque = deque(maxlen=self.config.window_size)
+        self._results: deque[bool] = deque(maxlen=self.config.window_size)
+        self._latencies: deque[float] = deque(maxlen=self.config.window_size)
         self._current_concurrent = 0
         self._max_allowed_concurrent = self.config.max_concurrent
         self._last_adaptation = 0.0
@@ -169,7 +169,7 @@ class AdaptiveRetry:
 
         return delay
 
-    def _update_metrics(self, success: bool, latency: float):
+    def _update_metrics(self, success: bool, latency: float) -> None:
         """Update tracking metrics."""
         self._results.append(success)
         self._latencies.append(latency)
@@ -183,7 +183,7 @@ class AdaptiveRetry:
             if time.time() - self._last_adaptation >= self.config.cooldown_seconds:
                 self._adapt(error_rate)
 
-    def _adapt(self, error_rate: float):
+    def _adapt(self, error_rate: float) -> None:
         """Adapt retry behavior based on metrics."""
         if self.config.backpressure_strategy == BackpressureStrategy.NONE:
             return
@@ -242,7 +242,7 @@ class AdaptiveRetry:
             avg_latency=avg_latency,
         )
 
-    async def execute(self, func: Callable, *args, **kwargs) -> Any:
+    async def execute(self, func: Callable[..., Any], *args: Any, **kwargs: Any) -> Any:
         """
         Execute function with adaptive retry.
 
@@ -267,7 +267,7 @@ class AdaptiveRetry:
                 self._current_concurrent -= 1
                 ADAPTIVE_RETRY_CONCURRENCY.labels(name=self.name).set(self._current_concurrent)
 
-    async def _execute_with_retry(self, func: Callable, state: RetryState, *args, **kwargs) -> Any:
+    async def _execute_with_retry(self, func: Callable[..., Any], state: RetryState, *args: Any, **kwargs: Any) -> Any:
         """Execute with retry logic."""
         last_exception = None
 
@@ -332,7 +332,7 @@ class AdaptiveRetry:
         # Should not reach here, but just in case
         raise last_exception or Exception("Retry exhausted without exception")
 
-    def execute_sync(self, func: Callable, *args, **kwargs) -> Any:
+    def execute_sync(self, func: Callable[..., Any], *args: Any, **kwargs: Any) -> Any:
         """
         Execute function synchronously with adaptive retry.
 
@@ -398,11 +398,11 @@ class AdaptiveRetry:
         """
 
         @functools.wraps(func)
-        async def async_wrapper(*args, **kwargs):
+        async def async_wrapper(*args: Any, **kwargs: Any) -> Any:
             return await self.execute(func, *args, **kwargs)
 
         @functools.wraps(func)
-        def sync_wrapper(*args, **kwargs):
+        def sync_wrapper(*args: Any, **kwargs: Any) -> Any:
             return self.execute_sync(func, *args, **kwargs)
 
         if asyncio.iscoroutinefunction(func):
@@ -430,7 +430,7 @@ def adaptive_retry(
     max_retries: int = 3,
     base_delay: float = 0.1,
     backpressure: BackpressureStrategy = BackpressureStrategy.ADAPTIVE,
-    **config_kwargs,
+    **config_kwargs: Any,
 ) -> Callable[[F], F]:
     """
     Decorator for adaptive retry.

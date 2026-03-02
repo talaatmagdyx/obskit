@@ -274,7 +274,7 @@ class AlertDeduplicator:
         duration_minutes: int,
         severity: str | None = None,
         labels: dict[str, str] | None = None,
-    ):
+    ) -> None:
         """
         Add a suppression window for an alert.
 
@@ -316,7 +316,7 @@ class AlertDeduplicator:
         alert_name: str,
         severity: str | None = None,
         labels: dict[str, str] | None = None,
-    ):
+    ) -> None:
         """Clear suppression for an alert."""
         if severity:
             fingerprint = self._create_fingerprint(alert_name, severity, labels)
@@ -347,7 +347,7 @@ class AlertDeduplicator:
                 fp: end_time for fp, end_time in self._suppression_windows.items() if end_time > now
             }
 
-    def cleanup(self):
+    def cleanup(self) -> None:
         """Clean up old records."""
         now = datetime.now(UTC)
         window_start = now - timedelta(minutes=self.window_minutes * 2)
@@ -374,7 +374,7 @@ _deduplicator: AlertDeduplicator | None = None
 _dedup_lock = threading.Lock()
 
 
-def get_alert_deduplicator(**kwargs) -> AlertDeduplicator:
+def get_alert_deduplicator(**kwargs: Any) -> AlertDeduplicator:
     """Get or create the global alert deduplicator."""
     global _deduplicator
 
@@ -386,6 +386,6 @@ def get_alert_deduplicator(**kwargs) -> AlertDeduplicator:
     return _deduplicator
 
 
-def should_alert(alert_name: str, **kwargs) -> bool:
+def should_alert(alert_name: str, **kwargs: Any) -> bool:
     """Quick helper to check if alert should be sent."""
     return get_alert_deduplicator().should_alert(alert_name, **kwargs)

@@ -77,7 +77,7 @@ def _import_version(module: str, attr: str = "__version__") -> str | None:
 
 
 def _check_core() -> PackageInfo:
-    ver = _pkg_version("obskit-core")
+    ver = _pkg_version("obskit")
     return PackageInfo(
         name="obskit-core",
         installed=ver is not None,
@@ -93,7 +93,7 @@ def _check_core() -> PackageInfo:
 
 
 def _check_logging() -> PackageInfo:
-    ver = _pkg_version("obskit-logging")
+    ver = _pkg_version("obskit")
     integrations: list[IntegrationInfo] = []
     if ver is not None:
         sl_ver = _import_version("structlog")
@@ -115,7 +115,7 @@ def _check_logging() -> PackageInfo:
 
 
 def _check_metrics() -> PackageInfo:
-    ver = _pkg_version("obskit-metrics")
+    ver = _pkg_version("obskit")
     integrations: list[IntegrationInfo] = []
     if ver is not None:
         prom_ver = _import_version("prometheus_client")
@@ -136,7 +136,7 @@ def _check_metrics() -> PackageInfo:
 
 
 def _check_tracing() -> PackageInfo:
-    ver = _pkg_version("obskit-tracing")
+    ver = _pkg_version("obskit")
     integrations: list[IntegrationInfo] = []
     if ver is not None:
         otel_api_ver = _import_version("opentelemetry.trace", "__version__") or \
@@ -160,7 +160,7 @@ def _check_tracing() -> PackageInfo:
 
 
 def _check_health() -> PackageInfo:
-    ver = _pkg_version("obskit-health")
+    ver = _pkg_version("obskit")
     integrations: list[IntegrationInfo] = []
     if ver is not None:
         try:
@@ -175,8 +175,8 @@ def _check_health() -> PackageInfo:
                        integrations=integrations)
 
 
-def _check_simple(name: str) -> PackageInfo:
-    ver = _pkg_version(name)
+def _check_simple(name: str, pip_name: str | None = None) -> PackageInfo:
+    ver = _pkg_version(pip_name or name)
     return PackageInfo(name=name, installed=ver is not None, version=ver)
 
 
@@ -236,12 +236,12 @@ def collect_diagnostics() -> list[PackageInfo]:
         _check_metrics(),
         _check_tracing(),
         _check_health(),
-        _check_simple("obskit-resilience"),
-        _check_simple("obskit-slo"),
-        _check_simple("obskit-middleware-fastapi"),
-        _check_simple("obskit-middleware-flask"),
-        _check_simple("obskit-middleware-django"),
-        _check_simple("obskit-middleware-grpc"),
+        _check_simple("obskit-resilience", pip_name="obskit"),
+        _check_simple("obskit-slo", pip_name="obskit"),
+        _check_simple("obskit-middleware-fastapi", pip_name="obskit"),
+        _check_simple("obskit-middleware-flask", pip_name="obskit"),
+        _check_simple("obskit-middleware-django", pip_name="obskit"),
+        _check_simple("obskit-middleware-grpc", pip_name="obskit"),
         _check_simple("obskit"),
     ]
 

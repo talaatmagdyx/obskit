@@ -28,13 +28,13 @@ try:
 except ImportError:  # pragma: no cover
     OPENTELEMETRY_AVAILABLE = False
     trace = None  # type: ignore[assignment]
-    TracerProvider = None  # type: ignore[assignment,misc]
-    BatchSpanProcessor = None  # type: ignore[assignment,misc]
-    SimpleSpanProcessor = None  # type: ignore[assignment,misc]
-    Resource = None  # type: ignore[assignment,misc]
-    Status = None  # type: ignore[assignment,misc]
-    StatusCode = None  # type: ignore[assignment,misc]
-    Tracer = None  # type: ignore[assignment,misc]
+    TracerProvider = None  # type: ignore[misc, assignment]
+    BatchSpanProcessor = None  # type: ignore[misc, assignment]
+    SimpleSpanProcessor = None  # type: ignore[misc, assignment]
+    Resource = None  # type: ignore[misc, assignment]
+    Status = None  # type: ignore[misc, assignment]
+    StatusCode = None  # type: ignore[misc, assignment]
+    Tracer = None  # type: ignore[misc, assignment]
     baggage_api = None  # type: ignore[assignment]
     context_api = None  # type: ignore[assignment]
 

@@ -8,7 +8,7 @@ import threading
 import time
 from collections.abc import Callable
 from datetime import UTC, datetime, timedelta
-from typing import Any, ParamSpec, TypeVar
+from typing import Any, ParamSpec, TypeVar, cast
 
 from obskit.logging import get_logger
 from obskit.slo.types import SLOMeasurement, SLOStatus, SLOTarget, SLOType
@@ -317,9 +317,9 @@ def with_slo_tracking(
             start_time = time.perf_counter()
             success = False
             try:
-                result = await func(*args, **kwargs)  # type: ignore
+                result = await func(*args, **kwargs)  # type: ignore[misc]
                 success = True
-                return result
+                return cast(T, result)
             finally:
                 duration_seconds = time.perf_counter() - start_time
                 # Record availability/error SLO
@@ -345,8 +345,8 @@ def with_slo_tracking(
                     track_slo(latency_name, value=duration_seconds, success=success)
 
         if asyncio.iscoroutinefunction(func):
-            return async_wrapper  # type: ignore
-        return sync_wrapper  # type: ignore
+            return async_wrapper  # type: ignore[return-value]
+        return sync_wrapper
 
     return decorator
 

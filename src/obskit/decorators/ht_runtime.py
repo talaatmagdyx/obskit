@@ -34,7 +34,7 @@ from __future__ import annotations
 
 import threading
 import warnings
-from typing import Any
+from typing import Any, Literal, cast
 
 import structlog
 
@@ -214,7 +214,7 @@ class _HTPipeline:
             red = get_red_metrics()
             for (op, status), ds in durations.items():
                 for d in ds:
-                    red.observe_request(op, d, status)
+                    red.observe_request(op, d, cast(Literal["success", "failure", "error"], status))
 
             # Optional StatsD emission — fire-and-forget UDP, never raises
             if statsd is not None:

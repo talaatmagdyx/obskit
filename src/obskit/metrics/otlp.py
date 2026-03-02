@@ -104,10 +104,10 @@ try:
     OTLP_METRICS_AVAILABLE = True
 except ImportError:  # pragma: no cover
     OTLP_METRICS_AVAILABLE = False
-    GRPCMetricExporter = None  # type: ignore[assignment,misc]
-    MeterProvider = None  # type: ignore[assignment,misc]
-    PeriodicExportingMetricReader = None  # type: ignore[assignment,misc]
-    Resource = None  # type: ignore[assignment,misc]
+    GRPCMetricExporter = None  # type: ignore[misc, assignment]
+    MeterProvider = None  # type: ignore[misc, assignment]
+    PeriodicExportingMetricReader = None  # type: ignore[misc, assignment]
+    Resource = None  # type: ignore[misc, assignment]
     otel_metrics = None  # type: ignore[assignment]
 
 # Try HTTP exporter as fallback
@@ -119,7 +119,7 @@ try:
     HTTP_EXPORTER_AVAILABLE = True
 except ImportError:  # pragma: no cover
     HTTP_EXPORTER_AVAILABLE = False
-    HTTPMetricExporter = None  # type: ignore[assignment,misc]
+    HTTPMetricExporter = None  # type: ignore[misc, assignment]
 
 
 class OTLPMetricsExporter:

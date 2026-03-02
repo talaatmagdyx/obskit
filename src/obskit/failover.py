@@ -176,7 +176,7 @@ class FailoverCoordinator:
         address: str | None = None,
         health_check: Callable[[], bool] | None = None,
         metadata: dict[str, Any] | None = None,
-    ):
+    ) -> None:
         """
         Register the primary endpoint.
 
@@ -214,7 +214,7 @@ class FailoverCoordinator:
         address: str | None = None,
         health_check: Callable[[], bool] | None = None,
         metadata: dict[str, Any] | None = None,
-    ):
+    ) -> None:
         """
         Register a backup endpoint.
 
@@ -264,7 +264,7 @@ class FailoverCoordinator:
         endpoint = self.get_active()
         return endpoint.address if endpoint else None
 
-    def check_health(self):
+    def check_health(self) -> None:
         """Perform health checks on all endpoints."""
         with self._lock:
             primary = self._primary
@@ -291,7 +291,7 @@ class FailoverCoordinator:
         # Evaluate failover/recovery
         self._evaluate_state()
 
-    def _update_endpoint_health(self, endpoint: Endpoint, healthy: bool):
+    def _update_endpoint_health(self, endpoint: Endpoint, healthy: bool) -> None:
         """Update endpoint health status."""
         with self._lock:
             endpoint.last_check = datetime.now(UTC)
@@ -308,7 +308,7 @@ class FailoverCoordinator:
             coordinator=self.name, endpoint=endpoint.name, role=endpoint.role.value
         ).set(1 if healthy else 0)
 
-    def _evaluate_state(self):
+    def _evaluate_state(self) -> None:
         """Evaluate and potentially change failover state."""
         with self._lock:
             if not self._primary:
@@ -335,7 +335,7 @@ class FailoverCoordinator:
                 recovery_seconds = (datetime.now(UTC) - self._failover_time).total_seconds()
                 RECOVERY_TIME.labels(coordinator=self.name).set(recovery_seconds)
 
-    def _do_failover(self):
+    def _do_failover(self) -> None:
         """Perform failover to backup."""
         self._state = FailoverState.FAILING_OVER
 
@@ -364,7 +364,7 @@ class FailoverCoordinator:
             to_endpoint=event.to_endpoint,
         )
 
-    def _do_recovery(self):
+    def _do_recovery(self) -> None:
         """Perform recovery to primary."""
         self._state = FailoverState.RECOVERING
 
@@ -397,7 +397,7 @@ class FailoverCoordinator:
 
         RECOVERY_TIME.labels(coordinator=self.name).set(0)
 
-    def force_failover(self, reason: str = "Manual failover"):
+    def force_failover(self, reason: str = "Manual failover") -> None:
         """Force failover to backup."""
         with self._lock:
             if self._state == FailoverState.PRIMARY and self._backup:
@@ -425,13 +425,13 @@ class FailoverCoordinator:
                     reason=reason,
                 )
 
-    def force_recovery(self, reason: str = "Manual recovery"):
+    def force_recovery(self, reason: str = "Manual recovery") -> None:
         """Force recovery to primary."""
         with self._lock:
             if self._state == FailoverState.BACKUP and self._primary:
                 self._do_recovery()
 
-    def start_monitoring(self):
+    def start_monitoring(self) -> None:
         """Start background health monitoring."""
         if self._check_thread and self._check_thread.is_alive():
             return
@@ -442,7 +442,7 @@ class FailoverCoordinator:
 
         logger.info("failover_monitoring_started", coordinator=self.name)
 
-    def stop_monitoring(self):
+    def stop_monitoring(self) -> None:
         """Stop background health monitoring."""
         self._stop_checking.set()
         if self._check_thread:
@@ -450,7 +450,7 @@ class FailoverCoordinator:
 
         logger.info("failover_monitoring_stopped", coordinator=self.name)
 
-    def _monitoring_loop(self):
+    def _monitoring_loop(self) -> None:
         """Background monitoring loop."""
         while not self._stop_checking.is_set():
             try:
@@ -491,7 +491,7 @@ _coordinators: dict[str, FailoverCoordinator] = {}
 _coordinator_lock = threading.Lock()
 
 
-def get_failover_coordinator(name: str, **kwargs) -> FailoverCoordinator:
+def get_failover_coordinator(name: str, **kwargs: Any) -> FailoverCoordinator:
     """Get or create a failover coordinator."""
     if name not in _coordinators:
         with _coordinator_lock:

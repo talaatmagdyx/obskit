@@ -170,7 +170,7 @@ class SLAPredictor:
         comparison: str = "less_than",
         window_hours: int = 1,
         description: str = "",
-    ):
+    ) -> None:
         """
         Define an SLA.
 
@@ -215,7 +215,7 @@ class SLAPredictor:
         sla_name: str,
         value: float,
         timestamp: datetime | None = None,
-    ):
+    ) -> None:
         """
         Record a metric value.
 
@@ -298,7 +298,7 @@ class SLAPredictor:
         if sla.comparison == "less_than":
             if current_percentile >= sla.target_value:
                 breach_likely = True
-                hours_until_breach = 0
+                hours_until_breach = 0.0
             elif trend_slope > 0:
                 remaining = sla.target_value - current_percentile
                 hours_until_breach = remaining / trend_slope if trend_slope > 0.01 else None
@@ -306,7 +306,7 @@ class SLAPredictor:
         else:
             if current_percentile <= sla.target_value:
                 breach_likely = True
-                hours_until_breach = 0
+                hours_until_breach = 0.0
             elif trend_slope < 0:
                 remaining = current_percentile - sla.target_value
                 hours_until_breach = (
@@ -370,7 +370,7 @@ class SLAPredictor:
         idx = min(idx, len(sorted_values) - 1)
         return sorted_values[idx]
 
-    def _calculate_trend(self, points: list[DataPoint]) -> tuple:
+    def _calculate_trend(self, points: list[DataPoint]) -> tuple[float, str]:
         """Calculate trend from data points."""
         if len(points) < 2:
             return 0.0, "stable"
@@ -488,7 +488,7 @@ _predictor: SLAPredictor | None = None
 _predictor_lock = threading.Lock()
 
 
-def get_sla_predictor(**kwargs) -> SLAPredictor:
+def get_sla_predictor(**kwargs: Any) -> SLAPredictor:
     """Get or create the global SLA predictor."""
     global _predictor
 

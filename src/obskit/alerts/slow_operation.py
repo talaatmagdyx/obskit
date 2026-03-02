@@ -120,6 +120,7 @@ class SlowOperationDetector:
         self._history: list[SlowOperationEvent] = []
 
         # Metrics
+        self._metrics: REDMetrics | None
         if enable_metrics:
             self._metrics = REDMetrics(name=f"{component}_slow_operations")
         else:
@@ -196,7 +197,7 @@ class SlowOperationDetector:
         operation: str,
         threshold_ms: float | None = None,
         send_alert: bool = True,
-    ):
+    ) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
         """
         Decorator for monitoring function execution time.
 
@@ -218,7 +219,7 @@ class SlowOperationDetector:
 
         def decorator(func: Callable[..., T]) -> Callable[..., T]:
             @wraps(func)
-            def wrapper(*args, **kwargs) -> T:
+            def wrapper(*args: Any, **kwargs: Any) -> T:
                 with self.track(operation, threshold_ms=threshold_ms, send_alert=send_alert):
                     return func(*args, **kwargs)
 
@@ -260,7 +261,7 @@ class SlowOperationDetector:
             self._metrics.observe_request(
                 operation=f"slow_{operation}",
                 duration_seconds=duration_ms / 1000,
-                status="slow",
+                status="error",
             )
 
         # Log warning
@@ -278,7 +279,7 @@ class SlowOperationDetector:
         if send_alert and self._webhook:
             try:
                 self._webhook.fire_alert(
-                    alertname="SlowOperation",
+                    alert_name="SlowOperation",
                     labels={
                         "operation": operation,
                         "component": self.component,
@@ -330,7 +331,7 @@ class SlowOperationDetector:
             },
         }
 
-    def clear_history(self):
+    def clear_history(self) -> None:
         """Clear the event history."""
         self._history.clear()
 

@@ -52,9 +52,9 @@ class SLODefinition:
     name: str
     target: float
     window: str = "5m"
-    burn_rate_windows: list[str] = None
+    burn_rate_windows: list[str] | None = None
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         if self.burn_rate_windows is None:
             self.burn_rate_windows = ["5m", "1h", "6h"]
 
@@ -442,7 +442,7 @@ def save_rules(
     service_name: str,
     output_dir: str,
     slos: list[dict[str, Any]] | None = None,
-):
+) -> None:
     """
     Save all rules to files.
 

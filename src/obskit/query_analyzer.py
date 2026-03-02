@@ -26,7 +26,7 @@ import threading
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from enum import Enum
-from typing import Any
+from typing import Any, cast
 
 from prometheus_client import Counter, Histogram
 
@@ -358,12 +358,12 @@ class QueryAnalyzer:
             # Extract cost
             cost_match = re.search(r"cost=[\d.]+\.\.(\d+\.?\d*)", line)
             if cost_match:
-                result["cost"] = max(result["cost"], float(cost_match.group(1)))
+                result["cost"] = max(cast(float, result["cost"]), float(cost_match.group(1)))
 
             # Extract rows
             rows_match = re.search(r"rows=(\d+)", line)
             if rows_match:
-                result["rows"] = max(result["rows"], int(rows_match.group(1)))
+                result["rows"] = max(cast(int, result["rows"]), int(rows_match.group(1)))
 
             # Detect seq scan
             if "Seq Scan" in line or "Sequential Scan" in line:
@@ -376,7 +376,7 @@ class QueryAnalyzer:
             # Extract index names
             index_match = re.search(r"Index.*?(?:using|on)\s+(\w+)", line, re.IGNORECASE)
             if index_match:
-                result["indexes"].append(index_match.group(1))
+                cast(list[str], result["indexes"]).append(index_match.group(1))
 
         return result
 
@@ -390,7 +390,7 @@ class QueryAnalyzer:
         with self._lock:
             return self._analyses.get(query_hash)
 
-    def clear(self):
+    def clear(self) -> None:
         """Clear all analyses."""
         with self._lock:
             self._analyses.clear()
@@ -405,7 +405,7 @@ _analyzers: dict[str, QueryAnalyzer] = {}
 _analyzer_lock = threading.Lock()
 
 
-def get_query_analyzer(database_name: str = "default", **kwargs) -> QueryAnalyzer:
+def get_query_analyzer(database_name: str = "default", **kwargs: Any) -> QueryAnalyzer:
     """Get or create a query analyzer."""
     if database_name not in _analyzers:
         with _analyzer_lock:

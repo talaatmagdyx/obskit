@@ -72,10 +72,10 @@ try:
 except ImportError:  # pragma: no cover
     OTEL_LOGGING_AVAILABLE = False
     trace = None  # type: ignore[assignment]
-    LoggerProvider = None  # type: ignore[assignment,misc]
-    LoggingHandler = None  # type: ignore[assignment,misc]
-    BatchLogRecordProcessor = None  # type: ignore[assignment,misc]
-    Resource = None  # type: ignore[assignment,misc]
+    LoggerProvider = None  # type: ignore[misc, assignment]
+    LoggingHandler = None  # type: ignore[misc, assignment]
+    BatchLogRecordProcessor = None  # type: ignore[misc, assignment]
+    Resource = None  # type: ignore[misc, assignment]
 
 # Check for OTLP exporter
 try:
@@ -84,7 +84,7 @@ try:
     OTLP_EXPORTER_AVAILABLE = True
 except ImportError:  # pragma: no cover
     OTLP_EXPORTER_AVAILABLE = False
-    OTLPLogExporter = None  # type: ignore[assignment,misc]
+    OTLPLogExporter = None  # type: ignore[misc, assignment]
 
 
 _otlp_logger_provider: LoggerProvider | None = None

@@ -217,7 +217,7 @@ class ExternalAPISLATracker:
         latency_p95_ms: float | None = None,
         latency_p99_ms: float | None = None,
         error_rate_percent: float | None = None,
-    ):
+    ) -> None:
         """Update expected SLA values."""
         if availability is not None:
             self.sla.availability = availability
@@ -272,7 +272,7 @@ class ExternalAPISLATracker:
         method: str = "GET",
         status_code: int | None = None,
         error_type: str | None = None,
-    ):
+    ) -> None:
         """
         Manually record an API call.
 
@@ -299,7 +299,7 @@ class ExternalAPISLATracker:
 
         self._record_call(record, method)
 
-    def _record_call(self, record: APICallRecord, method: str):
+    def _record_call(self, record: APICallRecord, method: str) -> None:
         """Internal method to record a call."""
         with self._lock:
             self._records.append(record)
@@ -327,12 +327,12 @@ class ExternalAPISLATracker:
         # Check SLA compliance
         self._check_sla_compliance()
 
-    def _cleanup_old_records(self):
+    def _cleanup_old_records(self) -> None:
         """Remove records outside the window."""
         cutoff = datetime.now(UTC) - timedelta(seconds=self.window_seconds)
         self._records = [r for r in self._records if r.timestamp > cutoff]
 
-    def _update_gauges(self):
+    def _update_gauges(self) -> None:
         """Update gauge metrics."""
         with self._lock:
             if not self._records:
@@ -353,7 +353,7 @@ class ExternalAPISLATracker:
                 )
                 EXTERNAL_API_LATENCY_P95.labels(api_name=self.api_name).set(p95)
 
-    def _check_sla_compliance(self):
+    def _check_sla_compliance(self) -> None:
         """Check and report SLA compliance."""
         report = self.get_compliance_report()
 
@@ -497,7 +497,7 @@ _api_lock = threading.Lock()
 
 def get_external_api_tracker(
     api_name: str,
-    **kwargs,
+    **kwargs: Any,
 ) -> ExternalAPISLATracker:
     """Get or create an external API tracker."""
     if api_name not in _api_trackers:
