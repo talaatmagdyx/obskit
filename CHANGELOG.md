@@ -5,6 +5,29 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.1.0](https://github.com/talaatmagdyx/obskit/compare/v3.0.0...v3.1.0) (2026-03-03)
+
+
+### 🚀 Features
+
+* release v3.1.0 — alerts builder, health router, CI hardening, full docs ([72b982c](https://github.com/talaatmagdyx/obskit/commit/72b982c4cdf615a67e648c88230349a89029e690))
+
+
+### 🐛 Bug Fixes
+
+* resolve all CI failures — ruff, mypy, coverage, uv deprecation ([bb1042b](https://github.com/talaatmagdyx/obskit/commit/bb1042bbbac13f510b3aae8a0ae89fda78a410dd))
+* restore 100% coverage after _error_details extraction ([1c9dff6](https://github.com/talaatmagdyx/obskit/commit/1c9dff60d5a40a7f7ef73ea7cd1c5ebdb299e660))
+
+
+### ♻️ Refactoring
+
+* fix lint warnings and reduce cognitive complexity ([a6d9501](https://github.com/talaatmagdyx/obskit/commit/a6d95018517c3c4ad684f0fffb37bdd143165231))
+
+
+### 🔧 CI/CD
+
+* pin sigstore action to v3.2.0 (v3 tag does not exist) ([1035379](https://github.com/talaatmagdyx/obskit/commit/1035379b46d53347859144b67385c0a7ea13e48f))
+
 ## [Unreleased]
 
 ---
