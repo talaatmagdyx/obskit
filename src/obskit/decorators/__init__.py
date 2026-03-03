@@ -241,6 +241,6 @@ __all__ = [
     "track_operation",  # Logging only
     "track_metrics_only",  # Metrics only
     # Context managers (also work as decorators)
-    "observe",       # Async context manager + decorator
+    "observe",  # Async context manager + decorator
     "observe_sync",  # Sync context manager + decorator
 ]

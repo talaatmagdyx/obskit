@@ -54,7 +54,7 @@ class ErrorResponse:
 
     def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary, excluding None values."""
-        result = {
+        result: dict[str, Any] = {
             "error": self.error,
             "error_type": self.error_type,
         }

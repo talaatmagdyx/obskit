@@ -31,9 +31,8 @@ from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from typing import Any
 
-from obskit.metrics.types import Counter, Gauge, Histogram
-
 from obskit.logging import get_logger
+from obskit.metrics.types import Counter, Gauge, Histogram
 
 logger = get_logger(__name__)
 
@@ -394,7 +393,7 @@ def track_path(
         Detector instance
     """
 
-    def decorator(func: Callable) -> Callable:
+    def decorator(func: Callable[..., Any]) -> Callable[..., Any]:
         p = path or func.__name__
         d = detector or get_hot_path_detector()
 

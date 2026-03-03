@@ -151,11 +151,13 @@ class HighThroughputSLOTracker:
             dq = deque(maxlen=self._max_per_thread)
             local.deques[name] = dq
 
-        dq.append(SLOMeasurement(
-            timestamp=datetime.now(UTC),
-            value=value,
-            success=success,
-        ))
+        dq.append(
+            SLOMeasurement(
+                timestamp=datetime.now(UTC),
+                value=value,
+                success=success,
+            )
+        )
 
     # ------------------------------------------------------------------
     # Cold path — aggregate across threads
@@ -226,11 +228,7 @@ class HighThroughputSLOTracker:
         """Return status for all registered SLOs."""
         with self._register_lock:
             names = list(self._targets)
-        return {
-            name: status
-            for name in names
-            if (status := self.get_status(name)) is not None
-        }
+        return {name: status for name in names if (status := self.get_status(name)) is not None}
 
     def to_dict(self) -> dict[str, Any]:
         """Export all SLO status as a plain dict."""

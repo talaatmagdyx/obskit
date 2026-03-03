@@ -15,15 +15,9 @@ from typing import Any, TypeVar
 _correlation_id: contextvars.ContextVar[str | None] = contextvars.ContextVar(
     "correlation_id", default=None
 )
-_request_id: contextvars.ContextVar[str | None] = contextvars.ContextVar(
-    "request_id", default=None
-)
-_session_id: contextvars.ContextVar[str | None] = contextvars.ContextVar(
-    "session_id", default=None
-)
-_tenant_id: contextvars.ContextVar[str | None] = contextvars.ContextVar(
-    "tenant_id", default=None
-)
+_request_id: contextvars.ContextVar[str | None] = contextvars.ContextVar("request_id", default=None)
+_session_id: contextvars.ContextVar[str | None] = contextvars.ContextVar("session_id", default=None)
+_tenant_id: contextvars.ContextVar[str | None] = contextvars.ContextVar("tenant_id", default=None)
 _user_id: contextvars.ContextVar[str | None] = contextvars.ContextVar("user_id", default=None)
 _custom_context: contextvars.ContextVar[dict[str, Any] | None] = contextvars.ContextVar(
     "custom_context", default=None
@@ -42,7 +36,7 @@ def get_correlation_id() -> str | None:
     return _correlation_id.get()
 
 
-def set_correlation_id(correlation_id: str) -> contextvars.Token:
+def set_correlation_id(correlation_id: str) -> contextvars.Token[str | None]:
     """Set the correlation ID."""
     return _correlation_id.set(correlation_id)
 
@@ -52,7 +46,7 @@ def get_request_id() -> str | None:
     return _request_id.get()
 
 
-def set_request_id(request_id: str) -> contextvars.Token:
+def set_request_id(request_id: str) -> contextvars.Token[str | None]:
     """Set the request ID."""
     return _request_id.set(request_id)
 
@@ -62,7 +56,7 @@ def get_session_id() -> str | None:
     return _session_id.get()
 
 
-def set_session_id(session_id: str) -> contextvars.Token:
+def set_session_id(session_id: str) -> contextvars.Token[str | None]:
     """Set the session ID."""
     return _session_id.set(session_id)
 
@@ -72,7 +66,7 @@ def get_tenant_id() -> str | None:
     return _tenant_id.get()
 
 
-def set_tenant_id(tenant_id: str) -> contextvars.Token:
+def set_tenant_id(tenant_id: str) -> contextvars.Token[str | None]:
     """Set the tenant ID."""
     return _tenant_id.set(tenant_id)
 
@@ -82,7 +76,7 @@ def get_user_id() -> str | None:
     return _user_id.get()
 
 
-def set_user_id(user_id: str) -> contextvars.Token:
+def set_user_id(user_id: str) -> contextvars.Token[str | None]:
     """Set the user ID."""
     return _user_id.set(user_id)
 

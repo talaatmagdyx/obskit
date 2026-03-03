@@ -52,7 +52,7 @@ from obskit.tracing import trace_span
 # Module-level registries for circuit breakers and rate limiters
 _circuit_breakers: dict[str, CircuitBreaker] = {}
 _circuit_breaker_lock = threading.Lock()
-_rate_limiters: dict[str, RateLimiter] = {}
+_rate_limiters: dict[str, Any] = {}
 _rate_limiter_lock = threading.Lock()
 
 
@@ -463,7 +463,7 @@ class ObservabilityMixin:
                         name=full_name,
                         requests_per_minute=requests_per_minute,
                     )
-        return _rate_limiters[full_name]
+        return _rate_limiters[full_name]  # type: ignore[no-any-return]
 
     # =========================================================================
     # Utility Methods

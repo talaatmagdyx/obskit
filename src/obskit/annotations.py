@@ -127,7 +127,7 @@ class GrafanaAnnotator:
             return annotation.to_grafana_format()
 
         try:
-            import requests
+            import requests  # type: ignore[import-untyped]
 
             headers = {
                 "Content-Type": "application/json",
@@ -142,7 +142,7 @@ class GrafanaAnnotator:
             )
 
             if response.status_code in (200, 201):
-                result = response.json()
+                result: dict[str, Any] = response.json()
                 logger.info(
                     "annotation_created",
                     annotation_id=result.get("id"),
@@ -446,9 +446,7 @@ class GrafanaAnnotator:
 _annotator: GrafanaAnnotator | None = None
 
 
-def configure_annotator(
-    grafana_url: str, api_key: str | None = None, **kwargs
-) -> GrafanaAnnotator:
+def configure_annotator(grafana_url: str, api_key: str | None = None, **kwargs) -> GrafanaAnnotator:
     """Configure the global annotator."""
     global _annotator
     _annotator = GrafanaAnnotator(grafana_url, api_key, **kwargs)

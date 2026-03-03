@@ -16,7 +16,9 @@ from obskit.logging.adapters.base import LoggerAdapter
 # Backend registry
 _backends: dict[str, type[LoggerAdapter]] = {}
 _configured_backend: type[LoggerAdapter] | None = None
-_factory_lock = threading.RLock()  # RLock allows re-entry from same thread (e.g. get_logger → configure)
+_factory_lock = (
+    threading.RLock()
+)  # RLock allows re-entry from same thread (e.g. get_logger → configure)
 
 # Register available backends
 try:

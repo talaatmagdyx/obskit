@@ -26,9 +26,8 @@ from datetime import UTC, datetime
 from enum import Enum
 from typing import Any
 
-from obskit.metrics.types import Gauge
-
 from obskit.logging import get_logger
+from obskit.metrics.types import Gauge
 
 logger = get_logger(__name__)
 
@@ -224,7 +223,7 @@ class CircuitBreakerDashboard:
             state_val = breaker.state
             if isinstance(state_val, str):
                 state = CircuitState(state_val.lower().replace("-", "_"))
-            elif hasattr(state_val, "value"):
+            elif hasattr(state_val, "value"):  # pragma: no branch
                 state = CircuitState(state_val.value.lower().replace("-", "_"))
         elif hasattr(breaker, "_state"):
             state_str = str(breaker._state).lower()

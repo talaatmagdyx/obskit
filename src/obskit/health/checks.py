@@ -34,8 +34,6 @@ from collections.abc import Awaitable, Callable
 from typing import Any
 
 
-
-
 def create_memory_check(
     threshold_percent: float = 90.0,
 ) -> Callable[[], Awaitable[bool | dict[str, Any]]]:
@@ -221,8 +219,6 @@ def create_http_check(
             }
 
     return check
-
-
 
 
 __all__ = [

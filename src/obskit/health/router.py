@@ -63,7 +63,7 @@ from typing import TYPE_CHECKING
 from obskit.health.checker import HealthCheck, HealthChecker
 
 if TYPE_CHECKING:  # pragma: no cover
-    pass
+    from fastapi import APIRouter
 
 
 def build_health_router(
@@ -73,7 +73,7 @@ def build_health_router(
     prefix: str = "/health",
     tags: list[str] | None = None,
     include_in_schema: bool = False,
-):
+) -> APIRouter:
     """
     Build a FastAPI ``APIRouter`` with standard health endpoints.
 
@@ -139,7 +139,7 @@ def build_health_router(
     for hc in liveness_checks or []:
         checker._liveness_checks.append(hc)
 
-    router = APIRouter(prefix=prefix, tags=tags or ["health"])
+    router = APIRouter(prefix=prefix, tags=tags or ["health"])  # type: ignore[arg-type]
 
     @router.get("/live", include_in_schema=include_in_schema)
     async def liveness_endpoint() -> JSONResponse:

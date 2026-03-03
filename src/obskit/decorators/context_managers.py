@@ -137,7 +137,7 @@ async def observe(
     context = default_context.copy()
     correlation_id = get_correlation_id()
 
-    async with (nullcontext() if correlation_id else async_correlation_context()):
+    async with nullcontext() if correlation_id else async_correlation_context():
         start_time = time.perf_counter()
 
         if log_start:

@@ -92,7 +92,7 @@ class BusinessMetrics:
         """
         self.service_name = service_name
         self._events: list[BusinessEvent] = []
-        self._active_users: dict[str, set] = {}
+        self._active_users: dict[str, set[Any]] = {}
 
     def track_event(
         self,
@@ -191,9 +191,7 @@ class BusinessMetrics:
         )
 
     @contextmanager
-    def track_engagement(
-        self, action: str, tenant_id: str = "default", user_id: str | None = None
-    ):
+    def track_engagement(self, action: str, tenant_id: str = "default", user_id: str | None = None):
         """
         Track user engagement duration.
 

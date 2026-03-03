@@ -33,9 +33,8 @@ from datetime import UTC, datetime
 from enum import IntEnum
 from typing import Any
 
-from obskit.metrics.types import Counter, Gauge
-
 from obskit.logging import get_logger
+from obskit.metrics.types import Counter, Gauge
 
 logger = get_logger(__name__)
 

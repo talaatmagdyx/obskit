@@ -137,8 +137,7 @@ def apply_instrumentors(instruments: list[str] | None = None) -> list[str]:
     for name in targets:
         if name not in _INSTRUMENTORS:
             _logger.warning(
-                "Unknown OTel instrumentor %r — skipping. "
-                "Known instrumentors: %s",
+                "Unknown OTel instrumentor %r — skipping. Known instrumentors: %s",
                 name,
                 sorted(_INSTRUMENTORS.keys()),
             )

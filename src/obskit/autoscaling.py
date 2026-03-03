@@ -30,9 +30,8 @@ from datetime import UTC, datetime
 from enum import Enum
 from typing import Any
 
-from obskit.metrics.types import Counter, Gauge
-
 from obskit.logging import get_logger
+from obskit.metrics.types import Counter, Gauge
 
 logger = get_logger(__name__)
 
@@ -433,6 +432,8 @@ def get_autoscaling_metrics(service_name: str, **kwargs) -> AutoScalingMetrics:
     if service_name not in _metrics:
         with _metrics_lock:
             if service_name not in _metrics:  # pragma: no cover
-                _metrics[service_name] = AutoScalingMetrics(service_name, **kwargs)  # pragma: no cover
+                _metrics[service_name] = AutoScalingMetrics(
+                    service_name, **kwargs
+                )  # pragma: no cover
 
     return _metrics[service_name]

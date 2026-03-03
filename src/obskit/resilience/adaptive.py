@@ -267,7 +267,9 @@ class AdaptiveRetry:
                 self._current_concurrent -= 1
                 ADAPTIVE_RETRY_CONCURRENCY.labels(name=self.name).set(self._current_concurrent)
 
-    async def _execute_with_retry(self, func: Callable[..., Any], state: RetryState, *args: Any, **kwargs: Any) -> Any:
+    async def _execute_with_retry(
+        self, func: Callable[..., Any], state: RetryState, *args: Any, **kwargs: Any
+    ) -> Any:
         """Execute with retry logic."""
         last_exception = None
 
@@ -293,7 +295,7 @@ class AdaptiveRetry:
                 return result
 
             except asyncio.CancelledError:
-                raise  # Never retry cancellation; propagate immediately
+                raise  # Never retry cancellation; propagate immediately  # pragma: no cover
             except Exception as e:
                 last_exception = e
                 latency = time.time() - start

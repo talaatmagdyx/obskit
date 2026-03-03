@@ -34,9 +34,8 @@ from dataclasses import dataclass
 from datetime import UTC, datetime
 from typing import Any
 
-from obskit.metrics.types import Counter, Gauge, Histogram
-
 from obskit.logging import get_logger
+from obskit.metrics.types import Counter, Gauge, Histogram
 
 logger = get_logger(__name__)
 

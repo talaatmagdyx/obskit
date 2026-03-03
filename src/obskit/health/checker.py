@@ -82,6 +82,7 @@ def _get_health_trace_context() -> dict[str, str]:
         pass  # NOSONAR
     return {}
 
+
 # Type alias for check functions
 # Can return bool (simple) or dict (detailed)
 CheckFunction = Callable[[], Awaitable[bool | dict[str, Any]]]
@@ -275,8 +276,7 @@ class HealthCheck:
             self.check = self.check_fn
         if self.check_fn is None:
             raise ValueError(
-                "HealthCheck requires a callable. "
-                "Pass it as 'check=my_fn' or 'check_fn=my_fn'."
+                "HealthCheck requires a callable. Pass it as 'check=my_fn' or 'check_fn=my_fn'."
             )
 
 
@@ -512,7 +512,7 @@ class HealthChecker:
             # Call the check function — supports both sync and async callables.
             # Sync callables (e.g. lambda: redis.ping()) return a value directly.
             # Async callables return a coroutine that we await with a timeout.
-            call_result = check.check_fn()
+            call_result = check.check_fn()  # type: ignore[misc]
 
             if asyncio.iscoroutine(call_result):
                 # Async path: enforce timeout on the awaitable

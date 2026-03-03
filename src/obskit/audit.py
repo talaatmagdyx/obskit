@@ -34,9 +34,8 @@ from datetime import UTC, datetime, timedelta
 from enum import Enum
 from typing import Any
 
-from obskit.metrics.types import Counter
-
 from obskit.logging import get_logger
+from obskit.metrics.types import Counter
 
 logger = get_logger(__name__)
 

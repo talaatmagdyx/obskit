@@ -28,9 +28,8 @@ from datetime import UTC, datetime
 from enum import Enum
 from typing import Any, cast
 
-from obskit.metrics.types import Counter, Histogram
-
 from obskit.logging import get_logger
+from obskit.metrics.types import Counter, Histogram
 
 logger = get_logger(__name__)
 
@@ -220,9 +219,7 @@ class QueryAnalyzer:
         update_match = re.findall(r"\bUPDATE\s+([a-z_][a-z0-9_]*)", query, re.IGNORECASE)
         tables.extend(update_match)
 
-        insert_match = re.findall(
-            r"\bINSERT\s+INTO\s+([a-z_][a-z0-9_]*)", query, re.IGNORECASE
-        )
+        insert_match = re.findall(r"\bINSERT\s+INTO\s+([a-z_][a-z0-9_]*)", query, re.IGNORECASE)
         tables.extend(insert_match)
 
         return list(set(tables))

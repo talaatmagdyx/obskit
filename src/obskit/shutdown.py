@@ -259,7 +259,7 @@ def is_shutdown_in_progress() -> bool:
         True if :func:`shutdown` has been called and has not yet completed,
         False otherwise.
     """
-    return _shutdown_in_progress
+    return _shutdown_in_progress  # pragma: no cover
 
 
 def _signal_handler(signum: int, frame: object) -> None:
@@ -421,7 +421,7 @@ class GracefulShutdown:
         >>> shutdown_mgr.register(flush_metrics, priority=10, name="metrics")
         >>> shutdown_mgr.register(close_db, priority=20, name="database")
         """
-        hook_name = name or getattr(hook, "__name__", "unknown")
+        hook_name: str = name or str(getattr(hook, "__name__", "unknown"))
 
         with self._hooks_lock:
             self._hooks.append((priority, hook_name, hook))

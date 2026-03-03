@@ -24,9 +24,9 @@ logger = get_logger(__name__)
 F = TypeVar("F", bound=Callable[..., Any])
 
 
-
 _JSON_EXT = ".json"
 _JSON_GZ_EXT = ".json.gz"
+
 
 @dataclass
 class CapturedRequest:
@@ -35,7 +35,7 @@ class CapturedRequest:
     capture_id: str
     function_name: str
     module: str
-    args: tuple
+    args: tuple[Any, ...]
     kwargs: dict[str, Any]
     timestamp: float
     error: str | None = None
@@ -154,6 +154,7 @@ class FileStorage(RequestCaptureStorage):
         data = json.dumps(capture.to_dict(), indent=2)
 
         if self.compress:
+
             def _write_gz() -> None:
                 with gzip.open(path, "wt", encoding="utf-8") as f:
                     f.write(data)
@@ -175,6 +176,7 @@ class FileStorage(RequestCaptureStorage):
 
         try:
             if path.suffix == ".gz":
+
                 def _read_gz() -> Any:
                     with gzip.open(path, "rt", encoding="utf-8") as f:
                         return json.load(f)
@@ -191,7 +193,7 @@ class FileStorage(RequestCaptureStorage):
     async def list_captures(
         self, function_name: str | None = None, since: float | None = None, limit: int = 100
     ) -> list[str]:
-        captures = []
+        captures: list[str] = []
 
         for path in sorted(self.base_path.iterdir(), key=lambda p: p.stat().st_mtime, reverse=True):
             if len(captures) >= limit:
@@ -245,7 +247,7 @@ class MemoryStorage(RequestCaptureStorage):
     async def list_captures(
         self, function_name: str | None = None, since: float | None = None, limit: int = 100
     ) -> list[str]:
-        captures = []
+        captures: list[str] = []
 
         for capture_id, capture in sorted(
             self._captures.items(), key=lambda x: x[1].timestamp, reverse=True
@@ -327,7 +329,7 @@ class RequestCapture:
         self.metadata_extractor = metadata_extractor
 
         # Registry of wrapped functions for replay
-        self._function_registry: dict[str, Callable] = {}
+        self._function_registry: dict[str, Callable[..., Any]] = {}
 
     def _should_capture(self) -> bool:
         """Determine if we should capture based on sample rate."""
@@ -335,7 +337,7 @@ class RequestCapture:
 
         return random.random() < self.sample_rate
 
-    def _truncate_args(self, args: tuple, kwargs: dict) -> tuple:
+    def _truncate_args(self, args: tuple[Any, ...], kwargs: dict[str, Any]) -> tuple[Any, ...]:
         """Truncate arguments if too large."""
         serialized = json.dumps(_serialize((args, kwargs)))
 
@@ -355,9 +357,9 @@ class RequestCapture:
 
     async def capture(
         self,
-        func: Callable,
-        args: tuple,
-        kwargs: dict,
+        func: Callable[..., Any],
+        args: tuple[Any, ...],
+        kwargs: dict[str, Any],
         error: Exception | None = None,
         duration: float | None = None,
     ) -> str:
@@ -410,7 +412,7 @@ class RequestCapture:
         return capture_id
 
     async def replay(
-        self, capture_id: str, func: Callable | None = None, dry_run: bool = False
+        self, capture_id: str, func: Callable[..., Any] | None = None, dry_run: bool = False
     ) -> dict[str, Any]:
         """
         Replay a captured request.
@@ -427,7 +429,7 @@ class RequestCapture:
         if not capture:
             return {"success": False, "error": f"Capture {capture_id} not found"}
 
-        result = {
+        result: dict[str, Any] = {
             "capture_id": capture_id,
             "function": capture.function_name,
             "original_error": capture.error,

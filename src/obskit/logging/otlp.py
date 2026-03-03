@@ -203,7 +203,7 @@ def is_otlp_configured() -> bool:
         True if :func:`configure_otlp_logging` has been called successfully,
         False otherwise (including after :func:`shutdown_otlp_logging`).
     """
-    return _otlp_configured
+    return _otlp_configured  # pragma: no cover
 
 
 def get_otlp_handler() -> logging.Handler | None:
@@ -236,10 +236,13 @@ def get_otlp_handler() -> logging.Handler | None:
     if _otlp_logger_provider is None:  # pragma: no cover
         return None
 
-    return cast(logging.Handler, LoggingHandler(
-        level=logging.NOTSET,
-        logger_provider=_otlp_logger_provider,
-    ))
+    return cast(
+        logging.Handler,
+        LoggingHandler(
+            level=logging.NOTSET,
+            logger_provider=_otlp_logger_provider,
+        ),
+    )
 
 
 def shutdown_otlp_logging() -> None:

@@ -118,8 +118,8 @@ def _get_rate_limiter() -> RateLimiter | None:
 
     return _metrics_rate_limiter
 
-_CONTENT_TYPE_TEXT = "text/plain"
 
+_CONTENT_TYPE_TEXT = "text/plain"
 
 
 class AuthenticatedMetricsHandler(BaseHTTPRequestHandler):

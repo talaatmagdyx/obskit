@@ -20,11 +20,10 @@ from contextlib import contextmanager
 from dataclasses import dataclass, field
 from typing import Any
 
-from obskit.metrics.types import Counter
-
 from obskit.logging import get_logger
 from obskit.metrics.golden import get_golden_signals
 from obskit.metrics.red import get_red_metrics
+from obskit.metrics.types import Counter
 
 logger = get_logger("obskit.queue.tracker")
 

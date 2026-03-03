@@ -71,7 +71,7 @@ _self_metrics_lock = threading.Lock()
 
 # Track ALL created instances (not just the singleton) so reset_self_metrics()
 # can unregister Prometheus collectors even when tests create instances directly.
-_all_instances: list["ObskitSelfMetrics"] = []
+_all_instances: list[ObskitSelfMetrics] = []
 
 
 @dataclass

@@ -14,6 +14,7 @@ from typing import Any, TypeVar
 from opentelemetry import trace
 from opentelemetry.trace import SpanKind, Status, StatusCode
 from opentelemetry.trace.propagation.tracecontext import TraceContextTextMapPropagator
+
 from obskit.metrics.types import Counter, Histogram
 
 from ..logging import get_logger

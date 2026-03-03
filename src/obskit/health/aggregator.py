@@ -162,7 +162,9 @@ class DependencyHealthAggregator:
         self.cache_seconds = cache_seconds
         self.critical_dependencies = set(critical_dependencies or [])
 
-        self._dependencies: dict[str, tuple[HealthCheckFunc, DependencyType, float | None]] = {}  # name -> (check_func, type)
+        self._dependencies: dict[
+            str, tuple[HealthCheckFunc, DependencyType, float | None]
+        ] = {}  # name -> (check_func, type)
         self._cached_health: dict[str, DependencyHealth] = {}
         self._last_aggregated: AggregatedHealth | None = None
 

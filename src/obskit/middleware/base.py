@@ -16,7 +16,10 @@ Example
 from __future__ import annotations
 
 import uuid
-from typing import Any
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from obskit.metrics import REDMetrics
 
 from obskit.core import get_correlation_id, set_correlation_id
 from obskit.logging import get_logger
@@ -71,7 +74,7 @@ def extract_context_from_headers(
     # Normalize headers to lowercase
     normalized = {k.lower(): v for k, v in headers.items()}
 
-    context = {}
+    context: dict[str, Any] = {}
 
     # Extract correlation ID
     correlation_id = None
@@ -188,6 +191,7 @@ class BaseMiddleware:
         self.record_metrics = record_metrics
         self.propagate_context = propagate_context
 
+        self._metrics: REDMetrics | None
         if record_metrics:
             from obskit.metrics import REDMetrics
 
@@ -234,7 +238,7 @@ class BaseMiddleware:
             self._metrics.observe_request(
                 operation=operation,
                 duration_seconds=duration,
-                status=status,
+                status=status,  # type: ignore[arg-type]
             )
 
         logger.debug(

@@ -200,15 +200,15 @@ class ObskitSettings(BaseSettings):
     # Pydantic Settings Configuration
     # =========================================================================
     model_config = SettingsConfigDict(
-    # All environment variables must start with OBSKIT_
-    env_prefix="OBSKIT_",
-    # Support loading from .env file
-    env_file=".env",
-    env_file_encoding="utf-8",
-    # Environment variable names are case-insensitive
-    case_sensitive=False,
-    # Ignore extra fields (forward compatibility)
-    extra="ignore",
+        # All environment variables must start with OBSKIT_
+        env_prefix="OBSKIT_",
+        # Support loading from .env file
+        env_file=".env",
+        env_file_encoding="utf-8",
+        # Environment variable names are case-insensitive
+        case_sensitive=False,
+        # Ignore extra fields (forward compatibility)
+        extra="ignore",
     )
 
     # =========================================================================
@@ -217,30 +217,30 @@ class ObskitSettings(BaseSettings):
     # =========================================================================
 
     service_name: str = Field(
-    default="unknown",
-    description=(
-        "Name of the service. This appears in all logs, metrics, and traces. "
-        "Use a descriptive, unique name like 'order-service' or 'user-api'."
-    ),
-    examples=["order-service", "user-api", "payment-gateway"],
+        default="unknown",
+        description=(
+            "Name of the service. This appears in all logs, metrics, and traces. "
+            "Use a descriptive, unique name like 'order-service' or 'user-api'."
+        ),
+        examples=["order-service", "user-api", "payment-gateway"],
     )
 
     environment: str = Field(
-    default="development",
-    description=(
-        "Deployment environment. Used for filtering and alerting. "
-        "Common values: development, staging, production"
-    ),
-    examples=["development", "staging", "production"],
+        default="development",
+        description=(
+            "Deployment environment. Used for filtering and alerting. "
+            "Common values: development, staging, production"
+        ),
+        examples=["development", "staging", "production"],
     )
 
     version: str = Field(
-    default="0.0.0",
-    description=(
-        "Service version. Typically set from CI/CD pipeline or git tag. "
-        "Useful for tracking deployments and debugging."
-    ),
-    examples=["1.0.0", "2.1.3", "1.0.0-beta.1"],
+        default="0.0.0",
+        description=(
+            "Service version. Typically set from CI/CD pipeline or git tag. "
+            "Useful for tracking deployments and debugging."
+        ),
+        examples=["1.0.0", "2.1.3", "1.0.0-beta.1"],
     )
 
     # =========================================================================
@@ -249,70 +249,70 @@ class ObskitSettings(BaseSettings):
     # =========================================================================
 
     tracing_enabled: bool = Field(
-    default=True,
-    description=(
-        "Enable OpenTelemetry distributed tracing. "
-        "Disable in development to reduce noise and overhead."
-    ),
+        default=True,
+        description=(
+            "Enable OpenTelemetry distributed tracing. "
+            "Disable in development to reduce noise and overhead."
+        ),
     )
 
     otlp_endpoint: str = Field(
-    default="http://localhost:4317",
-    description=(
-        "OpenTelemetry Protocol (OTLP) collector endpoint. "
-        "This is where traces are sent. Examples: "
-        "- Jaeger: http://jaeger:4317 "
-        "- Tempo: http://tempo:4317 "
-        "- Local: http://localhost:4317"
-    ),
-    examples=["http://localhost:4317", "http://jaeger:4317"],
+        default="http://localhost:4317",
+        description=(
+            "OpenTelemetry Protocol (OTLP) collector endpoint. "
+            "This is where traces are sent. Examples: "
+            "- Jaeger: http://jaeger:4317 "
+            "- Tempo: http://tempo:4317 "
+            "- Local: http://localhost:4317"
+        ),
+        examples=["http://localhost:4317", "http://jaeger:4317"],
     )
 
     otlp_insecure: bool = Field(
-    default=True,
-    description=(
-        "Use insecure (non-TLS) connection to OTLP endpoint. "
-        "Set to False in production with proper TLS configuration."
-    ),
+        default=True,
+        description=(
+            "Use insecure (non-TLS) connection to OTLP endpoint. "
+            "Set to False in production with proper TLS configuration."
+        ),
     )
 
     trace_sample_rate: float = Field(
-    default=1.0,
-    ge=0.0,
-    le=1.0,
-    description=(
-        "Trace sampling rate from 0.0 (no traces) to 1.0 (all traces). "
-        "Use lower values in high-traffic production to reduce costs. "
-        "Example: 0.1 = sample 10% of requests."
-    ),
+        default=1.0,
+        ge=0.0,
+        le=1.0,
+        description=(
+            "Trace sampling rate from 0.0 (no traces) to 1.0 (all traces). "
+            "Use lower values in high-traffic production to reduce costs. "
+            "Example: 0.1 = sample 10% of requests."
+        ),
     )
 
     trace_export_queue_size: int = Field(
-    default=2048,
-    ge=1,
-    description=(
-        "Maximum queue size for trace exports. "
-        "When queue is full, new spans are dropped. "
-        "Larger values use more memory but handle bursts better."
-    ),
+        default=2048,
+        ge=1,
+        description=(
+            "Maximum queue size for trace exports. "
+            "When queue is full, new spans are dropped. "
+            "Larger values use more memory but handle bursts better."
+        ),
     )
 
     trace_export_batch_size: int = Field(
-    default=512,
-    ge=1,
-    description=(
-        "Maximum batch size for trace exports. "
-        "Larger batches are more efficient but use more memory."
-    ),
+        default=512,
+        ge=1,
+        description=(
+            "Maximum batch size for trace exports. "
+            "Larger batches are more efficient but use more memory."
+        ),
     )
 
     trace_export_timeout: float = Field(
-    default=30.0,
-    ge=1.0,
-    description=(
-        "Timeout for trace export operations in seconds. "
-        "Exports exceeding this timeout are cancelled."
-    ),
+        default=30.0,
+        ge=1.0,
+        description=(
+            "Timeout for trace export operations in seconds. "
+            "Exports exceeding this timeout are cancelled."
+        ),
     )
 
     # =========================================================================
@@ -321,59 +321,59 @@ class ObskitSettings(BaseSettings):
     # =========================================================================
 
     metrics_enabled: bool = Field(
-    default=True,
-    description=(
-        "Enable Prometheus metrics collection. "
-        "When enabled, metrics are collected and can be exposed via HTTP."
-    ),
+        default=True,
+        description=(
+            "Enable Prometheus metrics collection. "
+            "When enabled, metrics are collected and can be exposed via HTTP."
+        ),
     )
 
     metrics_port: int = Field(
-    default=9090,
-    ge=1,
-    le=65535,
-    description=(
-        "Port for Prometheus metrics HTTP server. "
-        "Default 9090 is the standard Prometheus port. "
-        "Ensure this port is accessible to your Prometheus scraper."
-    ),
+        default=9090,
+        ge=1,
+        le=65535,
+        description=(
+            "Port for Prometheus metrics HTTP server. "
+            "Default 9090 is the standard Prometheus port. "
+            "Ensure this port is accessible to your Prometheus scraper."
+        ),
     )
 
     metrics_path: str = Field(
-    default="/metrics",
-    description=(
-        "URL path for metrics endpoint. Default '/metrics' is the Prometheus convention."
-    ),
+        default="/metrics",
+        description=(
+            "URL path for metrics endpoint. Default '/metrics' is the Prometheus convention."
+        ),
     )
 
     metrics_method: MetricsMethod = Field(
-    default=MetricsMethod.RED,
-    description=(
-        "Metrics methodology to use. Options: "
-        "- red: Rate, Errors, Duration (service metrics) "
-        "- golden: Four Golden Signals (service + saturation) "
-        "- use: Utilization, Saturation, Errors (infrastructure) "
-        "- all: All methodologies"
-    ),
+        default=MetricsMethod.RED,
+        description=(
+            "Metrics methodology to use. Options: "
+            "- red: Rate, Errors, Duration (service metrics) "
+            "- golden: Four Golden Signals (service + saturation) "
+            "- use: Utilization, Saturation, Errors (infrastructure) "
+            "- all: All methodologies"
+        ),
     )
 
     use_histogram: bool = Field(
-    default=True,
-    description=(
-        "Use Prometheus histograms for latency metrics. "
-        "Histograms are aggregatable across instances and support "
-        "percentile calculations via histogram_quantile()."
-    ),
+        default=True,
+        description=(
+            "Use Prometheus histograms for latency metrics. "
+            "Histograms are aggregatable across instances and support "
+            "percentile calculations via histogram_quantile()."
+        ),
     )
 
     use_summary: bool = Field(
-    default=False,
-    description=(
-        "Use Prometheus summaries for exact percentiles. "
-        "Summaries provide pre-calculated percentiles but are NOT "
-        "aggregatable across instances. Enable for single-instance "
-        "deployments requiring exact percentiles."
-    ),
+        default=False,
+        description=(
+            "Use Prometheus summaries for exact percentiles. "
+            "Summaries provide pre-calculated percentiles but are NOT "
+            "aggregatable across instances. Enable for single-instance "
+            "deployments requiring exact percentiles."
+        ),
     )
 
     # =========================================================================
@@ -382,32 +382,32 @@ class ObskitSettings(BaseSettings):
     # =========================================================================
 
     log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"] = Field(
-    default="INFO",
-    description=(
-        "Minimum log level to output. "
-        "- DEBUG: Verbose debugging information "
-        "- INFO: General operational information "
-        "- WARNING: Warning messages "
-        "- ERROR: Error conditions "
-        "- CRITICAL: Critical failures"
-    ),
+        default="INFO",
+        description=(
+            "Minimum log level to output. "
+            "- DEBUG: Verbose debugging information "
+            "- INFO: General operational information "
+            "- WARNING: Warning messages "
+            "- ERROR: Error conditions "
+            "- CRITICAL: Critical failures"
+        ),
     )
 
     log_format: Literal["json", "console"] = Field(
-    default="json",
-    description=(
-        "Log output format. "
-        "- json: Machine-readable JSON format (recommended for production) "
-        "- console: Human-readable colored output (for development)"
-    ),
+        default="json",
+        description=(
+            "Log output format. "
+            "- json: Machine-readable JSON format (recommended for production) "
+            "- console: Human-readable colored output (for development)"
+        ),
     )
 
     log_include_timestamp: bool = Field(
-    default=True,
-    description=(
-        "Include ISO 8601 timestamp in log entries. "
-        "Disable if your log aggregator adds its own timestamps."
-    ),
+        default=True,
+        description=(
+            "Include ISO 8601 timestamp in log entries. "
+            "Disable if your log aggregator adds its own timestamps."
+        ),
     )
 
     # =========================================================================
@@ -416,13 +416,13 @@ class ObskitSettings(BaseSettings):
     # =========================================================================
 
     health_check_timeout: float = Field(
-    default=5.0,
-    ge=0.1,
-    description=(
-        "Timeout for individual health checks in seconds. "
-        "Health checks exceeding this timeout are marked as failed. "
-        "Set based on your Kubernetes probe timeouts."
-    ),
+        default=5.0,
+        ge=0.1,
+        description=(
+            "Timeout for individual health checks in seconds. "
+            "Health checks exceeding this timeout are marked as failed. "
+            "Set based on your Kubernetes probe timeouts."
+        ),
     )
 
     # =========================================================================
@@ -431,34 +431,34 @@ class ObskitSettings(BaseSettings):
     # =========================================================================
 
     circuit_breaker_failure_threshold: int = Field(
-    default=5,
-    ge=1,
-    description=(
-        "Number of consecutive failures before circuit opens. "
-        "Lower values = faster failure detection but more false positives. "
-        "Higher values = slower detection but fewer false positives."
-    ),
+        default=5,
+        ge=1,
+        description=(
+            "Number of consecutive failures before circuit opens. "
+            "Lower values = faster failure detection but more false positives. "
+            "Higher values = slower detection but fewer false positives."
+        ),
     )
 
     circuit_breaker_recovery_timeout: float = Field(
-    default=30.0,
-    ge=1.0,
-    description=(
-        "Seconds to wait before testing recovery (half-open state). "
-        "Set based on expected recovery time of downstream services. "
-        "Too short = unnecessary load on recovering service. "
-        "Too long = extended outage time."
-    ),
+        default=30.0,
+        ge=1.0,
+        description=(
+            "Seconds to wait before testing recovery (half-open state). "
+            "Set based on expected recovery time of downstream services. "
+            "Too short = unnecessary load on recovering service. "
+            "Too long = extended outage time."
+        ),
     )
 
     circuit_breaker_half_open_requests: int = Field(
-    default=3,
-    ge=1,
-    description=(
-        "Number of test requests allowed in half-open state. "
-        "These requests test if the downstream service has recovered. "
-        "If all succeed, circuit closes. If any fail, circuit opens."
-    ),
+        default=3,
+        ge=1,
+        description=(
+            "Number of test requests allowed in half-open state. "
+            "These requests test if the downstream service has recovered. "
+            "If all succeed, circuit closes. If any fail, circuit opens."
+        ),
     )
 
     # =========================================================================
@@ -467,42 +467,42 @@ class ObskitSettings(BaseSettings):
     # =========================================================================
 
     retry_max_attempts: int = Field(
-    default=3,
-    ge=1,
-    description=(
-        "Maximum number of retry attempts (including first try). "
-        "Total attempts = retry_max_attempts. "
-        "Example: 3 means try once, retry twice if failed."
-    ),
+        default=3,
+        ge=1,
+        description=(
+            "Maximum number of retry attempts (including first try). "
+            "Total attempts = retry_max_attempts. "
+            "Example: 3 means try once, retry twice if failed."
+        ),
     )
 
     retry_base_delay: float = Field(
-    default=1.0,
-    ge=0.0,
-    description=(
-        "Base delay in seconds for exponential backoff. "
-        "Actual delay = base_delay * (exponential_base ^ attempt). "
-        "With jitter, delay is randomized between 0 and calculated value."
-    ),
+        default=1.0,
+        ge=0.0,
+        description=(
+            "Base delay in seconds for exponential backoff. "
+            "Actual delay = base_delay * (exponential_base ^ attempt). "
+            "With jitter, delay is randomized between 0 and calculated value."
+        ),
     )
 
     retry_max_delay: float = Field(
-    default=60.0,
-    ge=0.0,
-    description=(
-        "Maximum delay in seconds between retries. "
-        "Caps the exponential backoff to prevent excessively long waits."
-    ),
+        default=60.0,
+        ge=0.0,
+        description=(
+            "Maximum delay in seconds between retries. "
+            "Caps the exponential backoff to prevent excessively long waits."
+        ),
     )
 
     retry_exponential_base: float = Field(
-    default=2.0,
-    ge=1.0,
-    description=(
-        "Base for exponential backoff calculation. "
-        "With base=2: delays are 1s, 2s, 4s, 8s, 16s... "
-        "With base=3: delays are 1s, 3s, 9s, 27s..."
-    ),
+        default=2.0,
+        ge=1.0,
+        description=(
+            "Base for exponential backoff calculation. "
+            "With base=2: delays are 1s, 2s, 4s, 8s, 16s... "
+            "With base=3: delays are 1s, 3s, 9s, 27s..."
+        ),
     )
 
     # =========================================================================
@@ -511,21 +511,21 @@ class ObskitSettings(BaseSettings):
     # =========================================================================
 
     rate_limit_requests: int = Field(
-    default=100,
-    ge=1,
-    description=(
-        "Default maximum requests allowed per time window. "
-        "Adjust based on your service's capacity."
-    ),
+        default=100,
+        ge=1,
+        description=(
+            "Default maximum requests allowed per time window. "
+            "Adjust based on your service's capacity."
+        ),
     )
 
     rate_limit_window_seconds: float = Field(
-    default=60.0,
-    ge=1.0,
-    description=(
-        "Default time window for rate limiting in seconds. "
-        "Example: 100 requests per 60 seconds = ~1.67 requests/second."
-    ),
+        default=60.0,
+        ge=1.0,
+        description=(
+            "Default time window for rate limiting in seconds. "
+            "Example: 100 requests per 60 seconds = ~1.67 requests/second."
+        ),
     )
 
     # =========================================================================
@@ -534,14 +534,14 @@ class ObskitSettings(BaseSettings):
     # =========================================================================
 
     metrics_sample_rate: float = Field(
-    default=1.0,
-    ge=0.0,
-    le=1.0,
-    description=(
-        "Metrics sampling rate from 0.0 (no metrics) to 1.0 (all metrics). "
-        "Use lower values for high-frequency operations to reduce cardinality. "
-        "Example: 0.1 = sample 10% of operations for metrics."
-    ),
+        default=1.0,
+        ge=0.0,
+        le=1.0,
+        description=(
+            "Metrics sampling rate from 0.0 (no metrics) to 1.0 (all metrics). "
+            "Use lower values for high-frequency operations to reduce cardinality. "
+            "Example: 0.1 = sample 10% of operations for metrics."
+        ),
     )
 
     # =========================================================================
@@ -550,14 +550,14 @@ class ObskitSettings(BaseSettings):
     # =========================================================================
 
     log_sample_rate: float = Field(
-    default=1.0,
-    ge=0.0,
-    le=1.0,
-    description=(
-        "Log sampling rate from 0.0 (no logs) to 1.0 (all logs). "
-        "Use lower values for high-volume services to reduce log volume. "
-        "Example: 0.01 = sample 1% of operations for logging."
-    ),
+        default=1.0,
+        ge=0.0,
+        le=1.0,
+        description=(
+            "Log sampling rate from 0.0 (no logs) to 1.0 (all logs). "
+            "Use lower values for high-volume services to reduce log volume. "
+            "Example: 0.01 = sample 1% of operations for logging."
+        ),
     )
 
     # =========================================================================
@@ -566,20 +566,20 @@ class ObskitSettings(BaseSettings):
     # =========================================================================
 
     metrics_auth_enabled: bool = Field(
-    default=False,
-    description=(
-        "Enable authentication for metrics endpoint. "
-        "When enabled, metrics endpoint requires authentication token."
-    ),
+        default=False,
+        description=(
+            "Enable authentication for metrics endpoint. "
+            "When enabled, metrics endpoint requires authentication token."
+        ),
     )
 
     metrics_auth_token: str = Field(
-    default="",
-    description=(
-        "Authentication token for metrics endpoint. "
-        "Required if metrics_auth_enabled=True. "
-        "Set via environment variable for security."
-    ),
+        default="",
+        description=(
+            "Authentication token for metrics endpoint. "
+            "Required if metrics_auth_enabled=True. "
+            "Set via environment variable for security."
+        ),
     )
 
     # =========================================================================
@@ -587,13 +587,13 @@ class ObskitSettings(BaseSettings):
     # =========================================================================
 
     logging_backend: Literal["structlog", "loguru", "auto"] = Field(
-    default="structlog",
-    description=(
-        "Logging backend to use. Options: "
-        "- structlog: Default, recommended for production "
-        "- loguru: Alternative backend with rich features "
-        "- auto: Auto-detect, prefer structlog if available"
-    ),
+        default="structlog",
+        description=(
+            "Logging backend to use. Options: "
+            "- structlog: Default, recommended for production "
+            "- loguru: Alternative backend with rich features "
+            "- auto: Auto-detect, prefer structlog if available"
+        ),
     )
 
     # =========================================================================
@@ -602,15 +602,15 @@ class ObskitSettings(BaseSettings):
     # =========================================================================
 
     async_metric_queue_size: int = Field(
-    default=10000,
-    ge=100,
-    le=1000000,
-    description=(
-        "Maximum size of async metric recording queue. "
-        "When queue is full, metrics are dropped with warning. "
-        "Larger values use more memory but handle bursts better. "
-        "Default: 10000 (suitable for most services)."
-    ),
+        default=10000,
+        ge=100,
+        le=1000000,
+        description=(
+            "Maximum size of async metric recording queue. "
+            "When queue is full, metrics are dropped with warning. "
+            "Larger values use more memory but handle bursts better. "
+            "Default: 10000 (suitable for most services)."
+        ),
     )
 
     # =========================================================================
@@ -619,11 +619,11 @@ class ObskitSettings(BaseSettings):
     # =========================================================================
 
     enable_self_metrics: bool = Field(
-    default=True,
-    description=(
-        "Enable obskit's internal metrics (queue depth, errors, etc.). "
-        "Useful for monitoring obskit's own health and performance."
-    ),
+        default=True,
+        description=(
+            "Enable obskit's internal metrics (queue depth, errors, etc.). "
+            "Useful for monitoring obskit's own health and performance."
+        ),
     )
 
     # =========================================================================
@@ -631,20 +631,20 @@ class ObskitSettings(BaseSettings):
     # =========================================================================
 
     metrics_rate_limit_enabled: bool = Field(
-    default=False,
-    description=(
-        "Enable rate limiting for metrics endpoint. "
-        "Helps prevent DoS attacks on the metrics endpoint."
-    ),
+        default=False,
+        description=(
+            "Enable rate limiting for metrics endpoint. "
+            "Helps prevent DoS attacks on the metrics endpoint."
+        ),
     )
 
     metrics_rate_limit_requests: int = Field(
-    default=60,
-    ge=1,
-    description=(
-        "Maximum requests per minute to metrics endpoint. "
-        "Only applies if metrics_rate_limit_enabled=True."
-    ),
+        default=60,
+        ge=1,
+        description=(
+            "Maximum requests per minute to metrics endpoint. "
+            "Only applies if metrics_rate_limit_enabled=True."
+        ),
     )
 
 

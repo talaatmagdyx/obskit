@@ -89,9 +89,7 @@ class MockMetrics:
             return [r for r in self.requests if r.operation == operation]
         return self.requests
 
-    def get_request_count(
-        self, operation: str | None = None, status: str | None = None
-    ) -> int:
+    def get_request_count(self, operation: str | None = None, status: str | None = None) -> int:
         """Get count of recorded requests."""
         requests = self.get_requests(operation)
         if status:

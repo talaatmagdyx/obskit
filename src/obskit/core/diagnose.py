@@ -97,21 +97,24 @@ def _check_logging() -> PackageInfo:
     integrations: list[IntegrationInfo] = []
     if ver is not None:
         sl_ver = _import_version("structlog")
-        integrations.append(
-            IntegrationInfo("structlog", sl_ver is not None, sl_ver)
-        )
+        integrations.append(IntegrationInfo("structlog", sl_ver is not None, sl_ver))
         # trace-correlation availability
         try:
             from obskit.logging.trace_correlation import is_trace_correlation_available
+
             tc_avail = is_trace_correlation_available()
         except ImportError:
             tc_avail = False
         integrations.append(
-            IntegrationInfo("trace-correlation", tc_avail,
-                            "✅ active" if tc_avail else "needs obskit-tracing[opentelemetry]")
+            IntegrationInfo(
+                "trace-correlation",
+                tc_avail,
+                "✅ active" if tc_avail else "needs obskit-tracing[opentelemetry]",
+            )
         )
-    return PackageInfo(name="obskit-logging", installed=ver is not None, version=ver,
-                       integrations=integrations)
+    return PackageInfo(
+        name="obskit-logging", installed=ver is not None, version=ver, integrations=integrations
+    )
 
 
 def _check_metrics() -> PackageInfo:
@@ -119,28 +122,34 @@ def _check_metrics() -> PackageInfo:
     integrations: list[IntegrationInfo] = []
     if ver is not None:
         prom_ver = _import_version("prometheus_client")
-        integrations.append(
-            IntegrationInfo("prometheus-client", prom_ver is not None, prom_ver)
-        )
+        integrations.append(IntegrationInfo("prometheus-client", prom_ver is not None, prom_ver))
         try:
             from obskit.metrics.exemplar import is_exemplar_available
+
             ex_avail = is_exemplar_available()
         except ImportError:
             ex_avail = False
         integrations.append(
-            IntegrationInfo("trace-exemplars", ex_avail,
-                            "✅ active" if ex_avail else "needs prometheus-client + obskit-tracing[opentelemetry]")
+            IntegrationInfo(
+                "trace-exemplars",
+                ex_avail,
+                "✅ active"
+                if ex_avail
+                else "needs prometheus-client + obskit-tracing[opentelemetry]",
+            )
         )
-    return PackageInfo(name="obskit-metrics", installed=ver is not None, version=ver,
-                       integrations=integrations)
+    return PackageInfo(
+        name="obskit-metrics", installed=ver is not None, version=ver, integrations=integrations
+    )
 
 
 def _check_tracing() -> PackageInfo:
     ver = _pkg_version("obskit")
     integrations: list[IntegrationInfo] = []
     if ver is not None:
-        otel_api_ver = _import_version("opentelemetry.trace", "__version__") or \
-                       _pkg_version("opentelemetry-api")
+        otel_api_ver = _import_version("opentelemetry.trace", "__version__") or _pkg_version(
+            "opentelemetry-api"
+        )
         integrations.append(
             IntegrationInfo("opentelemetry-api", otel_api_ver is not None, otel_api_ver)
         )
@@ -151,12 +160,16 @@ def _check_tracing() -> PackageInfo:
         # endpoint from settings
         try:
             from obskit.config import get_settings
+
             endpoint = get_settings().otlp_endpoint or "(not configured)"
         except Exception:
             endpoint = "(unavailable)"
-        integrations.append(IntegrationInfo("otlp-endpoint", bool(endpoint != "(not configured)"), endpoint))
-    return PackageInfo(name="obskit-tracing", installed=ver is not None, version=ver,
-                       integrations=integrations)
+        integrations.append(
+            IntegrationInfo("otlp-endpoint", bool(endpoint != "(not configured)"), endpoint)
+        )
+    return PackageInfo(
+        name="obskit-tracing", installed=ver is not None, version=ver, integrations=integrations
+    )
 
 
 def _check_health() -> PackageInfo:
@@ -165,14 +178,21 @@ def _check_health() -> PackageInfo:
     if ver is not None:
         try:
             from obskit.health.checker import _OTEL_AVAILABLE
+
             integrations.append(
-                IntegrationInfo("health-tracing", _OTEL_AVAILABLE,
-                                "trace_id in /health responses" if _OTEL_AVAILABLE else "needs obskit-tracing[opentelemetry]")
+                IntegrationInfo(
+                    "health-tracing",
+                    _OTEL_AVAILABLE,
+                    "trace_id in /health responses"
+                    if _OTEL_AVAILABLE
+                    else "needs obskit-tracing[opentelemetry]",
+                )
             )
         except ImportError:
             pass  # NOSONAR
-    return PackageInfo(name="obskit-health", installed=ver is not None, version=ver,
-                       integrations=integrations)
+    return PackageInfo(
+        name="obskit-health", installed=ver is not None, version=ver, integrations=integrations
+    )
 
 
 def _check_simple(name: str, pip_name: str | None = None) -> PackageInfo:
@@ -253,6 +273,7 @@ def run_diagnostics(*, out: Any = None) -> None:
         out: File-like object to write output to (defaults to sys.stdout).
     """
     import sys as _sys
+
     if out is None:
         out = _sys.stdout
     packages = collect_diagnostics()

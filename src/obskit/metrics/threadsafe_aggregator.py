@@ -83,7 +83,8 @@ class ThreadLocalAggregator:
     def __init__(
         self,
         flush_interval_s: float = 1.0,
-        on_flush: Callable[[dict[tuple[str, str], int], dict[tuple[str, str], list[float]]], None] | None = None,
+        on_flush: Callable[[dict[tuple[str, str], int], dict[tuple[str, str], list[float]]], None]
+        | None = None,
     ) -> None:
         self._flush_interval_s = flush_interval_s
         self._on_flush = on_flush or (lambda _c, _d: None)

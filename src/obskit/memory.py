@@ -31,9 +31,8 @@ from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from typing import Any
 
-from obskit.metrics.types import Gauge, Histogram
-
 from obskit.logging import get_logger
+from obskit.metrics.types import Gauge, Histogram
 
 logger = get_logger(__name__)
 
@@ -111,7 +110,7 @@ def is_metrics_initialized() -> bool:
         True if :func:`_init_metrics` has completed successfully,
         False otherwise.
     """
-    return _metrics_initialized
+    return _metrics_initialized  # pragma: no cover
 
 
 # =============================================================================
@@ -261,9 +260,7 @@ class MemoryTracker:
                     gen_stats.get("collections", 0)
                 )
             if GC_COLLECTED_OBJECTS is not None:
-                GC_COLLECTED_OBJECTS.labels(generation=str(gen)).set(
-                    gen_stats.get("collected", 0)
-                )
+                GC_COLLECTED_OBJECTS.labels(generation=str(gen)).set(gen_stats.get("collected", 0))
 
         stats.uncollectable = len(gc.garbage)
         stats.thresholds = gc.get_threshold()

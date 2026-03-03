@@ -92,9 +92,7 @@ class CostTracker:
         report = tracker.get_usage_report(tenant_id="123")
     """
 
-    def __init__(
-        self, service_name: str = "default", cost_rates: dict[str, float] | None = None
-    ):
+    def __init__(self, service_name: str = "default", cost_rates: dict[str, float] | None = None):
         """
         Initialize cost tracker.
 
@@ -259,9 +257,7 @@ class CostTracker:
         """Get resource usage for all tenants."""
         return dict(self._usage)
 
-    def calculate_cost(
-        self, tenant_id: str, period: timedelta | None = None
-    ) -> dict[str, float]:
+    def calculate_cost(self, tenant_id: str, period: timedelta | None = None) -> dict[str, float]:
         """
         Calculate estimated cost for a tenant.
 

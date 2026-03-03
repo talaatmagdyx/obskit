@@ -309,6 +309,7 @@ def with_slo_tracking(
     ... async def process_email():
     ...     return await send_email()
     """
+
     def decorator(func: Callable[P, T]) -> Callable[P, T]:
         latency_name = latency_slo_name or f"{slo_name}_latency"
 
@@ -377,6 +378,7 @@ def with_slo_tracking_sync(
     ...     # Process mail
     ...     return result
     """
+
     def decorator(func: Callable[P, T]) -> Callable[P, T]:
         latency_name = latency_slo_name or f"{slo_name}_latency"
 

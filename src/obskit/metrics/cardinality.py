@@ -271,7 +271,7 @@ class CardinalityProtector:
         >>> safe_id = protector.protect("user_id", user_id, fallback="anonymous")
         """
         if value is None:
-            return fallback if fallback is not None else value  # type: ignore
+            return fallback if fallback is not None else value
 
         cache = self._get_cache(label_name)
         key = transform(value) if transform else str(value)
@@ -347,12 +347,16 @@ class CardinalityProtector:
             if label_name:
                 if label_name in self._caches:
                     self._caches[label_name].clear()
-                    if PROMETHEUS_AVAILABLE and CARDINALITY_CURRENT is not None:  # pragma: no branch
+                    if (
+                        PROMETHEUS_AVAILABLE and CARDINALITY_CURRENT is not None
+                    ):  # pragma: no branch
                         CARDINALITY_CURRENT.labels(label_name=label_name).set(0)
             else:
                 for name, cache in self._caches.items():
                     cache.clear()
-                    if PROMETHEUS_AVAILABLE and CARDINALITY_CURRENT is not None:  # pragma: no branch
+                    if (
+                        PROMETHEUS_AVAILABLE and CARDINALITY_CURRENT is not None
+                    ):  # pragma: no branch
                         CARDINALITY_CURRENT.labels(label_name=name).set(0)
 
 

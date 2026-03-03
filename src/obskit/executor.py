@@ -35,9 +35,8 @@ from datetime import UTC, datetime
 from functools import wraps
 from typing import Any, TypeVar
 
-from obskit.metrics.types import Counter, Gauge, Histogram
-
 from obskit.logging import get_logger
+from obskit.metrics.types import Counter, Gauge, Histogram
 
 logger = get_logger(__name__)
 
@@ -349,7 +348,7 @@ class TrackedExecutor:
         self._executor = executor
         self._tracker = tracker
 
-    def submit(self, fn: Callable[..., T], *args, **kwargs) -> Future:
+    def submit(self, fn: Callable[..., T], *args, **kwargs) -> "Future[T]":
         """Submit a task with tracking."""
         submit_time = time.perf_counter()
         self._tracker.task_submitted()
@@ -372,7 +371,7 @@ class TrackedExecutor:
 
         return self._executor.submit(tracked_fn, *args, **kwargs)
 
-    def map(self, fn: Callable, *iterables, timeout=None, chunksize=1):
+    def map(self, fn: Callable[..., Any], *iterables, timeout=None, chunksize=1):
         """Map function with tracking."""
         return self._executor.map(fn, *iterables, timeout=timeout, chunksize=chunksize)
 
@@ -476,6 +475,7 @@ def create_tracked_executor(
     TrackedExecutor
         New tracked executor
     """
+    executor: ThreadPoolExecutor | ProcessPoolExecutor
     if executor_type == "thread":
         executor = ThreadPoolExecutor(max_workers=max_workers)
     elif executor_type == "process":

@@ -38,7 +38,6 @@ class ObskitDeprecationWarning(DeprecationWarning):
     """
 
 
-
 # Ensure our deprecation warnings are always shown
 warnings.filterwarnings("default", category=ObskitDeprecationWarning)
 

@@ -113,7 +113,7 @@ class ValidationTracker:
     def validate(
         self,
         data: Any,
-        validator: Callable[[Any], bool | dict | list] | None = None,
+        validator: Callable[[Any], bool | dict[str, Any] | list[Any]] | None = None,
         schema: Any | None = None,
         raise_on_error: bool = False,
     ) -> ValidationResult:
@@ -185,7 +185,7 @@ class ValidationTracker:
         return result
 
     def _process_validator_output(
-        self, output: bool | dict | list, result: ValidationResult
+        self, output: bool | dict[str, Any] | list[Any], result: ValidationResult
     ) -> ValidationResult:
         """Process output from custom validator."""
         if isinstance(output, bool):
@@ -277,7 +277,7 @@ class ValidationTracker:
         return result
 
     def _validate_jsonschema(
-        self, data: Any, schema: dict, result: ValidationResult
+        self, data: Any, schema: dict[str, Any], result: ValidationResult
     ) -> ValidationResult:
         """Validate using JSON Schema."""
         try:
@@ -315,7 +315,7 @@ class ValidationTracker:
 
     def validated(
         self,
-        validator: Callable | None = None,
+        validator: Callable[..., Any] | None = None,
         schema: Any | None = None,
         data_arg: str = "data",
         raise_on_error: bool = True,
@@ -409,20 +409,22 @@ class ValidationException(Exception):
 
 
 # Convenience functions
-def validate_required(data: dict, fields: list[str]) -> list[ValidationError]:
+def validate_required(data: dict[str, Any], fields: list[str]) -> list[ValidationError]:
     """Validate that required fields are present."""
     errors = []
     for field_name in fields:
         if field_name not in data or data[field_name] is None:
             errors.append(
                 ValidationError(
-                    field=field_name, error_type="required", message=f"Field '{field_name}' is required"
+                    field=field_name,
+                    error_type="required",
+                    message=f"Field '{field_name}' is required",
                 )
             )
     return errors
 
 
-def validate_type(data: dict, field_types: dict[str, type]) -> list[ValidationError]:
+def validate_type(data: dict[str, Any], field_types: dict[str, type]) -> list[ValidationError]:
     """Validate field types."""
     errors = []
     for field_name, expected_type in field_types.items():
@@ -440,7 +442,9 @@ def validate_type(data: dict, field_types: dict[str, type]) -> list[ValidationEr
     return errors
 
 
-def validate_range(data: dict, field_ranges: dict[str, tuple]) -> list[ValidationError]:
+def validate_range(
+    data: dict[str, Any], field_ranges: dict[str, tuple[Any, Any]]
+) -> list[ValidationError]:
     """Validate numeric field ranges."""
     errors = []
     for field_name, (min_val, max_val) in field_ranges.items():

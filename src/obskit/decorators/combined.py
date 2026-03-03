@@ -246,7 +246,9 @@ def with_observability(
                     return result
                 except Exception as e:
                     duration_s = time.perf_counter() - start_time
-                    get_ht_pipeline().record(op, comp, duration_s, False, default_context.copy(), error=e)
+                    get_ht_pipeline().record(
+                        op, comp, duration_s, False, default_context.copy(), error=e
+                    )
                     raise
 
             # =================================================================
@@ -465,7 +467,9 @@ def with_observability_sync(
                     return result
                 except Exception as e:
                     duration_s = time.perf_counter() - start_time
-                    get_ht_pipeline().record(op, comp, duration_s, False, default_context.copy(), error=e)
+                    get_ht_pipeline().record(
+                        op, comp, duration_s, False, default_context.copy(), error=e
+                    )
                     raise
 
             # Build context

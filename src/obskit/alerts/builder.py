@@ -122,7 +122,7 @@ class AlertRule:
         error_label: str = "error",
         labels: dict[str, str] | None = None,
         annotations: dict[str, str] | None = None,
-    ) -> "AlertRule":
+    ) -> AlertRule:
         """
         Standard error-rate alert.
 
@@ -171,11 +171,11 @@ class AlertRule:
             severity=severity,
             duration=duration,
             labels=labels or {},
-            annotations=annotations or {
+            annotations=annotations
+            or {
                 "summary": f"High error rate (> {pct})",
                 "description": (
-                    f"Error rate above {pct} over the last {window}. "
-                    f"Metric: {metric}."
+                    f"Error rate above {pct} over the last {window}. Metric: {metric}."
                 ),
             },
         )
@@ -193,7 +193,7 @@ class AlertRule:
         name: str = "HighLatency",
         labels: dict[str, str] | None = None,
         annotations: dict[str, str] | None = None,
-    ) -> "AlertRule":
+    ) -> AlertRule:
         """
         Standard latency-percentile alert.
 
@@ -238,7 +238,8 @@ class AlertRule:
             severity=severity,
             duration=duration,
             labels=labels or {},
-            annotations=annotations or {
+            annotations=annotations
+            or {
                 "summary": f"High {p_label} latency (> {threshold_ms:.0f}ms)",
                 "description": (
                     f"{p_label} latency exceeds {threshold_ms:.0f}ms "
@@ -258,7 +259,7 @@ class AlertRule:
         name: str = "NoTraffic",
         labels: dict[str, str] | None = None,
         annotations: dict[str, str] | None = None,
-    ) -> "AlertRule":
+    ) -> AlertRule:
         """
         Alert when the service receives zero traffic.
 
@@ -288,7 +289,8 @@ class AlertRule:
             severity=severity,
             duration=duration,
             labels=labels or {},
-            annotations=annotations or {
+            annotations=annotations
+            or {
                 "summary": "No traffic received",
                 "description": f"No requests received in the last {window}. Metric: {metric}.",
             },
@@ -309,7 +311,7 @@ class AlertRule:
         error_label: str = "error",
         labels: dict[str, str] | None = None,
         annotations: dict[str, str] | None = None,
-    ) -> "AlertRule":
+    ) -> AlertRule:
         """
         Multi-window SLO error-budget burn-rate alert (Google SRE approach).
 
@@ -364,7 +366,8 @@ class AlertRule:
             severity=severity,
             duration=duration,
             labels=labels or {},
-            annotations=annotations or {
+            annotations=annotations
+            or {
                 "summary": f"SLO error budget burning {burn_factor}x too fast",
                 "description": (
                     f"Error budget burning at {burn_factor}x the sustainable rate. "
@@ -383,7 +386,7 @@ class AlertRule:
         duration: str = "2m",
         labels: dict[str, str] | None = None,
         annotations: dict[str, str] | None = None,
-    ) -> "AlertRule":
+    ) -> AlertRule:
         """
         Fully custom alert rule — use when standard templates don't fit.
 
@@ -455,7 +458,7 @@ class AlertGroup:
     rules: list[AlertRule] = field(default_factory=list)
     interval: str | None = None
 
-    def add(self, rule: AlertRule) -> "AlertGroup":
+    def add(self, rule: AlertRule) -> AlertGroup:
         """Append a rule and return self (fluent API)."""
         self.rules.append(rule)
         return self
@@ -513,7 +516,7 @@ def export_yaml(
 
     if path:
         parent = os.path.dirname(path)
-        if parent:
+        if parent:  # pragma: no branch
             os.makedirs(parent, exist_ok=True)
         with open(path, "w") as fh:
             fh.write(yaml_str)
