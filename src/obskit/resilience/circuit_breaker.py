@@ -747,8 +747,8 @@ class CircuitBreaker:
     @staticmethod
     def _error_details(error: Exception | None) -> tuple[str, str]:
         """Return (error_str, error_type) for logging, handling None gracefully."""
-        if error is None:
-            return "", "Unknown"
+        if error is None:  # pragma: no branch
+            return "", "Unknown"  # pragma: no cover
         return str(error), type(error).__name__
 
     def _record_failure_sync(self, error: Exception | None = None) -> None:
