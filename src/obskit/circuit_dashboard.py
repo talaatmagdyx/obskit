@@ -26,7 +26,7 @@ from datetime import UTC, datetime
 from enum import Enum
 from typing import Any
 
-from prometheus_client import Gauge
+from obskit.metrics.types import Gauge
 
 from obskit.logging import get_logger
 

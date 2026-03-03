@@ -412,20 +412,17 @@ class TestBuiltInHealthChecks:
 
     @pytest.mark.asyncio
     async def test_redis_check_with_mock(self) -> None:
-        """Test Redis health check with mocked client."""
+        """Test Redis health check via plain callable (no create_redis_check wrapper)."""
         from unittest.mock import AsyncMock
 
-        from obskit.health.checks import create_redis_check
-
-        # The health check awaits ping(), so we need an async-capable mock
         mock_redis = MagicMock()
         mock_redis.ping = AsyncMock(return_value=True)
 
-        check = create_redis_check(mock_redis, timeout=1.0)
+        # Pass the callable directly — HealthChecker handles sync/async transparently
+        check = mock_redis.ping
         result = await check()
 
-        assert isinstance(result, dict)
-        assert result["healthy"] is True
+        assert result is True
 
 
 class TestRateLimiting:

@@ -11,7 +11,7 @@ import time
 from collections.abc import Callable
 from typing import Any, TypeVar
 
-from prometheus_client import Counter, Gauge, Histogram
+from obskit.metrics.types import Counter, Gauge, Histogram
 
 from .logging import get_logger
 
@@ -71,7 +71,7 @@ class CacheTracker:
         self.window_size = window_size
         self._hits = 0
         self._misses = 0
-        self._recent_results: list = []
+        self._recent_results: list[bool] = []
 
     def _update_hit_rate(self, is_hit: bool):
         """Update rolling hit rate."""
@@ -224,8 +224,8 @@ def cached(
     # This is a template - actual implementation depends on cache backend
     def decorator(func: F) -> F:
         # In-memory cache for demo (replace with Redis/Memcached in production)
-        _cache: dict[str, tuple] = {}
-        _cache_lock = threading.Lock()
+        _cache: dict[str, tuple[Any, ...]] = {}
+        _cache_lock: threading.Lock = threading.Lock()
 
         def build_key(*args, **kwargs) -> str:
             if key_builder:

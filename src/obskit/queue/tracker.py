@@ -20,7 +20,7 @@ from contextlib import contextmanager
 from dataclasses import dataclass, field
 from typing import Any
 
-from prometheus_client import Counter
+from obskit.metrics.types import Counter
 
 from obskit.logging import get_logger
 from obskit.metrics.golden import get_golden_signals

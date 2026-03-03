@@ -10,7 +10,7 @@ from contextlib import contextmanager
 from dataclasses import dataclass, field
 from typing import Any, TypeVar
 
-from prometheus_client import Counter, Gauge, Histogram
+from obskit.metrics.types import Counter, Gauge, Histogram
 
 from .logging import get_logger
 

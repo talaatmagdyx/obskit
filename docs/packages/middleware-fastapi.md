@@ -78,7 +78,6 @@ from fastapi import FastAPI
 from obskit.middleware.fastapi import ObskitMiddleware
 from obskit.middleware.fastapi import create_health_router
 from obskit.health import get_health_checker
-from obskit.health.checks import create_redis_check
 import redis.asyncio as aioredis
 
 app = FastAPI()
@@ -86,7 +85,7 @@ app.add_middleware(ObskitMiddleware)
 
 checker = get_health_checker()
 redis_client = aioredis.Redis(host="redis", port=6379)
-checker.add_readiness_check("redis", create_redis_check(redis_client))
+checker.add_readiness_check("redis", lambda: redis_client.ping())
 
 # Mount the health router
 app.include_router(create_health_router(), prefix="")
@@ -244,7 +243,6 @@ from obskit.middleware.fastapi import (
     create_diagnose_router,
 )
 from obskit.health import get_health_checker
-from obskit.health.checks import create_redis_check
 import redis.asyncio as aioredis
 
 checker = get_health_checker()
@@ -265,7 +263,7 @@ async def lifespan(app: FastAPI):
     )
 
     redis_client = aioredis.Redis(host="redis", port=6379)
-    checker.add_readiness_check("redis", create_redis_check(redis_client))
+    checker.add_readiness_check("redis", lambda: redis_client.ping())
     yield
 
 app = FastAPI(lifespan=lifespan)

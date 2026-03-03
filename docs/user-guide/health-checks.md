@@ -140,6 +140,12 @@ result.to_dict()
 
 ## Built-in Check Types
 
+!!! tip "Custom checks are first-class"
+    Any callable (sync or async) is a valid check. For advanced dependency checks not listed here — Redis cluster, connection pool introspection, SQLAlchemy pool stats — pass a plain callable directly:
+    ```python
+    HealthCheck(name="redis_pool", check=lambda: my_pool_ok())
+    ```
+
 ### `create_tcp_check`
 
 Tests a TCP connection to a host and port:
@@ -281,6 +287,49 @@ checker.add_check("opensearch", create_http_check("http://opensearch:9200/_clust
 # Total time: ~28ms (slowest check), not 43ms (sum)
 result = await checker.check_health()
 ```
+
+---
+
+## build_health_router — FastAPI one-liner
+
+For FastAPI services, `build_health_router` is the fastest way to get Kubernetes-ready health endpoints. You only provide the check callables — obskit registers the routes, handles timeouts, aggregates results, and returns the correct HTTP status codes.
+
+```python
+from fastapi import FastAPI
+from obskit.health import HealthCheck, build_health_router
+
+app = FastAPI()
+
+app.include_router(
+    build_health_router(
+        checks=[
+            HealthCheck(name="redis",    check=lambda: redis_client.ping(), timeout=2),
+            HealthCheck(name="postgres", check=lambda: db.execute("SELECT 1"), timeout=3),
+        ]
+    )
+)
+# Exposes: GET /health/live, GET /health/ready, GET /health
+```
+
+Separate liveness from readiness when the two check different things:
+
+```python
+app.include_router(
+    build_health_router(
+        readiness_checks=[
+            # Dependency checks — failure stops traffic
+            HealthCheck(name="postgres", check=lambda: db.ping(), timeout=3),
+        ],
+        liveness_checks=[
+            # Process checks — failure triggers pod restart
+            HealthCheck(name="memory", check=lambda: memory_ok(), timeout=1),
+        ],
+        prefix="/health",   # default
+    )
+)
+```
+
+See the [health package reference](../packages/health.md#build_health_router) for the full API.
 
 ---
 

@@ -88,6 +88,7 @@ nav:
     - Distributed Tracing: user-guide/tracing.md
     - Structured Logging: user-guide/logging.md
     - Health Checks: user-guide/health-checks.md
+    - Alert Rules: user-guide/alerts.md
     - Resilience Patterns: user-guide/resilience.md
     - SLO Tracking: user-guide/slo.md
     - PII Redaction: user-guide/pii.md
@@ -99,8 +100,13 @@ nav:
     - obskit-metrics: packages/metrics.md
     - obskit-tracing: packages/tracing.md
     - obskit-health: packages/health.md
+    - obskit-alerts: packages/alerts.md
     - obskit-resilience: packages/resilience.md
     - obskit-slo: packages/slo.md
+    - obskit-queue: packages/queue.md
+    - obskit-db: packages/db.md
+    - Advanced Modules: packages/advanced.md
+    - Utility Modules: packages/utilities.md
     - Middleware:
       - FastAPI: packages/middleware-fastapi.md
       - Flask: packages/middleware-flask.md

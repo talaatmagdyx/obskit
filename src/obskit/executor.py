@@ -35,7 +35,7 @@ from datetime import UTC, datetime
 from functools import wraps
 from typing import Any, TypeVar
 
-from prometheus_client import Counter, Gauge, Histogram
+from obskit.metrics.types import Counter, Gauge, Histogram
 
 from obskit.logging import get_logger
 

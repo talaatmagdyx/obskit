@@ -5,6 +5,84 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+---
+
+## [3.1.0](https://github.com/talaatmagdyx/obskit/compare/v3.0.0...v3.1.0) (2026-03-03)
+
+### 🔍 Type Safety
+
+* **memory:** fix `force_gc()` return type annotation from `dict[str, int]` to `dict[int, int]` — GC generation keys are integers (`0`, `1`, `2`); the previous annotation was wrong and masked by `ignore_errors = true`.
+* **memory:** add explicit type parameters: `GCStats.thresholds: tuple[int, int, int]`, `ObjectStats.top_types: list[tuple[str, int]]`, `_stop_tracking: threading.Event`.
+* **cache:** add explicit type parameters: `_recent_results: list[bool]`, `_cache: dict[str, tuple[Any, ...]]`, `_cache_lock: threading.Lock`.
+* **cost:** re-type `generate_report()` body — introduce explicitly-typed locals `tenants: dict[str, Any]` and `total_cost: float` instead of an untyped dict, resolving `[index]` and `[operator]` errors.
+* **logging/sampling:** add type params to `should_sample()` return type: `tuple` → `tuple[bool, str]`.
+* **metrics/self_metrics:** add type params to module-level `_all_instances: list["ObskitSelfMetrics"]`.
+* All 10 fixes were triggered by softening the 29-module mypy override from `ignore_errors = true` to `ignore_errors = false` with relaxed defs settings. Modules now participate in structural type checking.
+
+### 🔧 CI / Dev Experience
+
+* **ci:** enforce `ruff format --check` in the lint job — formatting drift is now caught on every PR in CI (previously only enforced by pre-commit locally).
+* **ci:** add `coverage` job — runs the full unit-test suite with `--cov-fail-under=100` and uploads results to Codecov. Coverage is now a hard gate on every PR instead of only being enforced when running pytest locally.
+* **ci:** fix integration test job — removed spurious `-m "not integration"` marker filter (no test in `tests/integration/` carries that marker; tests skip gracefully when external services are absent).
+* **ci/security:** migrate `security.yml` (pip-audit, bandit, license-check) from bare `pip install` to `uv sync --all-extras` — consistent with all other CI jobs and benefits from the uv lock-file.
+* **ci/security:** remove `|| true` from `pip-audit --format=json` step — errors are no longer silently swallowed before the JSON report is written.
+* **ci/docs:** remove stale Sphinx `build-sphinx` legacy job from `docs.yml` — no `docs/source/conf.py` exists; the job printed "No Sphinx conf.py found — skipping" on every run and wasted ~1 min of CI time.
+* **ci/docs:** `build-mkdocs` job now uses `uv sync --all-extras` (consistent tooling; mkdocs is now a dev dependency).
+* **ci/mutation:** expand mutation testing matrix from 4 → 8 modules, adding `circuit_breaker`, `slo_tracker`, `red_metrics`, and `alert_rule`.
+* **dev:** add `mkdocs>=1.6.0`, `mkdocs-material>=9.5.0`, `mkdocstrings[python]>=0.25.0`, `mike>=2.0.0` to `[tool.uv] dev-dependencies` — `uv sync --all-extras` now installs everything needed to run `mkdocs serve` or `mkdocs build` locally without a separate install step.
+* **dev:** add `commitizen>=3.0.0` to `[tool.uv] dev-dependencies` — `cz` CLI now available after `uv sync`.
+* **mypy:** soften the 29-module `ignore_errors = true` override to `disallow_untyped_defs = false` + `disallow_untyped_calls = false` — mypy now reports structural errors in these modules while not requiring type annotations on existing functions. Technical-debt reduction continues module-by-module.
+
+### 🚀 Features
+
+* **health:** add `build_health_router()` — builds a FastAPI `APIRouter` with `/health/live`, `/health/ready`, and `/health` endpoints from a list of `HealthCheck` objects. Zero knowledge of Redis, Postgres, or any external dependency; caller provides the callable.
+
+* **health:** add `check=` alias on `HealthCheck` dataclass — the new preferred parameter name alongside the existing `check_fn=` (kept for backward compatibility). Both sync and async callables are now supported transparently.
+
+* **alerts:** add fluent builder API (`AlertRule`, `AlertGroup`, `export_yaml`) — standard SRE alert-rule templates with zero hardcoded thresholds or metric names:
+  - `AlertRule.error_rate(metric, threshold, ...)` — error-rate alert using `rate()`
+  - `AlertRule.latency(metric, percentile, threshold_ms, ...)` — histogram-percentile latency alert
+  - `AlertRule.no_traffic(metric, window, ...)` — zero-traffic / silence alert
+  - `AlertRule.slo_burn(error_metric, slo_target, burn_factor, ...)` — multi-window SLO burn-rate alert (Google SRE approach)
+  - `AlertRule.custom(name, expr, severity, ...)` — raw PromQL pass-through
+  - `AlertGroup(name, rules, interval)` — named group with fluent `.add()` API
+  - `export_yaml(*groups, path=None)` — exports to valid Prometheus alert-rules YAML
+
+### 🐛 Fixed
+
+* **memory:** `python_gc_collections_total` and `python_gc_collected_objects_total` metrics changed from `Counter` to `Gauge` — they store absolute snapshot values from `gc.get_stats()`, not monotonically increasing deltas. Previously the code used the private `._value.set()` attribute which broke with the wrapper layer.
+
+### ♻️ Internal
+
+* **all modules:** 32 modules that imported `Counter`, `Gauge`, `Histogram` directly from `prometheus_client` now import from `obskit.metrics.types` instead. The wrappers are no-ops when `prometheus_client` is not installed, making `prometheus` a truly optional extra with no crash-on-import risk. No behaviour change when `prometheus_client` is installed.
+
+### 🗑️ Removed
+
+* **pools:** remove `wrap_psycopg2_pool()` — introspected private psycopg2 pool attribute `_pool` which could break silently on library version updates. Callers should call `tracker.set_pool_size(active=..., idle=..., max_size=...)` directly instead.
+* **pools:** remove `wrap_redis_pool()` — introspected private Redis pool attributes `_available_connections` and `_in_use_connections`. Same private-attr fragility as above.
+
+* **health:** remove `create_redis_check()` from `obskit.health.checks`. Callers already hold a configured Redis client; `lambda: redis_client.ping()` is equivalent with zero extra API surface. The `redis` optional dependency is kept — it is still used by `obskit.resilience` (distributed circuit breaker state) and `obskit.locking`.
+* **health:** remove `create_redis_cluster_check()` — introspected private Redis cluster attrs (`_in_use_connections` etc.) that could break silently on library updates.
+* **health:** remove `create_redis_pool_check()` — same private-attr fragility concern.
+* **health:** remove `create_database_pool_check()` — SQLAlchemy-specific, introspected `pool._max_overflow`.
+
+  `obskit.health.checks` now exports only the three system-level checks that have no pre-configured client: `create_memory_check`, `create_disk_check`, `create_http_check`.
+
+### 🐛 Bug Fixes
+
+* **health:** fix `HealthChecker._run_check()` to correctly handle **sync callables**. Previously, passing a synchronous lambda (e.g. `check=lambda: redis.ping()`) caused a `TypeError` because the result was passed to `asyncio.wait_for()` instead of being used directly. Sync callables now return their value immediately; async callables continue to be awaited with timeout enforcement.
+
+### 📚 Documentation
+
+* add `docs/packages/alerts.md` — full API reference for `AlertRule`, `AlertGroup`, `export_yaml`
+* add `docs/user-guide/alerts.md` — SRE patterns guide, severity levels, multi-service export, SLO burn-rate explanation
+* update `docs/packages/health.md` — new `build_health_router` reference section, `HealthCheck` `check=` alias docs
+* update `docs/user-guide/health-checks.md` — `build_health_router` quick-start section
+
+---
+
 ## [3.0.0](https://github.com/talaatmagdyx/obskit/compare/v2.2.0...v3.0.0) (2026-03-01)
 
 

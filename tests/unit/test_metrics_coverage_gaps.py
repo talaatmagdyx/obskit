@@ -858,17 +858,15 @@ class TestMemoryGaps:
         _registry = prometheus_client.CollectorRegistry()
         _original_init = memory_module._metrics_initialized
 
-        # Use the fresh registry via mocking Gauge/Counter/Histogram
+        # Use the fresh registry via mocking Gauge/Histogram
         mock_gauge = MagicMock()
-        mock_counter = MagicMock()
         mock_histogram = MagicMock()
 
         memory_module._metrics_initialized = False
         try:
             with patch("obskit.memory.Gauge", return_value=mock_gauge):
-                with patch("obskit.memory.Counter", return_value=mock_counter):
-                    with patch("obskit.memory.Histogram", return_value=mock_histogram):
-                        memory_module._init_metrics()
+                with patch("obskit.memory.Histogram", return_value=mock_histogram):
+                    memory_module._init_metrics()
             assert memory_module._metrics_initialized is True
         finally:
             memory_module._metrics_initialized = True

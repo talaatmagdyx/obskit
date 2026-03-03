@@ -16,18 +16,21 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.12"
 
-      - name: Install obskit + pip-audit
-        run: |
-          pip install --upgrade pip
-          pip install -e ".[all]" pip-audit
+      - name: Install obskit + all extras + dev tools
+        run: uv sync --all-extras
 
-      - name: Run pip-audit
-        run: pip-audit --format=json --output=audit-report.json || true
+      - name: Run pip-audit (generate JSON report)
+        run: uv run pip-audit --format=json --output=audit-report.json
 
       - name: Upload audit report
         uses: actions/upload-artifact@v4
@@ -38,7 +41,7 @@ jobs:
 
       - name: Fail on HIGH/CRITICAL vulnerabilities
         run: |
-          pip-audit --format=columns --desc=on 2>&1 | tee audit-summary.txt
+          uv run pip-audit --format=columns --desc=on 2>&1 | tee audit-summary.txt
           # Fail only on HIGH or CRITICAL (not info/low)
           if grep -E "(HIGH|CRITICAL)" audit-summary.txt; then
             echo "❌ HIGH or CRITICAL vulnerabilities found"
@@ -55,17 +58,22 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.12"
 
-      - name: Install bandit
-        run: pip install "bandit[toml]"
+      - name: Install obskit + all extras + dev tools
+        run: uv sync --all-extras
 
-      - name: Run bandit on src
+      - name: Run bandit on src (generate JSON report)
         run: |
-          bandit -r src/obskit/ \
+          uv run bandit -r src/obskit/ \
                     -c pyproject.toml \
                     -ll \
                     -f json \
@@ -80,7 +88,7 @@ jobs:
 
       - name: Fail on HIGH severity issues
         run: |
-          bandit -r src/obskit/ \
+          uv run bandit -r src/obskit/ \
                     -c pyproject.toml \
                     -ll \
                     -f txt || exit_code=$?
@@ -98,21 +106,24 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.12"
 
-      - name: Install obskit + pip-licenses
-        run: |
-          pip install --upgrade pip
-          pip install -e ".[all]" pip-licenses
+      - name: Install obskit + all extras + dev tools
+        run: uv sync --all-extras
 
       - name: Check for non-permissive licenses
         run: |
-          pip-licenses --format=json --output-file=licenses.json
+          uv run pip-licenses --format=json --output-file=licenses.json
           # Fail if any GPL/AGPL/LGPL-only deps found
-          pip-licenses --fail-on="GPL;AGPL;LGPL" --allow-only="MIT;Apache;BSD;ISC;PSF;MPL;Unlicense;WTFPL;CC0" || echo "Warning: Check license report"
+          uv run pip-licenses --fail-on="GPL;AGPL;LGPL" --allow-only="MIT;Apache;BSD;ISC;PSF;MPL;Unlicense;WTFPL;CC0" || echo "Warning: Check license report"
 
       - name: Upload license report
         uses: actions/upload-artifact@v4

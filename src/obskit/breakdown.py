@@ -32,7 +32,7 @@ from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from typing import Any
 
-from prometheus_client import Gauge, Histogram
+from obskit.metrics.types import Gauge, Histogram
 
 from obskit.logging import get_logger
 

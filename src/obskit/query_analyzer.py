@@ -28,7 +28,7 @@ from datetime import UTC, datetime
 from enum import Enum
 from typing import Any, cast
 
-from prometheus_client import Counter, Histogram
+from obskit.metrics.types import Counter, Histogram
 
 from obskit.logging import get_logger
 

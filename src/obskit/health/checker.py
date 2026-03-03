@@ -238,18 +238,46 @@ class HealthCheck:
     ----------
     name : str
         Unique name for the check.
-    check_fn : CheckFunction
-        Async function that performs the check.
+    check : CheckFunction
+        Callable (sync or async) that performs the check.
+        Alias: ``check_fn`` is also accepted for backward compatibility.
     critical : bool
         If True, failure affects overall health status.
     timeout : float
-        Maximum time allowed for the check.
+        Maximum time allowed for the check in seconds.
+
+    Example
+    -------
+    >>> # Preferred — use 'check'
+    >>> HealthCheck(name="redis", check=lambda: redis.ping(), timeout=2)
+    >>>
+    >>> # Named async function
+    >>> async def my_check():
+    ...     return await db.execute("SELECT 1")
+    >>> HealthCheck(name="postgres", check=my_check, timeout=3)
+    >>>
+    >>> # Backward-compatible — 'check_fn' still works
+    >>> HealthCheck(name="legacy", check_fn=my_fn, timeout=5)
     """
 
     name: str
-    check_fn: CheckFunction
+    check_fn: CheckFunction | None = None
     critical: bool = True
     timeout: float = 5.0
+    check: CheckFunction | None = field(default=None, repr=False)
+
+    def __post_init__(self) -> None:
+        # 'check' and 'check_fn' are interchangeable aliases.
+        # 'check' is the preferred forward-compatible name.
+        if self.check is not None and self.check_fn is None:
+            self.check_fn = self.check
+        elif self.check_fn is not None and self.check is None:
+            self.check = self.check_fn
+        if self.check_fn is None:
+            raise ValueError(
+                "HealthCheck requires a callable. "
+                "Pass it as 'check=my_fn' or 'check_fn=my_fn'."
+            )
 
 
 # Aliases for semantic clarity
@@ -481,11 +509,17 @@ class HealthChecker:
         start_time = time.perf_counter()
 
         try:
-            # Run check with timeout
-            result = await asyncio.wait_for(
-                check.check_fn(),
-                timeout=check.timeout,
-            )
+            # Call the check function — supports both sync and async callables.
+            # Sync callables (e.g. lambda: redis.ping()) return a value directly.
+            # Async callables return a coroutine that we await with a timeout.
+            call_result = check.check_fn()
+
+            if asyncio.iscoroutine(call_result):
+                # Async path: enforce timeout on the awaitable
+                result = await asyncio.wait_for(call_result, timeout=check.timeout)
+            else:
+                # Sync path: value already computed, no timeout needed
+                result = call_result
 
             duration_ms = (time.perf_counter() - start_time) * 1000
 

@@ -12,7 +12,7 @@ from dataclasses import dataclass, field
 from datetime import UTC, datetime, timedelta
 from typing import Any, TypeVar
 
-from prometheus_client import Counter, Gauge, Histogram
+from obskit.metrics.types import Counter, Gauge, Histogram
 
 # Metrics
 COST_CPU_TIME = Counter(
@@ -302,18 +302,19 @@ class CostTracker:
                 "estimated_cost": costs,
                 "generated_at": datetime.now(UTC).isoformat(),
             }
-        report = {
-            "tenants": {},
-            "total_cost": 0.0,
-            "generated_at": datetime.now(UTC).isoformat(),
-        }
+        tenants: dict[str, Any] = {}
+        total_cost: float = 0.0
 
         for tid, usage in self._usage.items():
             costs = self.calculate_cost(tid)
-            report["tenants"][tid] = {"usage": usage.to_dict(), "estimated_cost": costs}
-            report["total_cost"] += costs["total"]
+            tenants[tid] = {"usage": usage.to_dict(), "estimated_cost": costs}
+            total_cost += float(costs["total"])
 
-        return report
+        return {
+            "tenants": tenants,
+            "total_cost": total_cost,
+            "generated_at": datetime.now(UTC).isoformat(),
+        }
 
     def reset_usage(self, tenant_id: str | None = None):
         """

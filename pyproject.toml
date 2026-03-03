@@ -1,6 +1,6 @@
 [project]
 name = "obskit"
-version = "3.0.0"
+version = "3.1.0"
 description = "Production-ready observability toolkit for Python microservices"
 readme = "README.md"
 license = "MIT"
@@ -123,6 +123,13 @@ dev-dependencies = [
     "psutil>=5.9.0",
     "aiohttp>=3.9.0",
     "jsonschema>=4.0.0",
+    # Documentation build tools
+    "mkdocs>=1.6.0,<2.0.0",
+    "mkdocs-material>=9.5.0,<10.0.0",
+    "mkdocstrings[python]>=0.25.0,<1.0.0",
+    "mike>=2.0.0,<3.0.0",
+    # Conventional commits / release tooling
+    "commitizen>=3.0.0,<5.0.0",
 ]
 
 [tool.pytest.ini_options]
@@ -189,7 +196,13 @@ module = [
     "obskit.metrics.tenant",
     "obskit.quota",
 ]
-ignore_errors = true
+# Progressive type-safety: require explicit annotations but allow untyped calls
+# (softer than ignore_errors=true, stricter than nothing — tackle module-by-module)
+ignore_errors = false
+disallow_untyped_defs = false
+disallow_untyped_calls = false
+disallow_incomplete_defs = false
+check_untyped_defs = false
 
 [tool.ruff]
 target-version = "py311"

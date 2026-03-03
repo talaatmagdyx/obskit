@@ -10,7 +10,7 @@
 ```
 
 **Production-ready observability for Python microservices.**
-Metrics · Tracing · Logging · Health · Resilience · SLO — all in one toolkit.
+Metrics · Tracing · Logging · Health · Alerts · Resilience · SLO — all in one toolkit.
 
 ---
 
@@ -19,7 +19,7 @@ Metrics · Tracing · Logging · Health · Resilience · SLO — all in one tool
 [![PyPI Downloads](https://img.shields.io/pypi/dm/obskit.svg)](https://pypi.org/project/obskit/)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Coverage: 100%](https://img.shields.io/badge/coverage-100%25-brightgreen.svg)](https://github.com/talaatmagdyx/obskit)
+[![Coverage](https://codecov.io/gh/talaatmagdyx/obskit/branch/main/graph/badge.svg)](https://codecov.io/gh/talaatmagdyx/obskit)
 [![Quality Gate](https://sonarcloud.io/api/project_badges/measure?project=talaatmagdyx_obskit&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=talaatmagdyx_obskit)
 [![Docs](https://img.shields.io/badge/docs-mkdocs-blue.svg)](https://talaatmagdyx.github.io/obskit/)
 
@@ -39,7 +39,8 @@ Without obskit                          With obskit
 ✗ Configure prometheus_client           ✓ pip install "obskit[prometheus]"
 ✗ Set up structlog processors           ✓ pip install obskit  (built-in)
 ✗ Bootstrap OpenTelemetry SDK           ✓ pip install "obskit[otlp]"
-✗ Write health endpoint from scratch    ✓ pip install obskit  (built-in)
+✗ Write health endpoint from scratch    ✓ build_health_router(checks=[...])
+✗ Hand-write Prometheus alert YAML      ✓ AlertRule.error_rate(metric=...) + export_yaml()
 ✗ Implement circuit breaker logic       ✓ pip install obskit  (built-in)
 ✗ Wire trace IDs into every log         ✓ Automatic — zero extra code
 ✗ Correlate metrics to traces           ✓ Automatic — exemplars built in
@@ -57,8 +58,8 @@ obskit is a **single unified package** with optional extras. Install only what y
 │                       pip install "obskit[all]"  (everything)                 │
 ├──────────────────────────────────────────────────────────────────────────────┤
 │  Always included — no extras needed                                           │
-│  obskit.logging  ·  obskit.health  ·  obskit.resilience  ·  obskit.slo       │
-│  obskit.decorators  ·  obskit.db  ·  obskit.queue  ·  obskit.core            │
+│  obskit.logging  ·  obskit.health  ·  obskit.alerts  ·  obskit.resilience    │
+│  obskit.slo  ·  obskit.decorators  ·  obskit.db  ·  obskit.queue  ·  obskit.core │
 ├─────────────────────┬──────────────────┬──────────────────────────────────────┤
 │  obskit[prometheus] │   obskit[otlp]   │  obskit[fastapi|flask|django]        │
 │  Prometheus         │  OpenTelemetry   │  Framework middleware                 │
@@ -271,8 +272,36 @@ req_logger.info("processing")   # all fields carry through automatically
 
 ### 🏥 Health Checks
 
+**Option A — `build_health_router` (FastAPI, recommended)**
+
+One call wires `/health/live`, `/health/ready`, and `/health` — obskit owns the protocol, you own the callable:
+
 ```python
-from obskit.health import HealthChecker, create_redis_check, create_http_check
+from fastapi import FastAPI
+from obskit.health import HealthCheck, build_health_router
+
+app = FastAPI()
+app.include_router(
+    build_health_router(
+        readiness_checks=[
+            # obskit doesn't import Redis/Postgres — you provide the callable
+            HealthCheck(name="redis",    check=lambda: redis_client.ping(), timeout=2),
+            HealthCheck(name="postgres", check=lambda: db.execute("SELECT 1"), timeout=3),
+        ],
+        liveness_checks=[
+            HealthCheck(name="memory", check=lambda: psutil.virtual_memory().percent < 90),
+        ],
+    )
+)
+# GET /health/live   → 200 | 503
+# GET /health/ready  → 200 | 503
+# GET /health        → 200 | 503 (combined)
+```
+
+**Option B — decorator API (any framework)**
+
+```python
+from obskit.health import HealthChecker
 
 checker = HealthChecker()
 
@@ -284,10 +313,6 @@ async def check_db():
 async def check_redis():
     return await redis.ping()
 
-# Built-in check helpers
-checker.add_readiness_check("upstream")(create_http_check("https://api.partner.com/health"))
-checker.add_liveness_check("cache")(create_redis_check("redis://localhost:6379"))
-
 result = await checker.check_health()
 # result.status → "healthy" | "degraded" | "unhealthy"
 ```
@@ -296,15 +321,68 @@ result = await checker.check_health()
 
 ```yaml
 livenessProbe:
-  httpGet: { path: /live, port: 8080 }
+  httpGet: { path: /health/live, port: 8080 }
   initialDelaySeconds: 5
   periodSeconds: 10
 
 readinessProbe:
-  httpGet: { path: /ready, port: 8080 }
+  httpGet: { path: /health/ready, port: 8080 }
   initialDelaySeconds: 5
   periodSeconds: 5
 ```
+
+---
+
+### 🚨 Alert Rules
+
+Standard SRE alerting patterns as code — zero hardcoded thresholds, zero hardcoded metric names. Export directly to Prometheus / Alertmanager YAML.
+
+```python
+from obskit.alerts import AlertRule, AlertGroup, export_yaml
+
+group = AlertGroup(
+    name="order-service",
+    rules=[
+        AlertRule.error_rate(
+            metric="http_requests_total",
+            threshold=0.05,           # 5% error rate → critical
+            severity="critical",
+        ),
+        AlertRule.latency(
+            metric="http_request_duration_seconds",
+            percentile=0.99,
+            threshold_ms=2000,        # p99 > 2 s → warning
+            severity="warning",
+        ),
+        AlertRule.no_traffic(
+            metric="http_requests_total",
+            window="10m",             # silence for 10 min → warning
+        ),
+        AlertRule.slo_burn(
+            error_metric="http_requests_total",
+            slo_target=0.999,         # 99.9% availability SLO
+            burn_factor=14.4,         # page on-call if exhausted in < 2 days
+            severity="critical",
+        ),
+        AlertRule.custom(             # raw PromQL pass-through
+            name="QueueSaturation",
+            expr="rabbitmq_queue_messages > 10000",
+            severity="warning",
+        ),
+    ],
+)
+
+# Exports valid Prometheus alert-rules YAML
+yaml_str = export_yaml(group, path="k8s/alerts.yaml")
+```
+
+| Factory | What it detects |
+|---------|----------------|
+| `AlertRule.error_rate()` | Error fraction of a counter exceeds threshold |
+| `AlertRule.latency()` | Histogram percentile (p99, p95…) exceeds budget |
+| `AlertRule.no_traffic()` | Service goes completely silent |
+| `AlertRule.slo_burn()` | Error budget burning too fast (Google SRE multi-window) |
+| `AlertRule.custom()` | Any raw PromQL expression |
 
 ---
 
@@ -473,7 +551,7 @@ python -m obskit.core.diagnose
 obskit diagnostics
 ==================
 Core
-  version         3.0.0    ✓
+  version         3.1.0    ✓
   python          3.11.8   ✓
 Logging
   structlog       23.2.0   ✓
@@ -525,6 +603,8 @@ Full documentation at **[talaatmagdyx.github.io/obskit](https://talaatmagdyx.git
 |---|---|
 | 🚀 Getting Started | [Installation & Quick Start](https://talaatmagdyx.github.io/obskit/getting-started/installation/) |
 | 📊 Metrics Guide | [RED / Golden / USE](https://talaatmagdyx.github.io/obskit/user-guide/metrics/) |
+| 🏥 Health Checks | [Health Checks Guide](https://talaatmagdyx.github.io/obskit/user-guide/health-checks/) |
+| 🚨 Alert Rules | [Alert Rules Guide](https://talaatmagdyx.github.io/obskit/user-guide/alerts/) |
 | 📦 Package Reference | [Modules & extras](https://talaatmagdyx.github.io/obskit/packages/core/) |
 | 🔄 Migration from v1 | [Migration Guide](https://talaatmagdyx.github.io/obskit/migration/from-v1/) |
 | 📚 API Reference | [Full API docs](https://talaatmagdyx.github.io/obskit/reference/api/) |

@@ -177,20 +177,13 @@ check.to_dict()      # JSON-serialisable dict
 
 ## Built-in checks
 
-### Redis check
+obskit ships three system-level built-in checks — checks that have **no pre-configured client**. For dependency checks (Redis, Postgres, RabbitMQ, etc.) pass a plain callable directly, since the caller already owns the client:
 
 ```python
-from obskit.health.checks import create_redis_check
-import redis
-import redis.asyncio as aioredis
-
-# Sync client
-redis_client = redis.Redis(host="redis", port=6379)
-checker.add_readiness_check("redis", create_redis_check(redis_client, timeout=5.0))
-
-# Async client
-async_redis = aioredis.Redis(host="redis", port=6379)
-checker.add_readiness_check("redis", create_redis_check(async_redis, timeout=5.0))
+# Dependency checks — pass your own callable, zero boilerplate
+checker.add_readiness_check("redis",    lambda: redis_client.ping())
+checker.add_readiness_check("postgres", lambda: db.execute("SELECT 1"))
+checker.add_readiness_check("rabbitmq", lambda: mq_channel.is_open)
 ```
 
 ### HTTP check
@@ -375,23 +368,148 @@ checker.add_check("slo_api_availability", check_slo_compliance)
 
 ---
 
-## Full example
+## build_health_router
+
+Build a FastAPI `APIRouter` with standard `/health/live`, `/health/ready`, and `/health` endpoints from a list of `HealthCheck` objects.
+
+obskit is completely agnostic about what is being checked. **You provide the callable — obskit owns the protocol.**
+
+```python
+from obskit.health import HealthCheck, build_health_router
+
+router = build_health_router(
+    checks=[
+        HealthCheck(name="redis",    check=lambda: redis_client.ping(), timeout=2),
+        HealthCheck(name="postgres", check=lambda: db.execute("SELECT 1"),  timeout=3),
+        HealthCheck(name="rabbit",   check=lambda: channel.is_open,         timeout=2),
+    ]
+)
+
+app.include_router(router)
+# Registers:
+#   GET /health/live   → liveness probe  (200 / 503)
+#   GET /health/ready  → readiness probe (200 / 503)
+#   GET /health        → combined health (200 / 503)
+```
+
+### Parameters
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `checks` | `list[HealthCheck]` | `None` | Shortcut — all treated as readiness checks |
+| `readiness_checks` | `list[HealthCheck]` | `None` | Checks for external dependencies |
+| `liveness_checks` | `list[HealthCheck]` | `None` | Checks for process health (e.g. memory) |
+| `prefix` | `str` | `"/health"` | URL prefix for all endpoints |
+| `tags` | `list[str]` | `["health"]` | FastAPI OpenAPI tags |
+| `include_in_schema` | `bool` | `False` | Include endpoints in OpenAPI schema |
+
+### Splitting liveness from readiness
+
+```python
+router = build_health_router(
+    readiness_checks=[
+        # Failure → pod removed from load balancer
+        HealthCheck(name="postgres", check=lambda: db.execute("SELECT 1"), timeout=3),
+        HealthCheck(name="redis",    check=lambda: redis_client.ping(),    timeout=2),
+    ],
+    liveness_checks=[
+        # Failure → pod restarted by Kubernetes
+        HealthCheck(name="memory", check=lambda: psutil.virtual_memory().percent < 90),
+    ],
+)
+```
+
+### HealthCheck — check= syntax
+
+The preferred parameter name is `check=`. The legacy `check_fn=` parameter is kept for backward compatibility.
+
+```python
+# Preferred (check= alias)
+HealthCheck(name="redis",    check=lambda: redis_client.ping(), timeout=2)
+
+# Async callable works too
+async def check_postgres():
+    return await db.execute("SELECT 1")
+HealthCheck(name="postgres", check=check_postgres, timeout=3)
+
+# Legacy (check_fn= still works)
+HealthCheck(name="rabbit",   check_fn=lambda: channel.is_open, timeout=2)
+```
+
+Both sync and async callables are supported. Sync callables return their value directly; async callables are awaited with timeout enforcement.
+
+### Response format
+
+Every endpoint returns the same JSON shape:
+
+```json
+{
+    "status": "healthy",
+    "healthy": true,
+    "checks": {
+        "redis":    {"status": "healthy",   "duration_ms": 1.2},
+        "postgres": {"status": "healthy",   "duration_ms": 4.5},
+        "rabbit":   {"status": "unhealthy", "duration_ms": 0.3, "error": "..."}
+    },
+    "service":   "order-service",
+    "version":   "1.0.0",
+    "timestamp": "2026-03-01T10:00:00.000000+00:00"
+}
+```
+
+---
+
+## Full example — FastAPI with build_health_router
+
+```python
+from contextlib import asynccontextmanager
+from fastapi import FastAPI
+from obskit.health import HealthCheck, build_health_router
+from obskit.health.checks import create_memory_check, create_disk_check
+
+# Define checks as plain callables — obskit doesn't import redis/postgres
+import redis
+import psycopg2
+
+redis_client = redis.Redis(host="redis", port=6379)
+
+checks = [
+    HealthCheck(name="redis",    check=lambda: redis_client.ping(),          timeout=2),
+    HealthCheck(name="postgres", check=lambda: _pg_ping(),                   timeout=3),
+    HealthCheck(name="memory",   check=create_memory_check(threshold_percent=85), timeout=1),
+]
+
+def _pg_ping() -> bool:
+    try:
+        conn = psycopg2.connect("postgresql://user:pass@postgres:5432/db", connect_timeout=2)
+        conn.close()
+        return True
+    except Exception:
+        return False
+
+app = FastAPI(title="Order Service")
+app.include_router(build_health_router(checks=checks))
+```
+
+---
+
+## Full example — standalone server (non-FastAPI)
 
 ```python
 from contextlib import asynccontextmanager
 import redis.asyncio as aioredis
 from fastapi import FastAPI
 from obskit.health import get_health_checker
-from obskit.health.checks import create_redis_check, create_http_check
+from obskit.health.checks import create_http_check
 from obskit.health.server import start_health_server, stop_health_server
 
 checker = get_health_checker()
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Register checks
+    # Register checks — pass your own client callable directly
     redis_client = aioredis.Redis(host="redis", port=6379)
-    checker.add_readiness_check("redis", create_redis_check(redis_client))
+    checker.add_readiness_check("redis", lambda: redis_client.ping())
     checker.add_readiness_check(
         "upstream",
         create_http_check("http://upstream/health"),

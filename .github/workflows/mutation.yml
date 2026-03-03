@@ -33,6 +33,18 @@ jobs:
           - module: health_checker
             path: src/obskit/health/checker.py
             tests: tests/unit/health
+          - module: circuit_breaker
+            path: src/obskit/resilience/circuit_breaker.py
+            tests: tests/unit/resilience
+          - module: slo_tracker
+            path: src/obskit/slo/tracker.py
+            tests: tests/unit/slo
+          - module: red_metrics
+            path: src/obskit/metrics/red.py
+            tests: tests/unit/metrics
+          - module: alert_rule
+            path: src/obskit/alerts/rule.py
+            tests: tests/unit/alerts
 
     steps:
       - uses: actions/checkout@v4

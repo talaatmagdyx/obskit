@@ -171,6 +171,7 @@ obskit.metrics : Record health check metrics
 obskit.resilience : Circuit breakers for unhealthy dependencies
 """
 
+from obskit.health.router import build_health_router
 from obskit.health.aggregator import (
     DEPENDENCY_CHECK_TOTAL,
     DEPENDENCY_HEALTH,
@@ -199,8 +200,6 @@ from obskit.health.checks import (
     create_disk_check,
     create_http_check,
     create_memory_check,
-    create_redis_check,
-    create_redis_cluster_check,
 )
 from obskit.health.server import (
     get_health_server,
@@ -216,6 +215,11 @@ from obskit.health.slo_check import (
 )
 
 __all__ = [
+    # ==========================================================================
+    # Generic Router Builder
+    # ==========================================================================
+    # Build FastAPI /health/live + /health/ready router from callables
+    "build_health_router",
     # ==========================================================================
     # Health Checker
     # ==========================================================================
@@ -245,10 +249,6 @@ __all__ = [
     # ==========================================================================
     # Built-in Health Checks
     # ==========================================================================
-    # Redis connectivity check
-    "create_redis_check",
-    # Redis cluster check
-    "create_redis_cluster_check",
     # Memory utilization check
     "create_memory_check",
     # Disk space check

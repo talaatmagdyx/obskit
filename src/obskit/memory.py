@@ -31,7 +31,7 @@ from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from typing import Any
 
-from prometheus_client import Counter, Gauge, Histogram
+from obskit.metrics.types import Gauge, Histogram
 
 from obskit.logging import get_logger
 
@@ -55,8 +55,8 @@ MEMORY_RSS_BYTES: Gauge | None = None
 MEMORY_VMS_BYTES: Gauge | None = None
 MEMORY_HEAP_BYTES: Gauge | None = None
 MEMORY_PERCENT: Gauge | None = None
-GC_COLLECTIONS_TOTAL: Counter | None = None
-GC_COLLECTED_OBJECTS: Counter | None = None
+GC_COLLECTIONS_TOTAL: Gauge | None = None
+GC_COLLECTED_OBJECTS: Gauge | None = None
 GC_UNCOLLECTABLE_OBJECTS: Gauge | None = None
 GC_DURATION_SECONDS: Histogram | None = None
 OBJECT_COUNT: Gauge | None = None
@@ -77,10 +77,10 @@ def _init_metrics() -> None:
         MEMORY_VMS_BYTES = Gauge("process_memory_vms_bytes", "Virtual Memory Size in bytes")
         MEMORY_HEAP_BYTES = Gauge("python_memory_heap_bytes", "Python heap memory usage")
         MEMORY_PERCENT = Gauge("process_memory_percent", "Memory usage percentage")
-        GC_COLLECTIONS_TOTAL = Counter(
+        GC_COLLECTIONS_TOTAL = Gauge(
             "python_gc_collections_total", "Total garbage collections", ["generation"]
         )
-        GC_COLLECTED_OBJECTS = Counter(  # pragma: no cover
+        GC_COLLECTED_OBJECTS = Gauge(  # pragma: no cover
             "python_gc_collected_objects_total", "Total objects collected by GC", ["generation"]
         )  # pragma: no cover
         GC_UNCOLLECTABLE_OBJECTS = Gauge(  # pragma: no cover
@@ -152,7 +152,7 @@ class GCStats:
     collections: dict[int, int] = field(default_factory=dict)
     collected: dict[int, int] = field(default_factory=dict)
     uncollectable: int = 0
-    thresholds: tuple = (700, 10, 10)
+    thresholds: tuple[int, int, int] = (700, 10, 10)
     timestamp: datetime = field(default_factory=lambda: datetime.now(UTC))
 
     def to_dict(self) -> dict[str, Any]:
@@ -171,7 +171,7 @@ class ObjectStats:
 
     total_objects: int = 0
     by_type: dict[str, int] = field(default_factory=dict)
-    top_types: list[tuple] = field(default_factory=list)
+    top_types: list[tuple[str, int]] = field(default_factory=list)
     timestamp: datetime = field(default_factory=lambda: datetime.now(UTC))
 
     def to_dict(self) -> dict[str, Any]:
@@ -257,11 +257,11 @@ class MemoryTracker:
 
             # Update Prometheus
             if GC_COLLECTIONS_TOTAL is not None:
-                GC_COLLECTIONS_TOTAL.labels(generation=str(gen))._value.set(
+                GC_COLLECTIONS_TOTAL.labels(generation=str(gen)).set(
                     gen_stats.get("collections", 0)
                 )
             if GC_COLLECTED_OBJECTS is not None:
-                GC_COLLECTED_OBJECTS.labels(generation=str(gen))._value.set(
+                GC_COLLECTED_OBJECTS.labels(generation=str(gen)).set(
                     gen_stats.get("collected", 0)
                 )
 
@@ -331,9 +331,9 @@ class MemoryTracker:
         gc.callbacks.append(gc_callback)
         self._gc_callbacks_registered = True
 
-    def force_gc(self) -> dict[str, int]:
-        """Force garbage collection and return collected counts."""
-        collected = {}
+    def force_gc(self) -> dict[int, int]:
+        """Force garbage collection and return collected counts keyed by generation (0, 1, 2)."""
+        collected: dict[int, int] = {}
         for gen in range(3):
             start_time = time.perf_counter()
             count = gc.collect(gen)
@@ -351,7 +351,7 @@ class MemoryTracker:
 # =============================================================================
 
 _background_tracker: threading.Thread | None = None
-_stop_tracking = threading.Event()
+_stop_tracking: threading.Event = threading.Event()
 
 
 def start_memory_tracking(

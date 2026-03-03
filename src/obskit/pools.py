@@ -37,7 +37,7 @@ from datetime import UTC, datetime
 from enum import Enum
 from typing import Any
 
-from prometheus_client import Counter, Gauge, Histogram
+from obskit.metrics.types import Counter, Gauge, Histogram
 
 from obskit.logging import get_logger
 
@@ -431,63 +431,3 @@ def check_all_pools_healthy() -> bool:
     return all(tracker.is_healthy() for tracker in _pools.values())
 
 
-# =============================================================================
-# Wrapper for Popular Libraries
-# =============================================================================
-
-
-def wrap_psycopg2_pool(pool, tracker_name: str = "postgres") -> ConnectionPoolTracker:
-    """
-    Wrap a psycopg2 connection pool with tracking.
-
-    Parameters
-    ----------
-    pool : psycopg2.pool.AbstractConnectionPool
-        The psycopg2 pool
-    tracker_name : str
-        Name for the tracker
-
-    Returns
-    -------
-    ConnectionPoolTracker
-        The tracker
-    """
-    tracker = get_pool_tracker(tracker_name, PoolType.DATABASE)
-
-    # Try to get pool stats
-    if hasattr(pool, "_pool"):
-        tracker.set_pool_size(
-            idle=len(pool._pool),
-            max_size=pool.maxconn if hasattr(pool, "maxconn") else 10,
-        )
-
-    return tracker
-
-
-def wrap_redis_pool(pool, tracker_name: str = "redis") -> ConnectionPoolTracker:
-    """
-    Wrap a Redis connection pool with tracking.
-
-    Parameters
-    ----------
-    pool : redis.ConnectionPool
-        The Redis pool
-    tracker_name : str
-        Name for the tracker
-
-    Returns
-    -------
-    ConnectionPoolTracker
-        The tracker
-    """
-    tracker = get_pool_tracker(tracker_name, PoolType.CACHE)
-
-    # Try to get pool stats
-    if hasattr(pool, "_available_connections") and hasattr(pool, "_in_use_connections"):
-        tracker.set_pool_size(
-            idle=len(pool._available_connections),
-            active=len(pool._in_use_connections),
-            max_size=pool.max_connections if hasattr(pool, "max_connections") else 10,
-        )
-
-    return tracker

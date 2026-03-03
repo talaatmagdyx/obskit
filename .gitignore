@@ -147,3 +147,4 @@ codeql-analysis-*.tgz
 codeql-db/
 
 .claude/
+CLAUDE.md

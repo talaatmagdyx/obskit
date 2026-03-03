@@ -15,8 +15,6 @@ from obskit.pools import (
     check_all_pools_healthy,
     get_all_pool_stats,
     get_pool_tracker,
-    wrap_psycopg2_pool,
-    wrap_redis_pool,
 )
 
 # =============================================================================
@@ -392,56 +390,3 @@ class TestCheckAllPoolsHealthy:
         _pools.update(original)
 
 
-# =============================================================================
-# Wrapper functions for popular libraries
-# =============================================================================
-
-
-class TestWrapPsycopg2Pool:
-    def test_returns_connection_pool_tracker(self):
-        mock_pool = MagicMock()
-        mock_pool._pool = []
-        mock_pool.maxconn = 10
-
-        tracker = wrap_psycopg2_pool(mock_pool, tracker_name="pg_wrap_test")
-        assert isinstance(tracker, ConnectionPoolTracker)
-
-    def test_pool_size_set_from_pool_attributes(self):
-        mock_pool = MagicMock()
-        mock_pool._pool = ["conn1", "conn2"]  # 2 idle connections
-        mock_pool.maxconn = 10
-
-        tracker = wrap_psycopg2_pool(mock_pool, tracker_name="pg_size_test")
-        assert tracker._idle == 2
-
-    def test_without_pool_attribute(self):
-        mock_pool = MagicMock(spec=[])  # No _pool attribute
-        tracker = wrap_psycopg2_pool(mock_pool, tracker_name="pg_no_attr_test")
-        assert isinstance(tracker, ConnectionPoolTracker)
-
-
-class TestWrapRedisPool:
-    def test_returns_connection_pool_tracker(self):
-        mock_pool = MagicMock()
-        mock_pool._available_connections = []
-        mock_pool._in_use_connections = set()
-        mock_pool.max_connections = 50
-
-        tracker = wrap_redis_pool(mock_pool, tracker_name="redis_wrap_test")
-        assert isinstance(tracker, ConnectionPoolTracker)
-        assert tracker.pool_type == PoolType.CACHE
-
-    def test_pool_size_set_from_redis_pool(self):
-        mock_pool = MagicMock()
-        mock_pool._available_connections = ["c1", "c2", "c3"]
-        mock_pool._in_use_connections = {"c4", "c5"}
-        mock_pool.max_connections = 20
-
-        tracker = wrap_redis_pool(mock_pool, tracker_name="redis_size_test")
-        assert tracker._idle == 3
-        assert tracker._active == 2
-
-    def test_without_redis_pool_attributes(self):
-        mock_pool = MagicMock(spec=[])  # No relevant attributes
-        tracker = wrap_redis_pool(mock_pool, tracker_name="redis_no_attr_test")
-        assert isinstance(tracker, ConnectionPoolTracker)

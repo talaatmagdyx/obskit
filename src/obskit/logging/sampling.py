@@ -158,7 +158,7 @@ class SampledLogger:
         duration_seconds: float | None = None,
         important: bool = False,
         **kwargs,
-    ) -> tuple:
+    ) -> tuple[bool, str]:
         """
         Determine if a log should be emitted.
 

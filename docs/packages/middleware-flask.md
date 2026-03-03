@@ -111,14 +111,13 @@ def get_order(order_id: str):
 ```python
 from flask import Flask, jsonify
 from obskit.health import get_health_checker
-from obskit.health.checks import create_redis_check
 import redis
 
 app = Flask(__name__)
 checker = get_health_checker()
 
 redis_client = redis.Redis(host="redis", port=6379)
-checker.add_readiness_check("redis", create_redis_check(redis_client))
+checker.add_readiness_check("redis", lambda: redis_client.ping())
 
 @app.route("/health")
 def health():
