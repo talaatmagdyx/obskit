@@ -256,29 +256,26 @@ class ErrorFingerprinter:
 
         return "|".join(sig_parts)
 
+    _COMPONENT_PATTERNS: list[tuple[tuple[str, ...], str]] = [
+        (("controller",), "controller"),
+        (("widget",), "widget"),
+        (("query", "builder"), "query_builder"),
+        (("page",), "page"),
+        (("service",), "service"),
+        (("handler",), "handler"),
+        (("middleware",), "middleware"),
+    ]
+
     def _detect_component(self, tb: list[traceback.FrameSummary]) -> str | None:
         """Try to detect component from stack trace."""
         if not tb:
             return None
 
-        # Look for common patterns
         for frame in reversed(tb):
             path = frame.filename.lower()
-
-            if "controller" in path:
-                return "controller"
-            if "widget" in path:
-                return "widget"
-            if "query" in path or "builder" in path:
-                return "query_builder"
-            if "page" in path:
-                return "page"
-            if "service" in path:
-                return "service"
-            if "handler" in path:
-                return "handler"
-            if "middleware" in path:
-                return "middleware"
+            for keywords, component in self._COMPONENT_PATTERNS:
+                if any(kw in path for kw in keywords):
+                    return component
 
         return None
 

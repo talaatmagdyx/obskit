@@ -20,6 +20,7 @@ Covers:
 
 from __future__ import annotations
 
+import asyncio
 import importlib
 import sys
 from unittest.mock import AsyncMock, MagicMock, patch
@@ -60,10 +61,12 @@ def _unhealthy_check(name: str, timeout: float = 2.0) -> HealthCheck:
 
 
 async def _async_healthy() -> bool:  # noqa: D401
+    await asyncio.sleep(0)
     return True
 
 
 async def _async_unhealthy() -> bool:  # noqa: D401
+    await asyncio.sleep(0)
     return False
 
 
@@ -384,8 +387,6 @@ class TestImportError:
 
     def test_import_error_raised_without_fastapi(self, monkeypatch):
         # Temporarily make fastapi un-importable
-        original_import = __builtins__.__import__ if hasattr(__builtins__, "__import__") else None
-
         fastapi_modules = {k: v for k, v in sys.modules.items() if "fastapi" in k}
 
         # Remove fastapi from sys.modules and block re-import

@@ -744,6 +744,13 @@ class CircuitBreaker:
                 # Reset failure count on success
                 self._failure_count = 0
 
+    @staticmethod
+    def _error_details(error: Exception | None) -> tuple[str, str]:
+        """Return (error_str, error_type) for logging, handling None gracefully."""
+        if error is None:
+            return "", "Unknown"
+        return str(error), type(error).__name__
+
     def _record_failure_sync(self, error: Exception | None = None) -> None:
         """Record a failed call (sync version)."""
         with self._lock:
@@ -758,29 +765,28 @@ class CircuitBreaker:
 
             self._failure_count += 1
             self._last_failure_time = time.time()
+            error_str, error_type = self._error_details(error)
 
             if self._state == CircuitState.HALF_OPEN:
                 # Single failure in half-open reopens the circuit
                 self._state = CircuitState.OPEN
-
                 logger.warning(
                     "circuit_breaker_reopened",
                     breaker=self.name,
-                    error=str(error) if error is not None else "",
-                    error_type=type(error).__name__ if error is not None else "Unknown",
+                    error=error_str,
+                    error_type=error_type,
                 )
 
             elif self._state == CircuitState.CLOSED:
                 if self._failure_count >= self._failure_threshold:
                     self._state = CircuitState.OPEN
-
                     logger.warning(
                         "circuit_breaker_opened",
                         breaker=self.name,
                         failure_count=self._failure_count,
                         threshold=self._failure_threshold,
-                        error=str(error) if error is not None else "",
-                        error_type=type(error).__name__ if error is not None else "Unknown",
+                        error=error_str,
+                        error_type=error_type,
                     )
 
     def call_sync(self, func: Callable[..., T], *args: Any, **kwargs: Any) -> T:

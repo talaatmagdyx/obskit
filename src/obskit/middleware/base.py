@@ -16,10 +16,7 @@ Example
 from __future__ import annotations
 
 import uuid
-from typing import TYPE_CHECKING, Any
-
-if TYPE_CHECKING:
-    from obskit.metrics import REDMetrics
+from typing import Any
 
 from obskit.core import get_correlation_id, set_correlation_id
 from obskit.logging import get_logger
@@ -191,10 +188,10 @@ class BaseMiddleware:
         self.record_metrics = record_metrics
         self.propagate_context = propagate_context
 
+        from obskit.metrics import REDMetrics
+
         self._metrics: REDMetrics | None
         if record_metrics:
-            from obskit.metrics import REDMetrics
-
             self._metrics = REDMetrics(name=service_name)
         else:
             self._metrics = None

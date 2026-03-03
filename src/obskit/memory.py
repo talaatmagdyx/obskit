@@ -319,11 +319,11 @@ class MemoryTracker:
             if phase == "start":
                 self._gc_start_time[generation] = time.perf_counter()
             elif phase == "stop":
-                if generation in self._gc_start_time:
-                    duration = time.perf_counter() - self._gc_start_time[generation]
+                start_time = self._gc_start_time.pop(generation, None)
+                if start_time is not None:
+                    duration = time.perf_counter() - start_time
                     if GC_DURATION_SECONDS is not None:
                         GC_DURATION_SECONDS.labels(generation=str(generation)).observe(duration)
-                    del self._gc_start_time[generation]
 
         gc.callbacks.append(gc_callback)
         self._gc_callbacks_registered = True
