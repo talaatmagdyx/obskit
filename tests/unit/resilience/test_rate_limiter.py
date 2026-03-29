@@ -183,6 +183,20 @@ class TestTokenBucketRateLimiter:
             async with limiter:
                 pass  # NOSONAR
 
+    @pytest.mark.asyncio
+    async def test_acquire_reuses_existing_lock(self):
+        """Second acquire() call reuses the already-created asyncio.Lock."""
+        limiter = TokenBucketRateLimiter(
+            bucket_size=100,
+            refill_rate=10.0,
+        )
+        # First call creates the lock (line 497 branch: __lock is None → True)
+        r1 = await limiter.acquire()
+        # Second call reuses the lock (line 497 branch: __lock is None → False)
+        r2 = await limiter.acquire()
+        assert r1 is True
+        assert r2 is True
+
 
 class TestRateLimitExceeded:
     """Tests for RateLimitExceeded exception."""

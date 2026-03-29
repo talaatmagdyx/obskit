@@ -1,4 +1,5 @@
 """Additional coverage tests for debug/replay.py."""
+
 from __future__ import annotations
 
 import asyncio
@@ -29,6 +30,7 @@ class TestSerializeCoverage:
 
     def test_serialize_object_with_dict(self):
         """Lines 85-86: object with __dict__ is serialized."""
+
         class MyObj:
             def __init__(self):
                 self.x = 1
@@ -128,12 +130,20 @@ class TestFileStorageCoverage:
             storage = FileStorage(base_path=tmpdir, compress=False)
 
             cap1 = CapturedRequest(
-                capture_id="c1", function_name="func_a", module="m",
-                args=(), kwargs={}, timestamp=time.time()
+                capture_id="c1",
+                function_name="func_a",
+                module="m",
+                args=(),
+                kwargs={},
+                timestamp=time.time(),
             )
             cap2 = CapturedRequest(
-                capture_id="c2", function_name="func_b", module="m",
-                args=(), kwargs={}, timestamp=time.time() + 1
+                capture_id="c2",
+                function_name="func_b",
+                module="m",
+                args=(),
+                kwargs={},
+                timestamp=time.time() + 1,
             )
             await storage.save(cap1)
             await storage.save(cap2)
@@ -149,8 +159,12 @@ class TestFileStorageCoverage:
             storage = FileStorage(base_path=tmpdir, compress=False)
 
             cap = CapturedRequest(
-                capture_id="old-cap", function_name="func", module="m",
-                args=(), kwargs={}, timestamp=1000.0  # very old
+                capture_id="old-cap",
+                function_name="func",
+                module="m",
+                args=(),
+                kwargs={},
+                timestamp=1000.0,  # very old
             )
             await storage.save(cap)
 
@@ -165,8 +179,12 @@ class TestFileStorageCoverage:
 
             for i in range(5):
                 cap = CapturedRequest(
-                    capture_id=f"cap-{i}", function_name="func", module="m",
-                    args=(), kwargs={}, timestamp=time.time() + i
+                    capture_id=f"cap-{i}",
+                    function_name="func",
+                    module="m",
+                    args=(),
+                    kwargs={},
+                    timestamp=time.time() + i,
                 )
                 await storage.save(cap)
 
@@ -181,8 +199,7 @@ class TestMemoryStorageCoverage:
         storage = MemoryStorage()
 
         old_cap = CapturedRequest(
-            capture_id="old", function_name="func", module="m",
-            args=(), kwargs={}, timestamp=1000.0
+            capture_id="old", function_name="func", module="m", args=(), kwargs={}, timestamp=1000.0
         )
         await storage.save(old_cap)
 
@@ -247,8 +264,12 @@ class TestRequestCaptureCoverage:
         capture = RequestCapture(storage=storage)
 
         cap = CapturedRequest(
-            capture_id="test-reg", function_name="unregistered_func",
-            module="nonexistent_module", args=(), kwargs={}, timestamp=time.time()
+            capture_id="test-reg",
+            function_name="unregistered_func",
+            module="nonexistent_module",
+            args=(),
+            kwargs={},
+            timestamp=time.time(),
         )
         await storage.save(cap)
 
@@ -266,8 +287,12 @@ class TestRequestCaptureCoverage:
             return x + y
 
         cap = CapturedRequest(
-            capture_id="sync-test", function_name="sync_func",
-            module=sync_func.__module__, args=(1, 2), kwargs={}, timestamp=time.time()
+            capture_id="sync-test",
+            function_name="sync_func",
+            module=sync_func.__module__,
+            args=(1, 2),
+            kwargs={},
+            timestamp=time.time(),
         )
         await storage.save(cap)
 
@@ -285,8 +310,12 @@ class TestRequestCaptureCoverage:
             raise ValueError("replay error")
 
         cap = CapturedRequest(
-            capture_id="fail-test", function_name="failing_func",
-            module="__main__", args=(), kwargs={}, timestamp=time.time()
+            capture_id="fail-test",
+            function_name="failing_func",
+            module="__main__",
+            args=(),
+            kwargs={},
+            timestamp=time.time(),
         )
         await storage.save(cap)
 
@@ -340,13 +369,14 @@ class TestSerializeCoverageExtra:
 
         class Unserializable:
             def __str__(self):
-                raise RuntimeError('cannot stringify')
+                raise RuntimeError("cannot stringify")
+
             # Remove __dict__ so we go through the try/str path
             __slots__ = []
 
         obj = Unserializable()
         result = _serialize(obj)
-        assert 'unserializable' in result
+        assert "unserializable" in result
 
     def test_deserialize_non_dict_non_list_non_none(self):
         """Line 106: _deserialize returns raw value for non-dict/list/None types."""
@@ -377,15 +407,19 @@ class TestFileStorageCoverageExtra:
             # Save with compress=True storage (creates .json.gz)
             gz_storage = FileStorage(base_path=tmpdir, compress=True)
             cap = CapturedRequest(
-                capture_id='ext-test', function_name='func', module='m',
-                args=(), kwargs={}, timestamp=time.time()
+                capture_id="ext-test",
+                function_name="func",
+                module="m",
+                args=(),
+                kwargs={},
+                timestamp=time.time(),
             )
             await gz_storage.save(cap)
 
             # Now load with compress=False (primary .json doesn't exist, should find .json.gz)
-            result = await storage.load('ext-test')
+            result = await storage.load("ext-test")
             assert result is not None
-            assert result.capture_id == 'ext-test'
+            assert result.capture_id == "ext-test"
 
     @pytest.mark.asyncio
     async def test_list_captures_skips_non_json_files(self):
@@ -397,8 +431,8 @@ class TestFileStorageCoverageExtra:
 
         with tempfile.TemporaryDirectory() as tmpdir:
             # Create a non-JSON file
-            (Path(tmpdir) / 'random_file.txt').write_text('not a capture')
-            (Path(tmpdir) / 'another.log').write_text('log data')
+            (Path(tmpdir) / "random_file.txt").write_text("not a capture")
+            (Path(tmpdir) / "another.log").write_text("log data")
 
             storage = FileStorage(base_path=tmpdir, compress=False)
             results = await storage.list_captures()
@@ -417,19 +451,27 @@ class TestMemoryStorageCoverageExtra:
         storage = MemoryStorage()
 
         cap1 = CapturedRequest(
-            capture_id='fn-match', function_name='matching_func', module='m',
-            args=(), kwargs={}, timestamp=time.time()
+            capture_id="fn-match",
+            function_name="matching_func",
+            module="m",
+            args=(),
+            kwargs={},
+            timestamp=time.time(),
         )
         cap2 = CapturedRequest(
-            capture_id='fn-no-match', function_name='other_func', module='m',
-            args=(), kwargs={}, timestamp=time.time()
+            capture_id="fn-no-match",
+            function_name="other_func",
+            module="m",
+            args=(),
+            kwargs={},
+            timestamp=time.time(),
         )
         await storage.save(cap1)
         await storage.save(cap2)
 
-        results = await storage.list_captures(function_name='matching_func')
-        assert 'fn-match' in results
-        assert 'fn-no-match' not in results
+        results = await storage.list_captures(function_name="matching_func")
+        assert "fn-match" in results
+        assert "fn-no-match" not in results
 
 
 class TestRequestCaptureCoverageExtra:
@@ -445,7 +487,7 @@ class TestRequestCaptureCoverageExtra:
 
         def extractor(arg):
             extractor_calls.append(arg)
-            return {'extracted': True}
+            return {"extracted": True}
 
         capture = RequestCapture(storage=storage, metadata_extractor=extractor)
 
@@ -466,9 +508,13 @@ class TestRequestCaptureCoverageExtra:
         from obskit.debug.replay import MemoryStorage, RequestCapture
 
         storage = MemoryStorage()
-        cap = __import__('obskit.debug.replay', fromlist=['CapturedRequest']).CapturedRequest(
-            capture_id='load-none', function_name='func', module='m',
-            args=(), kwargs={}, timestamp=time.time()
+        cap = __import__("obskit.debug.replay", fromlist=["CapturedRequest"]).CapturedRequest(
+            capture_id="load-none",
+            function_name="func",
+            module="m",
+            args=(),
+            kwargs={},
+            timestamp=time.time(),
         )
         await storage.save(cap)
 
@@ -478,7 +524,7 @@ class TestRequestCaptureCoverageExtra:
         async def mock_load(cid):  # NOSONAR
             return None
 
-        with patch.object(storage, 'load', side_effect=mock_load):
+        with patch.object(storage, "load", side_effect=mock_load):
             result = await capture_system.list_captures()
 
         assert result == []
@@ -491,18 +537,14 @@ class TestRequestCaptureCoverageExtra:
         from obskit.debug.replay import MemoryStorage, RequestCapture
 
         storage = MemoryStorage()
-        capture = RequestCapture(
-            storage=storage,
-            capture_on_error=True,
-            capture_sample_rate=1.0
-        )
+        capture = RequestCapture(storage=storage, capture_on_error=True, capture_sample_rate=1.0)
 
         @capture.wrap
         async def failing_async(x):
-            raise ValueError(f'error: {x}')
+            raise ValueError(f"error: {x}")
 
         with pytest.raises(ValueError):
-            await failing_async('test')
+            await failing_async("test")
 
         # Should have captured the error
         captures = list(storage._captures.values())
@@ -516,6 +558,7 @@ class TestRemainingReplayCoverage:
     def test_deserialize_returns_raw_obj_for_primitive(self):
         """Line 106: _deserialize returns raw value for non-dict/list/None types (bool/int)."""
         from obskit.debug.replay import _deserialize
+
         # bool is a subclass of int, not dict/list/None
         assert _deserialize(True) is True
         assert _deserialize(False) is False
@@ -531,11 +574,15 @@ class TestRemainingReplayCoverage:
         with tempfile.TemporaryDirectory() as tmpdir:
             storage = FileStorage(base_path=tmpdir, compress=False)
             cap = CapturedRequest(
-                capture_id='del-test', function_name='func', module='m',
-                args=(), kwargs={}, timestamp=time.time()
+                capture_id="del-test",
+                function_name="func",
+                module="m",
+                args=(),
+                kwargs={},
+                timestamp=time.time(),
             )
             await storage.save(cap)
-            result = await storage.delete('del-test')
+            result = await storage.delete("del-test")
             assert result is True
 
     @pytest.mark.asyncio
@@ -550,8 +597,12 @@ class TestRemainingReplayCoverage:
         # Add 2 captures to reach the limit
         for i in range(2):
             cap = CapturedRequest(
-                capture_id=f'cap-{i}', function_name='func', module='m',
-                args=(), kwargs={}, timestamp=float(i + 1)
+                capture_id=f"cap-{i}",
+                function_name="func",
+                module="m",
+                args=(),
+                kwargs={},
+                timestamp=float(i + 1),
             )
             await storage.save(cap)
 
@@ -559,16 +610,20 @@ class TestRemainingReplayCoverage:
 
         # Adding a 3rd should evict the oldest
         cap3 = CapturedRequest(
-            capture_id='cap-new', function_name='func', module='m',
-            args=(), kwargs={}, timestamp=100.0
+            capture_id="cap-new",
+            function_name="func",
+            module="m",
+            args=(),
+            kwargs={},
+            timestamp=100.0,
         )
         await storage.save(cap3)
 
         # Still at 2 captures
         assert len(storage._captures) == 2
         # The oldest (cap-0 with timestamp=1) should be evicted
-        assert 'cap-0' not in storage._captures
-        assert 'cap-new' in storage._captures
+        assert "cap-0" not in storage._captures
+        assert "cap-new" in storage._captures
 
     @pytest.mark.asyncio
     async def test_memory_storage_list_captures_limit_break(self):
@@ -580,8 +635,12 @@ class TestRemainingReplayCoverage:
         storage = MemoryStorage()
         for i in range(10):
             cap = CapturedRequest(
-                capture_id=f'mem-cap-{i}', function_name='func', module='m',
-                args=(), kwargs={}, timestamp=float(i + 1)
+                capture_id=f"mem-cap-{i}",
+                function_name="func",
+                module="m",
+                args=(),
+                kwargs={},
+                timestamp=float(i + 1),
             )
             await storage.save(cap)
 
@@ -597,13 +656,17 @@ class TestRemainingReplayCoverage:
 
         storage = MemoryStorage()
         cap = CapturedRequest(
-            capture_id='del-mem', function_name='func', module='m',
-            args=(), kwargs={}, timestamp=time.time()
+            capture_id="del-mem",
+            function_name="func",
+            module="m",
+            args=(),
+            kwargs={},
+            timestamp=time.time(),
         )
         await storage.save(cap)
-        result = await storage.delete('del-mem')
+        result = await storage.delete("del-mem")
         assert result is True
-        assert 'del-mem' not in storage._captures
+        assert "del-mem" not in storage._captures
 
     @pytest.mark.asyncio
     async def test_replay_dry_run(self):
@@ -616,15 +679,19 @@ class TestRemainingReplayCoverage:
         capture = RequestCapture(storage=storage)
 
         cap = CapturedRequest(
-            capture_id='dry-run-test', function_name='func', module='m',
-            args=(1, 2), kwargs={'z': 3}, timestamp=time.time()
+            capture_id="dry-run-test",
+            function_name="func",
+            module="m",
+            args=(1, 2),
+            kwargs={"z": 3},
+            timestamp=time.time(),
         )
         await storage.save(cap)
 
-        result = await capture.replay('dry-run-test', dry_run=True)
-        assert result['success'] is True
-        assert result['args'] == (1, 2)
-        assert result['dry_run'] is True
+        result = await capture.replay("dry-run-test", dry_run=True)
+        assert result["success"] is True
+        assert result["args"] == (1, 2)
+        assert result["dry_run"] is True
 
     @pytest.mark.asyncio
     async def test_replay_async_function(self):
@@ -640,14 +707,18 @@ class TestRemainingReplayCoverage:
             return x + y
 
         cap = CapturedRequest(
-            capture_id='async-replay', function_name='async_add', module='__main__',
-            args=(3, 4), kwargs={}, timestamp=time.time()
+            capture_id="async-replay",
+            function_name="async_add",
+            module="__main__",
+            args=(3, 4),
+            kwargs={},
+            timestamp=time.time(),
         )
         await storage.save(cap)
 
-        result = await capture.replay('async-replay', func=async_add)
-        assert result['success'] is True
-        assert result['output'] == 7
+        result = await capture.replay("async-replay", func=async_add)
+        assert result["success"] is True
+        assert result["output"] == 7
 
     @pytest.mark.asyncio
     async def test_list_captures_appends_valid_captures(self):
@@ -658,15 +729,19 @@ class TestRemainingReplayCoverage:
 
         storage = MemoryStorage()
         cap = CapturedRequest(
-            capture_id='lc-valid', function_name='func', module='m',
-            args=(), kwargs={}, timestamp=time.time()
+            capture_id="lc-valid",
+            function_name="func",
+            module="m",
+            args=(),
+            kwargs={},
+            timestamp=time.time(),
         )
         await storage.save(cap)
 
         capture_system = RequestCapture(storage=storage)
         result = await capture_system.list_captures()
         assert len(result) == 1
-        assert result[0]['capture_id'] == 'lc-valid'
+        assert result[0]["capture_id"] == "lc-valid"
 
     @pytest.mark.asyncio
     async def test_delete_capture_delegates_to_storage(self):
@@ -677,13 +752,17 @@ class TestRemainingReplayCoverage:
 
         storage = MemoryStorage()
         cap = CapturedRequest(
-            capture_id='dc-test', function_name='func', module='m',
-            args=(), kwargs={}, timestamp=time.time()
+            capture_id="dc-test",
+            function_name="func",
+            module="m",
+            args=(),
+            kwargs={},
+            timestamp=time.time(),
         )
         await storage.save(cap)
 
         capture_system = RequestCapture(storage=storage)
-        result = await capture_system.delete_capture('dc-test')
+        result = await capture_system.delete_capture("dc-test")
         assert result is True
 
     @pytest.mark.asyncio
@@ -742,8 +821,12 @@ class TestFinalReplayCoverage:
 
             # Create a valid capture file
             cap = CapturedRequest(
-                capture_id='filter-none-test', function_name='func', module='m',
-                args=(), kwargs={}, timestamp=time.time()
+                capture_id="filter-none-test",
+                function_name="func",
+                module="m",
+                args=(),
+                kwargs={},
+                timestamp=time.time(),
             )
             await storage.save(cap)
 
@@ -751,13 +834,13 @@ class TestFinalReplayCoverage:
             async def patched_load(cid):  # NOSONAR
                 return None
 
-            with patch.object(storage, 'load', side_effect=patched_load):
+            with patch.object(storage, "load", side_effect=patched_load):
                 # function_name filter active, but load returns None
                 # capture_id should still be appended (per code logic at line 204)
-                results = await storage.list_captures(function_name='func')
+                results = await storage.list_captures(function_name="func")
 
             # The capture_id is appended even when load returns None (code behavior)
-            assert 'filter-none-test' in results
+            assert "filter-none-test" in results
 
     @pytest.mark.asyncio
     async def test_replay_not_found_in_storage(self):
@@ -769,9 +852,9 @@ class TestFinalReplayCoverage:
         storage = MemoryStorage()
         capture = RequestCapture(storage=storage)
 
-        result = await capture.replay('nonexistent-id')
-        assert result['success'] is False
-        assert 'not found' in result['error'].lower()
+        result = await capture.replay("nonexistent-id")
+        assert result["success"] is False
+        assert "not found" in result["error"].lower()
 
     @pytest.mark.asyncio
     async def test_wrap_not_in_registry_via_wrap_replay(self):
@@ -785,15 +868,19 @@ class TestFinalReplayCoverage:
 
         # Save a capture for an unregistered function (not wrapped)
         cap = CapturedRequest(
-            capture_id='unregistered', function_name='unregistered_func',
-            module='nonexistent_module', args=(), kwargs={}, timestamp=time.time()
+            capture_id="unregistered",
+            function_name="unregistered_func",
+            module="nonexistent_module",
+            args=(),
+            kwargs={},
+            timestamp=time.time(),
         )
         await storage.save(cap)
 
         # replay without func= and not registered
-        result = await capture.replay('unregistered')
-        assert result['success'] is False
-        assert 'registry' in result['error']
+        result = await capture.replay("unregistered")
+        assert result["success"] is False
+        assert "registry" in result["error"]
 
     @pytest.mark.asyncio
     async def test_wrap_async_captures_exception_and_reraises(self):
@@ -811,10 +898,10 @@ class TestFinalReplayCoverage:
 
         @capture.wrap
         async def async_failing(x):
-            raise ValueError(f'async error: {x}')
+            raise ValueError(f"async error: {x}")
 
-        with pytest.raises(ValueError, match='async error'):
-            await async_failing('test')
+        with pytest.raises(ValueError, match="async error"):
+            await async_failing("test")
 
         # Check that the error was captured
         assert len(storage._captures) >= 1
@@ -842,19 +929,19 @@ class TestRegistryReplayCoverage:
 
         # Manually save a capture for this function
         cap = CapturedRequest(
-            capture_id='registry-test',
-            function_name='registered_func',
+            capture_id="registry-test",
+            function_name="registered_func",
             module=registered_func.__module__,
             args=(3, 4),
             kwargs={},
-            timestamp=time.time()
+            timestamp=time.time(),
         )
         await storage.save(cap)
 
         # Replay without providing func= - should find it in registry
-        result = await capture_system.replay('registry-test')
-        assert result['success'] is True
-        assert result['output'] == 12
+        result = await capture_system.replay("registry-test")
+        assert result["success"] is True
+        assert result["output"] == 12
 
     def test_wrap_sync_captures_exception_and_reraises(self):
         """Lines 538-541 via sync_wrapper: wrap sync func captures error and re-raises."""
@@ -871,10 +958,10 @@ class TestRegistryReplayCoverage:
 
         @capture_system.wrap
         def sync_failing(x):
-            raise ValueError(f'sync error: {x}')
+            raise ValueError(f"sync error: {x}")
 
-        with pytest.raises(ValueError, match='sync error'):
-            sync_failing('test')
+        with pytest.raises(ValueError, match="sync error"):
+            sync_failing("test")
 
         # Check that the error was captured
         assert len(storage._captures) >= 1
@@ -897,10 +984,10 @@ class TestCaptureOnErrorFalseCoverage:
 
         @capture_system.wrap
         async def no_capture_on_fail(x):
-            raise ValueError(f'uncaptured error: {x}')
+            raise ValueError(f"uncaptured error: {x}")
 
-        with pytest.raises(ValueError, match='uncaptured error'):
-            await no_capture_on_fail('test')
+        with pytest.raises(ValueError, match="uncaptured error"):
+            await no_capture_on_fail("test")
 
         # No capture should have been made
         assert len(storage._captures) == 0

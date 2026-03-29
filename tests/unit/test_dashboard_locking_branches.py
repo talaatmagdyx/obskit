@@ -1,4 +1,5 @@
 """Tests to cover branch misses in circuit_dashboard.py and locking.py."""
+
 from __future__ import annotations
 
 import threading
@@ -21,22 +22,22 @@ class TestCircuitDashboardPrivateAttrBranches:
 
         # Delete public attr aliases, add private ones
         # This forces the elif hasattr(breaker, "_xxx") branches
-        del mock_breaker.failure_count       # -> triggers elif _failure_count
+        del mock_breaker.failure_count  # -> triggers elif _failure_count
         mock_breaker._failure_count = 3
 
-        del mock_breaker.success_count       # -> triggers elif _success_count
+        del mock_breaker.success_count  # -> triggers elif _success_count
         mock_breaker._success_count = 7
 
-        del mock_breaker.failure_threshold   # -> triggers elif _failure_threshold
+        del mock_breaker.failure_threshold  # -> triggers elif _failure_threshold
         mock_breaker._failure_threshold = 5
 
         # Keep recovery_timeout public (line 257)
         # Delete last_failure_time, add _last_failure_time
-        del mock_breaker.last_failure_time   # -> triggers elif _last_failure_time
+        del mock_breaker.last_failure_time  # -> triggers elif _last_failure_time
         mock_breaker._last_failure_time = None
 
         # Delete opened_at, add _opened_at
-        del mock_breaker.opened_at           # -> triggers elif _opened_at
+        del mock_breaker.opened_at  # -> triggers elif _opened_at
         mock_breaker._opened_at = None
 
         return mock_breaker
@@ -85,7 +86,7 @@ class TestCircuitDashboardPrivateAttrBranches:
         mock_breaker.last_failure_time = None
 
         # Delete public recovery_timeout, add private _recovery_timeout
-        del mock_breaker.recovery_timeout    # -> triggers elif _recovery_timeout
+        del mock_breaker.recovery_timeout  # -> triggers elif _recovery_timeout
         mock_breaker._recovery_timeout = 30.0
 
         # Set opened_at so recovery time calculation triggers
@@ -122,6 +123,7 @@ class TestLockingBranchCoverage:
         mock_redis.eval.return_value = 1
 
         from obskit.locking import DistributedLock
+
         lock = DistributedLock(
             lock_name="test-no-acquired-at",
             redis_client=mock_redis,
@@ -142,6 +144,7 @@ class TestLockingBranchCoverage:
         mock_redis.get.return_value = None
 
         from obskit.locking import LeaderElection
+
         election = LeaderElection(
             election_name="test-stop-no-thread",
             redis_client=mock_redis,
@@ -160,6 +163,7 @@ class TestCircuitDashboardMoreBranches:
 
     def _make_minimal_mock(self):
         """Mock breaker with NO public OR private attribute for counts/timeouts."""
+
         class MinimalBreaker:
             """Breaker with no state, failure_count, etc. attributes."""
 
@@ -210,7 +214,9 @@ class TestCircuitDashboardMoreBranches:
             _opened_at = None
             _last_failure_time = None
 
-        status = dashboard._extract_status("test-no-failure-count", BreakerNoFailureCount(), "external")
+        status = dashboard._extract_status(
+            "test-no-failure-count", BreakerNoFailureCount(), "external"
+        )
         assert status.failure_count == 0
 
     def test_extract_status_no_success_count_attrs(self):
@@ -227,7 +233,9 @@ class TestCircuitDashboardMoreBranches:
             _opened_at = None
             _last_failure_time = None
 
-        status = dashboard._extract_status("test-no-success-count", BreakerNoSuccessCount(), "external")
+        status = dashboard._extract_status(
+            "test-no-success-count", BreakerNoSuccessCount(), "external"
+        )
         assert status.success_count == 0
 
     def test_extract_status_no_failure_threshold_attrs(self):
@@ -263,7 +271,9 @@ class TestCircuitDashboardMoreBranches:
             _opened_at = None
             _last_failure_time = None
 
-        status = dashboard._extract_status("test-no-recovery", BreakerNoRecoveryTimeout(), "external")
+        status = dashboard._extract_status(
+            "test-no-recovery", BreakerNoRecoveryTimeout(), "external"
+        )
         assert status.recovery_timeout == pytest.approx(30.0)  # default value
 
     def test_extract_status_no_last_failure_time_attrs(self):
@@ -281,7 +291,9 @@ class TestCircuitDashboardMoreBranches:
             _opened_at = None
             # No last_failure_time, no _last_failure_time -> stays None
 
-        status = dashboard._extract_status("test-no-last-fail", BreakerNoLastFailureTime(), "external")
+        status = dashboard._extract_status(
+            "test-no-last-fail", BreakerNoLastFailureTime(), "external"
+        )
         assert status.last_failure_time is None
 
     def test_extract_status_no_opened_at_attrs(self):

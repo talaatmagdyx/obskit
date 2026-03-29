@@ -168,6 +168,7 @@ class TestSampleRate:
     async def test_async_sample_rate_0_never_observes(self):
         """sample_rate=0.0 skips the pipeline on every call but still executes fn."""
         with patch("obskit.decorators.combined.random.random", return_value=0.99):
+
             @with_observability(operation="sampled_async_0", sample_rate=0.0)
             async def fn():
                 return "result"
@@ -179,6 +180,7 @@ class TestSampleRate:
     async def test_async_sample_rate_skips_on_non_sample(self):
         """When random() >= sample_rate, the pipeline is skipped."""
         with patch("obskit.decorators.combined.random.random", return_value=0.5):
+
             @with_observability(operation="skip_me", sample_rate=0.1)
             async def fn():
                 return "raw"
@@ -191,6 +193,7 @@ class TestSampleRate:
     async def test_async_sample_rate_runs_on_sample(self):
         """When random() < sample_rate, the full pipeline runs."""
         with patch("obskit.decorators.combined.random.random", return_value=0.05):
+
             @with_observability(operation="observe_me", sample_rate=0.1)
             async def fn():
                 return "instrumented"
@@ -214,6 +217,7 @@ class TestSampleRate:
     def test_sync_sample_rate_skips_on_non_sample(self):
         """When random() >= sample_rate, sync pipeline is skipped."""
         with patch("obskit.decorators.combined.random.random", return_value=0.9):
+
             @with_observability_sync(operation="sync_skip", sample_rate=0.1)
             def fn():
                 return "raw_sync"
@@ -223,6 +227,7 @@ class TestSampleRate:
     def test_sync_sample_rate_runs_on_sample(self):
         """When random() < sample_rate, sync pipeline runs."""
         with patch("obskit.decorators.combined.random.random", return_value=0.01):
+
             @with_observability_sync(operation="sync_observe", sample_rate=0.1)
             def fn():
                 return "instrumented_sync"
@@ -233,6 +238,7 @@ class TestSampleRate:
     async def test_async_exception_propagated_when_sampled(self):
         """Exceptions in sampled calls still propagate correctly."""
         with patch("obskit.decorators.combined.random.random", return_value=0.0):
+
             @with_observability(operation="exc_sampled", sample_rate=1.0)
             async def fn():
                 raise ValueError("boom")
@@ -244,6 +250,7 @@ class TestSampleRate:
     async def test_async_exception_propagated_when_not_sampled(self):
         """Exceptions in non-sampled calls still propagate correctly."""
         with patch("obskit.decorators.combined.random.random", return_value=0.99):
+
             @with_observability(operation="exc_not_sampled", sample_rate=0.1)
             async def fn():
                 raise RuntimeError("skip but still raise")
@@ -268,6 +275,7 @@ class TestHighThroughputMode:
     @pytest.mark.asyncio
     async def test_async_returns_correct_value(self):
         """high_throughput=True still returns the function's return value."""
+
         @with_observability(component="HT", high_throughput=True)
         async def fn():
             return "ht_result"
@@ -277,6 +285,7 @@ class TestHighThroughputMode:
     @pytest.mark.asyncio
     async def test_async_exception_propagates(self):
         """Exceptions are re-raised unchanged in high-throughput mode."""
+
         @with_observability(component="HT", high_throughput=True)
         async def fn():
             raise ValueError("ht_error")
@@ -287,6 +296,7 @@ class TestHighThroughputMode:
     @pytest.mark.asyncio
     async def test_async_buffers_success_metric(self):
         """A successful HT call buffers a 'success' count in the aggregator."""
+
         @with_observability(operation="ht_success_op", high_throughput=True)
         async def fn():
             return 42
@@ -298,6 +308,7 @@ class TestHighThroughputMode:
     @pytest.mark.asyncio
     async def test_async_buffers_failure_metric(self):
         """A failing HT call buffers a 'failure' count in the aggregator."""
+
         @with_observability(operation="ht_fail_op", high_throughput=True)
         async def fn():
             raise RuntimeError("fail")
@@ -311,6 +322,7 @@ class TestHighThroughputMode:
     @pytest.mark.asyncio
     async def test_async_enqueues_log_record(self):
         """A HT call puts a log record in the async ring buffer."""
+
         @with_observability(component="HT", operation="ht_log_op", high_throughput=True)
         async def fn():
             return "ok"
@@ -322,6 +334,7 @@ class TestHighThroughputMode:
     async def test_async_sample_rate_gate_respected(self):
         """sample_rate gate fires before the high_throughput path."""
         with patch("obskit.decorators.combined.random.random", return_value=0.99):
+
             @with_observability(operation="ht_sampled", high_throughput=True, sample_rate=0.1)
             async def fn():
                 return "not_instrumented"
@@ -336,6 +349,7 @@ class TestHighThroughputMode:
     @pytest.mark.asyncio
     async def test_async_preserves_function_name(self):
         """@wraps is applied: __name__ is preserved."""
+
         @with_observability(component="HT", high_throughput=True)
         async def my_special_fn():
             return None
@@ -348,6 +362,7 @@ class TestHighThroughputMode:
 
     def test_sync_returns_correct_value(self):
         """with_observability_sync high_throughput=True returns correct value."""
+
         @with_observability_sync(component="HT", high_throughput=True)
         def fn():
             return "sync_ht"
@@ -356,6 +371,7 @@ class TestHighThroughputMode:
 
     def test_sync_exception_propagates(self):
         """Exceptions are re-raised unchanged in sync high-throughput mode."""
+
         @with_observability_sync(component="HT", high_throughput=True)
         def fn():
             raise TypeError("sync_ht_error")
@@ -365,6 +381,7 @@ class TestHighThroughputMode:
 
     def test_sync_buffers_success_metric(self):
         """Sync HT success call is counted as 'success'."""
+
         @with_observability_sync(operation="sync_ht_op", high_throughput=True)
         def fn():
             return 1
@@ -375,6 +392,7 @@ class TestHighThroughputMode:
 
     def test_sync_buffers_failure_metric(self):
         """Sync HT failure call is counted as 'failure'."""
+
         @with_observability_sync(operation="sync_ht_fail", high_throughput=True)
         def fn():
             raise ValueError("sync_fail")
@@ -388,7 +406,10 @@ class TestHighThroughputMode:
     def test_sync_sample_rate_gate_respected(self):
         """sample_rate gate fires before the sync high_throughput path."""
         with patch("obskit.decorators.combined.random.random", return_value=0.99):
-            @with_observability_sync(operation="sync_ht_sampled", high_throughput=True, sample_rate=0.1)
+
+            @with_observability_sync(
+                operation="sync_ht_sampled", high_throughput=True, sample_rate=0.1
+            )
             def fn():
                 return "skipped"
 
@@ -409,7 +430,9 @@ class TestTrackMetricsFalseErrorPath:
         async wrapper except clause.
         """
         from unittest.mock import patch
+
         with patch("obskit.decorators.combined.get_red_metrics") as mock_red:
+
             @with_observability(operation="no_metric_fail", track_metrics=False)
             async def fn():
                 raise ValueError("no metrics please")
@@ -425,7 +448,9 @@ class TestTrackMetricsFalseErrorPath:
         sync wrapper except clause.
         """
         from unittest.mock import patch
+
         with patch("obskit.decorators.combined.get_red_metrics") as mock_red:
+
             @with_observability_sync(operation="sync_no_metric_fail", track_metrics=False)
             def fn():
                 raise RuntimeError("sync no metrics")
@@ -479,7 +504,9 @@ class TestTrackMetricsOnlyErrorPath:
     async def test_exception_records_failure_metric_and_reraises(self):
         """track_metrics_only records failure metric and re-raises (lines 758-769)."""
         from unittest.mock import patch
+
         with patch("obskit.decorators.combined.get_red_metrics") as mock_red:
+
             @track_metrics_only(operation="metrics_fail_op")
             async def fn():
                 raise ValueError("metrics_only_error")
@@ -512,6 +539,7 @@ class TestAsyncNullContext:
     async def test_aenter_returns_none(self):
         """_AsyncNullContext.__aenter__ executes (line 791)."""
         from obskit.decorators.combined import _AsyncNullContext
+
         ctx = _AsyncNullContext()
         result = await ctx.__aenter__()
         assert result is None
@@ -520,6 +548,7 @@ class TestAsyncNullContext:
     async def test_aexit_returns_none(self):
         """_AsyncNullContext.__aexit__ executes (line 795)."""
         from obskit.decorators.combined import _AsyncNullContext
+
         ctx = _AsyncNullContext()
         result = await ctx.__aexit__(None, None, None)
         assert result is None
@@ -528,5 +557,6 @@ class TestAsyncNullContext:
     async def test_used_as_async_context_manager(self):
         """_AsyncNullContext can be used as async context manager."""
         from obskit.decorators.combined import _AsyncNullContext
+
         async with _AsyncNullContext():
             pass  # must not raise

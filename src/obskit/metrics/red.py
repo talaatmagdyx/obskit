@@ -170,11 +170,14 @@ References
 
 from __future__ import annotations
 
+import logging as _logging
 import random
 import time
 from collections.abc import Generator
 from contextlib import contextmanager
 from typing import Literal
+
+_logger = _logging.getLogger(__name__)
 
 from obskit.config import get_settings
 from obskit.metrics.registry import get_registry
@@ -199,6 +202,7 @@ DEFAULT_LATENCY_BUCKETS: tuple[float, ...] = (
     2.500,  # 2.5s  - Unacceptable
     5.000,  # 5s    - Timeout warning
     10.000,  # 10s   - Near timeout
+    float("inf"),  # Catch-all bucket — explicit to avoid off-by-one in quantile calculations
 )
 
 # Default summary quantiles
@@ -362,6 +366,20 @@ class REDMetrics:
         self._use_summary = use_summary if use_summary is not None else settings.use_summary
         self._sample_rate = sample_rate if sample_rate is not None else settings.metrics_sample_rate
 
+        # Warn when histogram sampling is active: duration observations are
+        # sampled but counters are exact, which means histogram_quantile()
+        # results will be statistically approximate (not wrong, but biased
+        # toward the sampled subset).  Counters (rate/error-rate) remain exact.
+        if self._sample_rate < 1.0 and (self._use_histogram or self._use_summary):
+            _logger.warning(
+                "REDMetrics '%s' created with sample_rate=%.2f and histogram/summary enabled. "
+                "Duration observations will be sampled — histogram_quantile() results are "
+                "statistically approximate. Counters (requests_total, errors_total) remain exact. "
+                "Set sample_rate=1.0 for precise P95/P99 SLO alerting.",
+                name,
+                self._sample_rate,
+            )
+
         # =================================================================
         # Rate Metric: Total number of requests
         # =================================================================
@@ -495,18 +513,38 @@ class REDMetrics:
         is_failure = status in ("failure", "error")
         normalized_status = "failure" if is_failure else status
 
-        # Always record errors (not sampled) to ensure error visibility
+        # Guard against accidental high-cardinality operation labels.
+        # Labels containing UUIDs, numeric IDs, or long strings create unbounded
+        # metric series that will eventually OOM Prometheus.
+        if len(operation) > 128:
+            import hashlib as _hashlib
+
+            _logger.warning(
+                "REDMetrics.observe_request: operation label is very long (%d chars). "
+                "This may indicate a high-cardinality label (e.g. user ID, request ID). "
+                "High-cardinality labels cause Prometheus memory exhaustion. "
+                "Use a fixed operation name instead. Label truncated with hash suffix.",
+                len(operation),
+            )
+            # Hash the full name so two different long operations never collapse into
+            # the same series (plain prefix truncation would merge them silently).
+            _suffix = _hashlib.md5(operation.encode(), usedforsecurity=False).hexdigest()[:8]
+            operation = operation[:119] + "_" + _suffix  # 119 + 1 + 8 = 128 chars
+
+        # Always record errors to ensure error visibility
         if is_failure:
             error_label = error_type or "UnknownError"
             self.errors_total.labels(operation=operation, error_type=error_label).inc()
 
-        # Apply sampling for success metrics - skip if not sampled
+        # Always increment request counter so error-rate denominators stay accurate.
+        # Sampling applies only to duration observations (histograms/summaries) to
+        # reduce cardinality on high-volume services without distorting rate metrics.
+        self.requests_total.labels(operation=operation, status=normalized_status).inc()
+
+        # Apply sampling for duration observations only
         # nosec B311 - random is used for metric sampling, not security
         if self._sample_rate < 1.0 and random.random() > self._sample_rate:  # nosec B311
-            return  # Skip this observation (errors already recorded above)
-
-        # Increment request counter (when sampled) - use normalized status for consistency
-        self.requests_total.labels(operation=operation, status=normalized_status).inc()
+            return  # Skip duration observations; counters already recorded above
 
         # Record duration in histogram if enabled
         if self.duration_histogram is not None:  # pragma: no branch
@@ -670,9 +708,9 @@ def get_red_metrics() -> REDMetrics:
     # Double-checked locking pattern for thread safety
     if _red_metrics is None:
         with _red_metrics_lock:
-            if _red_metrics is None:  # pragma: no branch
-                settings = get_settings()
-                _red_metrics = REDMetrics(settings.service_name)
+            if _red_metrics is None:  # pragma: no cover  # re-check inside lock
+                settings = get_settings()  # pragma: no cover
+                _red_metrics = REDMetrics(settings.service_name)  # pragma: no cover
 
     return _red_metrics
 

@@ -1,4 +1,5 @@
 """Tests to cover remaining branch misses in shedding, degradation, failover, circuit_breaker."""
+
 from __future__ import annotations
 
 import asyncio
@@ -32,7 +33,9 @@ class TestSheddingBranchCoverage:
 
         # max_queue_size=0 -> queue_load branch is False
         # max_latency_ms=0 -> latency_load branch is False
-        shedder = LoadShedder(name="test-zero-queue", max_queue_size=0, max_latency_ms=0.0, adaptive=True)
+        shedder = LoadShedder(
+            name="test-zero-queue", max_queue_size=0, max_latency_ms=0.0, adaptive=True
+        )
         # Force evaluation window to 0 so it evaluates
         shedder.config.evaluation_window_seconds = 0.0
         # Force last eval to past
@@ -72,6 +75,7 @@ class TestSheddingBranchCoverage:
                 return super().__contains__(key)
 
         from obskit.shedding import LoadShedder
+
         existing = LoadShedder(name=unique_name)
 
         fake_dict = _FakeDict()
@@ -367,7 +371,9 @@ class TestCircuitBreakerBranchCoverage:
         """Line 707->721: OPEN state with last_failure_time=None -> returns False."""
         from obskit.resilience.circuit_breaker import CircuitBreaker, CircuitState
 
-        cb = CircuitBreaker(name="test-sync-open-no-time", failure_threshold=1, recovery_timeout=100.0)
+        cb = CircuitBreaker(
+            name="test-sync-open-no-time", failure_threshold=1, recovery_timeout=100.0
+        )
 
         # Force to OPEN state directly
         with cb._lock:

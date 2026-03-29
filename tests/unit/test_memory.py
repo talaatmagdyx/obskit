@@ -301,6 +301,7 @@ class TestMemoryTracking:
         # Make sure tracking is stopped before each test
         stop_memory_tracking()
         import obskit.memory as module
+
         module._background_tracker = None
 
     def teardown_method(self):
@@ -308,12 +309,14 @@ class TestMemoryTracking:
 
     def test_start_tracking_creates_thread(self):
         import obskit.memory as module
+
         start_memory_tracking(interval_seconds=100.0)
         assert module._background_tracker is not None
         assert module._background_tracker.is_alive()
 
     def test_start_tracking_second_call_is_noop(self):
         import obskit.memory as module
+
         start_memory_tracking(interval_seconds=100.0)
         first_thread = module._background_tracker
         start_memory_tracking(interval_seconds=100.0)
@@ -322,6 +325,7 @@ class TestMemoryTracking:
 
     def test_stop_tracking(self):
         import obskit.memory as module
+
         start_memory_tracking(interval_seconds=100.0)
         stop_memory_tracking()
         # Wait a moment for thread to stop
@@ -383,12 +387,14 @@ class TestInitMetrics:
     def test_init_metrics_sets_flag(self):
         import obskit.memory as module
         from obskit.memory import _init_metrics
+
         # After calling, should be marked initialized
         _init_metrics()
         assert module._metrics_initialized is True
 
     def test_init_metrics_idempotent(self):
         from obskit.memory import _init_metrics
+
         # Should not raise even if called multiple times
         _init_metrics()
         _init_metrics()

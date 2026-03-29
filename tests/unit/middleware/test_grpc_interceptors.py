@@ -68,7 +68,9 @@ class TestObskitServerInterceptorInterceptService:
 
     @pytest.mark.asyncio
     async def test_intercept_service_success(self):
-        interceptor = self._make_interceptor(track_metrics=False, track_logging=False, track_tracing=False)
+        interceptor = self._make_interceptor(
+            track_metrics=False, track_logging=False, track_tracing=False
+        )
         details = self._make_call_details()
 
         mock_response = MagicMock()
@@ -145,6 +147,7 @@ class TestObskitServerInterceptorInterceptService:
         class ConcreteRpcError(grpc.RpcError):
             def code(self):
                 return grpc.StatusCode.INTERNAL
+
             def details(self):
                 return "internal error"
 
@@ -222,7 +225,10 @@ class TestObskitClientInterceptorInterceptCall:
     @pytest.mark.asyncio
     async def test_intercept_call_success(self):
         interceptor = self._make_interceptor(
-            track_metrics=False, track_logging=False, propagate_trace=False, propagate_correlation_id=False
+            track_metrics=False,
+            track_logging=False,
+            propagate_trace=False,
+            propagate_correlation_id=False,
         )
         details = self._make_client_call_details()
         mock_response = MagicMock()
@@ -234,7 +240,10 @@ class TestObskitClientInterceptorInterceptCall:
     @pytest.mark.asyncio
     async def test_intercept_call_with_metrics(self):
         interceptor = self._make_interceptor(
-            track_metrics=True, track_logging=False, propagate_trace=False, propagate_correlation_id=False
+            track_metrics=True,
+            track_logging=False,
+            propagate_trace=False,
+            propagate_correlation_id=False,
         )
         mock_metrics = MagicMock()
         interceptor.red_metrics = mock_metrics
@@ -249,7 +258,10 @@ class TestObskitClientInterceptorInterceptCall:
     @pytest.mark.asyncio
     async def test_intercept_call_with_logging(self):
         interceptor = self._make_interceptor(
-            track_metrics=False, track_logging=True, propagate_trace=False, propagate_correlation_id=False
+            track_metrics=False,
+            track_logging=True,
+            propagate_trace=False,
+            propagate_correlation_id=False,
         )
         details = self._make_client_call_details()
         continuation = AsyncMock(return_value=MagicMock())
@@ -263,7 +275,10 @@ class TestObskitClientInterceptorInterceptCall:
         import grpc
 
         interceptor = self._make_interceptor(
-            track_metrics=False, track_logging=False, propagate_trace=False, propagate_correlation_id=False
+            track_metrics=False,
+            track_logging=False,
+            propagate_trace=False,
+            propagate_correlation_id=False,
         )
         details = self._make_client_call_details()
 
@@ -271,6 +286,7 @@ class TestObskitClientInterceptorInterceptCall:
         class ConcreteRpcError(grpc.RpcError):
             def code(self):
                 return grpc.StatusCode.UNAVAILABLE
+
             def details(self):
                 return "unavailable"
 
@@ -282,7 +298,10 @@ class TestObskitClientInterceptorInterceptCall:
     @pytest.mark.asyncio
     async def test_intercept_call_generic_exception(self):
         interceptor = self._make_interceptor(
-            track_metrics=False, track_logging=False, propagate_trace=False, propagate_correlation_id=False
+            track_metrics=False,
+            track_logging=False,
+            propagate_trace=False,
+            propagate_correlation_id=False,
         )
         details = self._make_client_call_details()
         continuation = AsyncMock(side_effect=ConnectionError("network error"))
@@ -293,7 +312,10 @@ class TestObskitClientInterceptorInterceptCall:
     @pytest.mark.asyncio
     async def test_intercept_call_failure_records_metrics(self):
         interceptor = self._make_interceptor(
-            track_metrics=True, track_logging=False, propagate_trace=False, propagate_correlation_id=False
+            track_metrics=True,
+            track_logging=False,
+            propagate_trace=False,
+            propagate_correlation_id=False,
         )
         mock_metrics = MagicMock()
         interceptor.red_metrics = mock_metrics
@@ -311,7 +333,10 @@ class TestObskitClientInterceptorInterceptCall:
     @pytest.mark.asyncio
     async def test_intercept_call_logs_warning_on_failure(self):
         interceptor = self._make_interceptor(
-            track_metrics=False, track_logging=True, propagate_trace=False, propagate_correlation_id=False
+            track_metrics=False,
+            track_logging=True,
+            propagate_trace=False,
+            propagate_correlation_id=False,
         )
         details = self._make_client_call_details()
         continuation = AsyncMock(side_effect=ValueError("test failure"))
@@ -326,7 +351,10 @@ class TestObskitClientInterceptorInterceptCall:
         from obskit.middleware.grpc import ObskitClientInterceptor
 
         interceptor = ObskitClientInterceptor(
-            track_metrics=False, track_logging=False, propagate_trace=False, propagate_correlation_id=False
+            track_metrics=False,
+            track_logging=False,
+            propagate_trace=False,
+            propagate_correlation_id=False,
         )
         details = self._make_client_call_details()
         continuation = AsyncMock(return_value=MagicMock())
@@ -338,7 +366,10 @@ class TestObskitClientInterceptorInterceptCall:
         from obskit.middleware.grpc import ObskitClientInterceptor
 
         interceptor = ObskitClientInterceptor(
-            track_metrics=False, track_logging=False, propagate_trace=False, propagate_correlation_id=False
+            track_metrics=False,
+            track_logging=False,
+            propagate_trace=False,
+            propagate_correlation_id=False,
         )
         details = self._make_client_call_details()
         continuation = AsyncMock(return_value=MagicMock())
@@ -350,7 +381,10 @@ class TestObskitClientInterceptorInterceptCall:
         from obskit.middleware.grpc import ObskitClientInterceptor
 
         interceptor = ObskitClientInterceptor(
-            track_metrics=False, track_logging=False, propagate_trace=False, propagate_correlation_id=False
+            track_metrics=False,
+            track_logging=False,
+            propagate_trace=False,
+            propagate_correlation_id=False,
         )
         details = self._make_client_call_details()
         continuation = AsyncMock(return_value=MagicMock())
@@ -362,7 +396,10 @@ class TestObskitClientInterceptorInterceptCall:
         from obskit.middleware.grpc import ObskitClientInterceptor
 
         interceptor = ObskitClientInterceptor(
-            track_metrics=False, track_logging=False, propagate_trace=False, propagate_correlation_id=False
+            track_metrics=False,
+            track_logging=False,
+            propagate_trace=False,
+            propagate_correlation_id=False,
         )
         details = self._make_client_call_details()
         continuation = AsyncMock(return_value=MagicMock())
@@ -372,7 +409,10 @@ class TestObskitClientInterceptorInterceptCall:
     @pytest.mark.asyncio
     async def test_intercept_call_injects_metadata(self):
         interceptor = self._make_interceptor(
-            track_metrics=False, track_logging=False, propagate_trace=False, propagate_correlation_id=True
+            track_metrics=False,
+            track_logging=False,
+            propagate_trace=False,
+            propagate_correlation_id=True,
         )
         details = self._make_client_call_details()
         details.metadata = [("existing-key", "existing-value")]

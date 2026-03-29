@@ -219,6 +219,7 @@ class TestCreateStackSignature:
     def test_skips_site_packages(self):
         """Test that site-packages frames are skipped if possible."""
         from unittest.mock import MagicMock
+
         # Create fake frames
         frame1 = MagicMock()
         frame1.filename = "/usr/local/lib/python3.11/site-packages/requests/api.py"
@@ -471,6 +472,7 @@ class TestSingletonHelpers:
     def setup_method(self):
         # Reset the global fingerprinter before each test
         import obskit.fingerprint as module
+
         module._fingerprinter = None
 
     def test_get_error_fingerprinter_creates_instance(self):

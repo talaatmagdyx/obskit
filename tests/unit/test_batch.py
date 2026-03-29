@@ -233,31 +233,41 @@ class TestTrackBatchDecorator:
 class TestBatchTrackerEdgeCases:
     def test_record_skip_with_reason(self):
         from obskit.batch import BatchContext
+
         ctx = BatchContext("test_batch", 10)
         ctx.record_skip(count=1, reason="duplicate")
 
     def test_success_rate_zero_processed(self):
         from obskit.batch import BatchContext
+
         ctx = BatchContext("test_batch", 0)
         assert ctx.success_rate == pytest.approx(1.0)
 
     def test_process_batch_without_batch_size_uses_processed(self):
         from obskit.batch import BatchTracker
+
         tracker = BatchTracker("test_tracker")
         called = []
+
         def processor(item):
             called.append(item)
+
         _result = tracker.process_batch([1, 2, 3], processor)
         assert len(called) == 3
 
     def test_process_batch_with_on_error_callback(self):
         from obskit.batch import BatchTracker
+
         tracker = BatchTracker("test_tracker")
         errors = []
+
         def on_error(item, exc):
             errors.append((item, exc))
+
         def processor(item):
-            if item == 2: raise ValueError("oops")
+            if item == 2:
+                raise ValueError("oops")
+
         tracker.process_batch([1, 2, 3], processor, on_error=on_error)
         assert len(errors) == 1
         assert errors[0][0] == 2
@@ -266,29 +276,34 @@ class TestBatchTrackerEdgeCases:
         import pytest
 
         from obskit.batch import BatchTracker
+
         tracker = BatchTracker("test_tracker")
+
         def processor(item):
-            if item == 1: raise ValueError("fail")
+            if item == 1:
+                raise ValueError("fail")
+
         with pytest.raises(ValueError):
             tracker.process_batch([1, 2, 3], processor, fail_fast=True)
 
-
     def test_track_batch_no_batch_size_with_processed_items(self):
         from obskit.batch import BatchTracker
+
         tracker = BatchTracker("test_tracker")
         with tracker.track_batch(batch_size=0) as batch:
             batch.record_success()
             batch.record_success()
         # batch_size=0 but batch.processed > 0 covers lines 212-213
 
-
     def test_record_skip_without_reason(self):
         from obskit.batch import BatchContext
+
         ctx = BatchContext("test_batch", 10)
         ctx.record_skip(count=1)  # No reason - covers the if-reason else branch
 
     def test_track_batch_no_batch_size_zero_processed(self):
         from obskit.batch import BatchTracker
+
         tracker = BatchTracker("test_tracker")
         with tracker.track_batch(batch_size=0):
             pass  # No items processed - batch.processed == 0, covers 212->215 branch
@@ -299,12 +314,17 @@ class TestBatchTrackerAsyncEdgeCases:
         import asyncio
 
         from obskit.batch import BatchTracker
+
         tracker = BatchTracker("test_tracker")
         errors = []
+
         def on_error(item, exc):
             errors.append((item, exc))
+
         async def processor(item):  # NOSONAR
-            if item == 2: raise ValueError("async error")
+            if item == 2:
+                raise ValueError("async error")
+
         asyncio.run(tracker.process_batch_async([1, 2, 3], processor, on_error=on_error))
         assert len(errors) == 1
 
@@ -314,9 +334,12 @@ class TestBatchTrackerAsyncEdgeCases:
         import pytest
 
         from obskit.batch import BatchTracker
+
         tracker = BatchTracker("test_tracker")
+
         async def processor(item):  # NOSONAR
-            if item == 1: raise ValueError("fail")
+            if item == 1:
+                raise ValueError("fail")
+
         with pytest.raises(ValueError):
             asyncio.run(tracker.process_batch_async([1, 2, 3], processor, fail_fast=True))
-

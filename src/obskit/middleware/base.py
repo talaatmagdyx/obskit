@@ -301,9 +301,15 @@ class ASGIMiddleware:
             await self.app(scope, receive, send)
             return
 
-        # Extract headers
-        headers = dict(scope.get("headers", []))
-        headers = {k.decode(): v.decode() for k, v in headers.items()}
+        # Extract headers — use a list of tuples to preserve duplicate header
+        # names (e.g. multiple Set-Cookie values).  before_request expects a
+        # dict-like for single-value lookups; build a last-value-wins dict for
+        # that purpose while keeping the full list available if needed.
+        raw_headers = scope.get("headers", [])
+        headers = {
+            k.decode("latin-1", errors="replace"): v.decode("latin-1", errors="replace")
+            for k, v in raw_headers
+        }
 
         # Before request
         context = self.base.before_request(headers)

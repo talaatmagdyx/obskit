@@ -359,6 +359,7 @@ class TestCheckAllPoolsHealthy:
     def test_true_when_all_pools_healthy(self):
         # Reset pools registry for clean test
         from obskit.pools import _pools
+
         original = dict(_pools)
         _pools.clear()
 
@@ -375,6 +376,7 @@ class TestCheckAllPoolsHealthy:
 
     def test_false_when_any_pool_unhealthy(self):
         from obskit.pools import _pools
+
         original = dict(_pools)
         _pools.clear()
 
@@ -388,5 +390,3 @@ class TestCheckAllPoolsHealthy:
         # Restore
         _pools.clear()
         _pools.update(original)
-
-

@@ -32,6 +32,7 @@ class TestAsyncRecordingGaps:
 
     def setup_method(self):
         import obskit.metrics.async_recording as m
+
         if m._metric_worker_task and not m._metric_worker_task.done():
             m._metric_worker_task.cancel()
         m._metric_queue = None
@@ -39,6 +40,7 @@ class TestAsyncRecordingGaps:
 
     def teardown_method(self):
         import obskit.metrics.async_recording as m
+
         if m._metric_worker_task and not m._metric_worker_task.done():
             m._metric_worker_task.cancel()
         m._metric_queue = None
@@ -104,7 +106,9 @@ class TestAsyncRecordingGaps:
 
         await _ensure_worker_started()
 
-        m._metric_queue.put_nowait({"metrics": MagicMock(), "method": "observe_request", "args": (), "kwargs": {}})
+        m._metric_queue.put_nowait(
+            {"metrics": MagicMock(), "method": "observe_request", "args": (), "kwargs": {}}
+        )
 
         await shutdown_async_recording()
         assert m._metric_queue is None
@@ -122,12 +126,14 @@ class TestAsyncRecordingGaps:
         failing_metrics = MagicMock()
         failing_metrics.observe_request.side_effect = RuntimeError("drain error")
 
-        m._metric_queue.put_nowait({
-            "metrics": failing_metrics,
-            "method": "observe_request",
-            "args": (),
-            "kwargs": {},
-        })
+        m._metric_queue.put_nowait(
+            {
+                "metrics": failing_metrics,
+                "method": "observe_request",
+                "args": (),
+                "kwargs": {},
+            }
+        )
 
         # Should not raise - exception is swallowed at line 274-275
         await shutdown_async_recording()
@@ -145,15 +151,18 @@ class TestCardinalityGaps:
 
     def setup_method(self):
         from obskit.metrics.cardinality import reset_cardinality_protector
+
         reset_cardinality_protector()
 
     def teardown_method(self):
         from obskit.metrics.cardinality import reset_cardinality_protector
+
         reset_cardinality_protector()
 
     def test_prometheus_metrics_exist(self):
         """Lines 40-43, 72-74: PROMETHEUS_AVAILABLE controls metric creation."""
         import obskit.metrics.cardinality as c_module
+
         assert hasattr(c_module, "CARDINALITY_REJECTIONS")
         assert hasattr(c_module, "CARDINALITY_CURRENT")
         assert hasattr(c_module, "CARDINALITY_LIMIT")
@@ -270,7 +279,9 @@ class TestOTLPGaps:
     """Lines 316-317, 344-350."""
 
     @pytest.mark.skipif(
-        not __import__("obskit.metrics.otlp", fromlist=["OTLP_METRICS_AVAILABLE"]).OTLP_METRICS_AVAILABLE,
+        not __import__(
+            "obskit.metrics.otlp", fromlist=["OTLP_METRICS_AVAILABLE"]
+        ).OTLP_METRICS_AVAILABLE,
         reason="OTLP not available",
     )
     def test_shutdown_exception_is_caught(self):
@@ -287,7 +298,9 @@ class TestOTLPGaps:
         # Mock the meter provider to raise on shutdown - _started stays True since
         # self._started = False is on line 313 BEFORE the raise
         if exporter._meter_provider:
-            exporter._meter_provider.shutdown = MagicMock(side_effect=RuntimeError("shutdown failed"))
+            exporter._meter_provider.shutdown = MagicMock(
+                side_effect=RuntimeError("shutdown failed")
+            )
 
         exporter.shutdown()
         # When exception is caught on line 316, _started is NOT set to False
@@ -295,7 +308,9 @@ class TestOTLPGaps:
         assert exporter._started  # Still True since exception prevented line 313
 
     @pytest.mark.skipif(
-        not __import__("obskit.metrics.otlp", fromlist=["OTLP_METRICS_AVAILABLE"]).OTLP_METRICS_AVAILABLE,
+        not __import__(
+            "obskit.metrics.otlp", fromlist=["OTLP_METRICS_AVAILABLE"]
+        ).OTLP_METRICS_AVAILABLE,
         reason="OTLP not available",
     )
     def test_force_flush_exception_returns_false(self):
@@ -309,7 +324,9 @@ class TestOTLPGaps:
         exporter.start()
 
         if exporter._meter_provider:
-            exporter._meter_provider.force_flush = MagicMock(side_effect=RuntimeError("flush failed"))
+            exporter._meter_provider.force_flush = MagicMock(
+                side_effect=RuntimeError("flush failed")
+            )
 
         result = exporter.force_flush()
         assert result is False
@@ -352,10 +369,12 @@ class TestRegistryGaps:
 
     def setup_method(self):
         from obskit.metrics.registry import reset_registry
+
         reset_registry()
 
     def teardown_method(self):
         from obskit.metrics.registry import reset_registry, stop_http_server
+
         stop_http_server()
         reset_registry()
 
@@ -369,7 +388,10 @@ class TestRegistryGaps:
         mock_server = MagicMock()
         mock_thread = MagicMock()
 
-        with patch("obskit.metrics.registry._start_http_server") as mock_start,              patch("obskit.metrics.registry.get_settings") as mock_settings_fn:
+        with (
+            patch("obskit.metrics.registry._start_http_server") as mock_start,
+            patch("obskit.metrics.registry.get_settings") as mock_settings_fn,
+        ):
             mock_settings_fn.return_value.metrics_auth_enabled = False
             mock_settings_fn.return_value.metrics_auth_token = None
             mock_settings_fn.return_value.metrics_port = 19999
@@ -387,7 +409,10 @@ class TestRegistryGaps:
 
         reset_registry()
 
-        with patch("obskit.metrics.registry._start_http_server") as mock_start,              patch("obskit.metrics.registry.get_settings") as mock_settings_fn:
+        with (
+            patch("obskit.metrics.registry._start_http_server") as mock_start,
+            patch("obskit.metrics.registry.get_settings") as mock_settings_fn,
+        ):
             mock_settings_fn.return_value.metrics_auth_enabled = False
             mock_settings_fn.return_value.metrics_auth_token = None
             mock_settings_fn.return_value.metrics_port = 19998
@@ -410,10 +435,12 @@ class TestSelfMetricsGaps:
 
     def setup_method(self):
         import obskit.metrics.self_metrics as sm
+
         sm.reset_self_metrics()
 
     def teardown_method(self):
         import obskit.metrics.self_metrics as sm
+
         sm.reset_self_metrics()
 
     def test_get_snapshot_when_queue_depth_is_not_none(self):
@@ -536,12 +563,17 @@ class TestTenantGaps:
         mock_trace = MagicMock()
         mock_trace.get_current_span.return_value = mock_span
 
-        with patch.dict("sys.modules", {"opentelemetry": MagicMock(), "opentelemetry.trace": mock_trace}):
+        with patch.dict(
+            "sys.modules", {"opentelemetry": MagicMock(), "opentelemetry.trace": mock_trace}
+        ):
             with patch("builtins.__import__"):
+
                 def import_side_effect(name, *args, **kwargs):
                     if name == "opentelemetry":
                         return MagicMock(trace=mock_trace)
-                    if name == "opentelemetry.trace" or (args and "trace" in args[0] if args else False):
+                    if name == "opentelemetry.trace" or (
+                        args and "trace" in args[0] if args else False
+                    ):
                         return mock_trace
                     return __import__(name, *args, **kwargs)
 
@@ -565,7 +597,9 @@ class TestTenantGaps:
         mock_otel = MagicMock()
         mock_otel.trace = mock_trace_module
 
-        with patch.dict(sys.modules, {"opentelemetry": mock_otel, "opentelemetry.trace": mock_trace_module}):
+        with patch.dict(
+            sys.modules, {"opentelemetry": mock_otel, "opentelemetry.trace": mock_trace_module}
+        ):
             with tenant_context("t-123", company_id="comp-456") as ctx:
                 assert ctx["tenant_id"] == "t-123"
             mock_span.set_attribute.assert_any_call("tenant.id", "t-123")
@@ -586,7 +620,9 @@ class TestTenantGaps:
         mock_otel = MagicMock()
         mock_otel.trace = mock_trace_module
 
-        with patch.dict(sys.modules, {"opentelemetry": mock_otel, "opentelemetry.trace": mock_trace_module}):
+        with patch.dict(
+            sys.modules, {"opentelemetry": mock_otel, "opentelemetry.trace": mock_trace_module}
+        ):
             with tenant_context("t-789") as ctx:
                 assert ctx["tenant_id"] == "t-789"
 
@@ -604,7 +640,9 @@ class TestTenantGaps:
         mock_otel = MagicMock()
         mock_otel.trace = mock_trace_module
 
-        with patch.dict(sys.modules, {"opentelemetry": mock_otel, "opentelemetry.trace": mock_trace_module}):
+        with patch.dict(
+            sys.modules, {"opentelemetry": mock_otel, "opentelemetry.trace": mock_trace_module}
+        ):
             # No company_id provided - line 170 is False, company.id not set
             with tenant_context("t-no-company") as ctx:
                 assert ctx["tenant_id"] == "t-no-company"

@@ -26,8 +26,10 @@ class TestSetupTracingIntegration:
 
     def test_returns_empty_list_when_auto_instrument_false(self) -> None:
         """No instrumentation applied when auto_instrument=False."""
-        with patch("obskit.tracing.setup.configure_tracing") as mock_cfg, \
-             patch("obskit.tracing.setup.apply_instrumentors") as mock_apply:
+        with (
+            patch("obskit.tracing.setup.configure_tracing") as mock_cfg,
+            patch("obskit.tracing.setup.apply_instrumentors") as mock_apply,
+        ):
             result = setup_tracing(auto_instrument=False)
 
         mock_cfg.assert_called_once()
@@ -36,16 +38,20 @@ class TestSetupTracingIntegration:
 
     def test_calls_configure_tracing(self) -> None:
         """setup_tracing always calls configure_tracing."""
-        with patch("obskit.tracing.setup.configure_tracing") as mock_cfg, \
-             patch("obskit.tracing.setup.apply_instrumentors", return_value=[]):
+        with (
+            patch("obskit.tracing.setup.configure_tracing") as mock_cfg,
+            patch("obskit.tracing.setup.apply_instrumentors", return_value=[]),
+        ):
             setup_tracing()
 
         mock_cfg.assert_called_once()
 
     def test_passes_service_name_to_configure(self) -> None:
         """service_name is forwarded to configure_tracing."""
-        with patch("obskit.tracing.setup.configure_tracing") as mock_cfg, \
-             patch("obskit.tracing.setup.apply_instrumentors", return_value=[]):
+        with (
+            patch("obskit.tracing.setup.configure_tracing") as mock_cfg,
+            patch("obskit.tracing.setup.apply_instrumentors", return_value=[]),
+        ):
             setup_tracing(service_name="my-svc", auto_instrument=False)
 
         mock_cfg.assert_called_once_with(
@@ -57,8 +63,10 @@ class TestSetupTracingIntegration:
 
     def test_passes_endpoint_to_configure(self) -> None:
         """exporter_endpoint is forwarded as otlp_endpoint."""
-        with patch("obskit.tracing.setup.configure_tracing") as mock_cfg, \
-             patch("obskit.tracing.setup.apply_instrumentors", return_value=[]):
+        with (
+            patch("obskit.tracing.setup.configure_tracing") as mock_cfg,
+            patch("obskit.tracing.setup.apply_instrumentors", return_value=[]),
+        ):
             setup_tracing(exporter_endpoint="http://tempo:4317", auto_instrument=False)
 
         mock_cfg.assert_called_once_with(
@@ -70,8 +78,10 @@ class TestSetupTracingIntegration:
 
     def test_passes_instrument_list_to_apply(self) -> None:
         """instrument kwarg is forwarded to apply_instrumentors."""
-        with patch("obskit.tracing.setup.configure_tracing"), \
-             patch("obskit.tracing.setup.apply_instrumentors", return_value=["redis"]) as mock_apply:
+        with (
+            patch("obskit.tracing.setup.configure_tracing"),
+            patch("obskit.tracing.setup.apply_instrumentors", return_value=["redis"]) as mock_apply,
+        ):
             result = setup_tracing(instrument=["redis"])
 
         mock_apply.assert_called_once_with(["redis"])
@@ -79,19 +89,23 @@ class TestSetupTracingIntegration:
 
     def test_passes_none_instrument_to_apply(self) -> None:
         """When instrument is None, apply_instrumentors receives None."""
-        with patch("obskit.tracing.setup.configure_tracing"), \
-             patch("obskit.tracing.setup.apply_instrumentors", return_value=[]) as mock_apply:
+        with (
+            patch("obskit.tracing.setup.configure_tracing"),
+            patch("obskit.tracing.setup.apply_instrumentors", return_value=[]) as mock_apply,
+        ):
             setup_tracing(instrument=None)
 
         mock_apply.assert_called_once_with(None)
 
     def test_returns_applied_names(self) -> None:
         """Return value comes from apply_instrumentors."""
-        with patch("obskit.tracing.setup.configure_tracing"), \
-             patch(
-                 "obskit.tracing.setup.apply_instrumentors",
-                 return_value=["fastapi", "redis"],
-             ):
+        with (
+            patch("obskit.tracing.setup.configure_tracing"),
+            patch(
+                "obskit.tracing.setup.apply_instrumentors",
+                return_value=["fastapi", "redis"],
+            ),
+        ):
             result = setup_tracing()
 
         assert result == ["fastapi", "redis"]
@@ -100,8 +114,10 @@ class TestSetupTracingIntegration:
 
     def test_passes_debug_true_to_configure(self) -> None:
         """debug=True is forwarded to configure_tracing."""
-        with patch("obskit.tracing.setup.configure_tracing") as mock_cfg, \
-             patch("obskit.tracing.setup.apply_instrumentors", return_value=[]):
+        with (
+            patch("obskit.tracing.setup.configure_tracing") as mock_cfg,
+            patch("obskit.tracing.setup.apply_instrumentors", return_value=[]),
+        ):
             setup_tracing(debug=True, auto_instrument=False)
 
         mock_cfg.assert_called_once_with(
@@ -113,8 +129,10 @@ class TestSetupTracingIntegration:
 
     def test_passes_sample_rate_to_configure(self) -> None:
         """sample_rate is forwarded to configure_tracing."""
-        with patch("obskit.tracing.setup.configure_tracing") as mock_cfg, \
-             patch("obskit.tracing.setup.apply_instrumentors", return_value=[]):
+        with (
+            patch("obskit.tracing.setup.configure_tracing") as mock_cfg,
+            patch("obskit.tracing.setup.apply_instrumentors", return_value=[]),
+        ):
             setup_tracing(sample_rate=0.1, auto_instrument=False)
 
         mock_cfg.assert_called_once_with(
@@ -126,8 +144,10 @@ class TestSetupTracingIntegration:
 
     def test_debug_and_sample_rate_together(self) -> None:
         """debug + sample_rate are both forwarded correctly."""
-        with patch("obskit.tracing.setup.configure_tracing") as mock_cfg, \
-             patch("obskit.tracing.setup.apply_instrumentors", return_value=[]):
+        with (
+            patch("obskit.tracing.setup.configure_tracing") as mock_cfg,
+            patch("obskit.tracing.setup.apply_instrumentors", return_value=[]),
+        ):
             setup_tracing(debug=True, sample_rate=0.5, auto_instrument=False)
 
         mock_cfg.assert_called_once_with(
@@ -141,11 +161,13 @@ class TestSetupTracingIntegration:
 
     def test_all_kwargs_forwarded_correctly(self) -> None:
         """All kwargs reach the right downstream call."""
-        with patch("obskit.tracing.setup.configure_tracing") as mock_cfg, \
-             patch(
-                 "obskit.tracing.setup.apply_instrumentors",
-                 return_value=["fastapi"],
-             ) as mock_apply:
+        with (
+            patch("obskit.tracing.setup.configure_tracing") as mock_cfg,
+            patch(
+                "obskit.tracing.setup.apply_instrumentors",
+                return_value=["fastapi"],
+            ) as mock_apply,
+        ):
             result = setup_tracing(
                 exporter_endpoint="http://otel:4317",
                 auto_instrument=True,

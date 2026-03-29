@@ -299,6 +299,7 @@ class TestLatencyBreakdownLogging:
 
     def test_warns_when_bottleneck_exceeds_threshold(self):
         import time as _time
+
         mock_logger = MagicMock()
         with patch("obskit.breakdown.logger", mock_logger):
             bd = LatencyBreakdown(

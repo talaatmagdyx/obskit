@@ -73,8 +73,11 @@ obskit.metrics.golden : Four Golden Signals implementation
 
 from __future__ import annotations
 
+import logging
 from collections.abc import Sequence
 from typing import Any
+
+_logger = logging.getLogger(__name__)
 
 # Check if prometheus_client is available
 try:
@@ -155,6 +158,12 @@ class Counter:
                     and name in registry._names_to_collectors
                 ):
                     existing = registry._names_to_collectors[name]
+                    _logger.warning(
+                        "Metric name collision: unregistering existing collector for %r "
+                        "to register a new one. This may indicate duplicate metric "
+                        "registration — check your application startup code.",
+                        name,
+                    )
                     registry.unregister(existing)
             except Exception:  # nosec B110 - metric cleanup errors are non-critical
                 pass  # Ignore errors during cleanup - metric might not exist
@@ -276,6 +285,12 @@ class Gauge:
                     and name in registry._names_to_collectors
                 ):
                     existing = registry._names_to_collectors[name]
+                    _logger.warning(
+                        "Metric name collision: unregistering existing collector for %r "
+                        "to register a new one. This may indicate duplicate metric "
+                        "registration — check your application startup code.",
+                        name,
+                    )
                     registry.unregister(existing)
             except Exception:  # nosec B110 - metric cleanup errors are non-critical
                 pass  # Ignore errors during cleanup - metric might not exist
@@ -427,6 +442,12 @@ class Histogram:
                     and name in registry._names_to_collectors
                 ):
                     existing = registry._names_to_collectors[name]
+                    _logger.warning(
+                        "Metric name collision: unregistering existing collector for %r "
+                        "to register a new one. This may indicate duplicate metric "
+                        "registration — check your application startup code.",
+                        name,
+                    )
                     registry.unregister(existing)
             except Exception:  # nosec B110 - metric cleanup errors are non-critical
                 pass  # Ignore errors during cleanup - metric might not exist
@@ -529,6 +550,12 @@ class Summary:
                     and name in registry._names_to_collectors
                 ):
                     existing = registry._names_to_collectors[name]
+                    _logger.warning(
+                        "Metric name collision: unregistering existing collector for %r "
+                        "to register a new one. This may indicate duplicate metric "
+                        "registration — check your application startup code.",
+                        name,
+                    )
                     registry.unregister(existing)
             except Exception:  # nosec B110 - metric cleanup errors are non-critical
                 pass  # Ignore errors during cleanup - metric might not exist

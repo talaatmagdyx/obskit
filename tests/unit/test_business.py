@@ -235,6 +235,7 @@ class TestFunnelTracker:
 class TestBusinessMetricsEdgeCases:
     def test_track_engagement_with_user_id(self):
         from obskit.business import BusinessMetrics
+
         bm = BusinessMetrics("test_svc")
         with bm.track_engagement("test_tenant", "click", user_id="user123"):
             pass  # NOSONAR
@@ -244,6 +245,7 @@ class TestBusinessMetricsEdgeCases:
         from datetime import datetime
 
         from obskit.business import BusinessMetrics
+
         bm = BusinessMetrics("test_svc")
         bm.track_event("event1", tenant_id="test_tenant")
         time.sleep(0.05)
@@ -258,6 +260,7 @@ class TestBusinessMetricsEdgeCases:
 class TestFunnelTrackerEdgeCases:
     def test_progress_before_enter(self):
         from obskit.business import FunnelTracker
+
         # FunnelTracker(funnel_name, stages, service_name)
         ft = FunnelTracker("test_funnel", ["stage1", "stage2", "stage3"], "test_svc")
         # progress() when user not in _user_stages should auto-enter
@@ -266,12 +269,14 @@ class TestFunnelTrackerEdgeCases:
 
     def test_complete_funnel(self):
         from obskit.business import FunnelTracker
+
         ft = FunnelTracker("purchase", ["view", "cart", "checkout"], "test_svc")
         ft.enter("user1", "view", "tenant1")
         ft.complete("user1", "tenant1")
 
     def test_drop_user_from_funnel(self):
         from obskit.business import FunnelTracker
+
         ft = FunnelTracker("purchase", ["view", "cart", "checkout"], "test_svc")
         ft.enter("user1", "view", "tenant1")
         ft.drop("user1", tenant_id="tenant1")
@@ -279,13 +284,13 @@ class TestFunnelTrackerEdgeCases:
 
     def test_conversion_rates_with_users_at_stages(self):
         from obskit.business import FunnelTracker
+
         ft = FunnelTracker("purchase", ["view", "cart", "checkout"], "test_svc")
         ft.enter("user1", "view", "tenant1")
         ft.enter("user2", "view", "tenant1")
         ft.progress("user1", "cart", "tenant1")
         rates = ft.get_conversion_rates()
         assert "view_to_cart" in rates
-
 
 
 # =============================================================================
@@ -299,6 +304,7 @@ class TestBusinessCoverageGaps:
     def test_track_engagement_with_user_id(self):
         """Test track_engagement with user_id set (line 208->209)."""
         from obskit.business import BusinessMetrics
+
         bm = BusinessMetrics("test_svc")
         with bm.track_engagement("tenant1", "click", user_id="user123"):
             pass  # NOSONAR
@@ -307,6 +313,7 @@ class TestBusinessCoverageGaps:
     def test_funnel_complete_user_in_stages(self):
         """Test FunnelTracker.complete when user is in stages (line 389->390)."""
         from obskit.business import FunnelTracker
+
         ft = FunnelTracker("checkout", ["cart", "payment", "confirm"], "test_svc")
         ft.enter("user1", "cart", "tenant1")
         ft.complete("user1", "tenant1")
@@ -315,6 +322,7 @@ class TestBusinessCoverageGaps:
     def test_funnel_complete_user_not_in_stages(self):
         """Test FunnelTracker.complete when user not in stages (line 389->exit)."""
         from obskit.business import FunnelTracker
+
         ft = FunnelTracker("checkout", ["cart", "payment", "confirm"], "test_svc")
         # User not in stages - should not raise
         ft.complete("nonexistent_user", "tenant1")
@@ -322,6 +330,7 @@ class TestBusinessCoverageGaps:
     def test_funnel_drop_user_in_stages(self):
         """Test FunnelTracker.drop when user is in stages (line 405->406)."""
         from obskit.business import FunnelTracker
+
         ft = FunnelTracker("checkout", ["cart", "payment", "confirm"], "test_svc")
         ft.enter("user2", "cart", "tenant1")
         ft.drop("user2", reason="timeout", tenant_id="tenant1")
@@ -330,6 +339,7 @@ class TestBusinessCoverageGaps:
     def test_funnel_drop_user_not_in_stages(self):
         """Test FunnelTracker.drop when user not in stages (line 405->exit)."""
         from obskit.business import FunnelTracker
+
         ft = FunnelTracker("checkout", ["cart", "payment", "confirm"], "test_svc")
         # User not in stages - should not raise
         ft.drop("nonexistent", reason="no_reason", tenant_id="tenant1")
@@ -337,6 +347,7 @@ class TestBusinessCoverageGaps:
     def test_funnel_conversion_rates_with_users_at_first_stage(self):
         """Test get_conversion_rates when prev_stage count > 0 (line 437->438)."""
         from obskit.business import FunnelTracker
+
         ft = FunnelTracker("checkout", ["cart", "payment", "confirm"], "test_svc")
         ft.enter("user1", "cart", "tenant1")
         ft.progress("user1", "payment", "tenant1")
@@ -350,6 +361,7 @@ class TestBusinessMissingBranches:
     def test_track_engagement_without_user_id(self):
         """Test track_engagement when user_id is None (line 208->211 branch False)."""
         from obskit.business import BusinessMetrics
+
         bm = BusinessMetrics("test_svc_no_uid")
         # Without user_id, track_active_user should NOT be called
         with bm.track_engagement("view_page", tenant_id="tenant1"):
@@ -360,6 +372,7 @@ class TestBusinessMissingBranches:
     def test_funnel_conversion_rates_zero_prev_stage(self):
         """Test get_conversion_rates when prev_stage count is 0 (line 437->434)."""
         from obskit.business import FunnelTracker
+
         ft = FunnelTracker("empty_funnel", ["step1", "step2", "step3"], "test_svc")
         # No users entered - all stage_counts are 0
         # This exercises the `if stage_counts[prev_stage] > 0` being False path

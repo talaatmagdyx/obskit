@@ -1,4 +1,5 @@
 """Tests to cover branch misses in resilience/adaptive.py, combined.py, factory.py."""
+
 from __future__ import annotations
 
 import asyncio
@@ -175,7 +176,7 @@ class TestAdaptiveRetryBranchCoverage:
 
     def test_execute_sync_fallback_raise_last_exception(self):
         """Line 386: raise last_exception at end of execute_sync.
-        
+
         This is reached when max_retries=0 and exception occurs.
         """
         from obskit.resilience.adaptive import AdaptiveRetry, BackpressureStrategy, RetryConfig

@@ -461,6 +461,7 @@ class TestErrorResponseToDictCoverage:
     def test_to_dict_with_span_id(self):
         """Test that span_id is included in to_dict when set (line 69)."""
         from obskit.errors.responses import ErrorResponse
+
         r = ErrorResponse(
             error="test",
             error_type="TestError",
@@ -473,6 +474,7 @@ class TestErrorResponseToDictCoverage:
     def test_to_dict_with_empty_timestamp(self):
         """Test to_dict branch when timestamp is falsy (line 72->74)."""
         from obskit.errors.responses import ErrorResponse
+
         r = ErrorResponse(
             error="test",
             error_type="TestError",
@@ -494,7 +496,9 @@ class TestObservableErrorTraceCoverage:
         mock_trace = MagicMock()
         mock_trace.get_current_span.side_effect = RuntimeError("OTel error")
 
-        with patch.dict("sys.modules", {"opentelemetry": MagicMock(), "opentelemetry.trace": mock_trace}):
+        with patch.dict(
+            "sys.modules", {"opentelemetry": MagicMock(), "opentelemetry.trace": mock_trace}
+        ):
             err = ObservableError("test")
         # Should not raise - exception is swallowed
         assert err.trace_id is None
@@ -508,7 +512,9 @@ class TestObservableErrorTraceCoverage:
         mock_trace = MagicMock()
         mock_trace.get_current_span.side_effect = RuntimeError("OTel error")
 
-        with patch.dict("sys.modules", {"opentelemetry": MagicMock(), "opentelemetry.trace": mock_trace}):
+        with patch.dict(
+            "sys.modules", {"opentelemetry": MagicMock(), "opentelemetry.trace": mock_trace}
+        ):
             err = ObservableError("test")
         assert err.span_id is None
 
@@ -525,7 +531,9 @@ class TestCreateErrorResponseTraceCoverage:
         mock_trace = MagicMock()
         mock_trace.get_current_span.side_effect = RuntimeError("OTel error")
 
-        with patch.dict("sys.modules", {"opentelemetry": MagicMock(), "opentelemetry.trace": mock_trace}):
+        with patch.dict(
+            "sys.modules", {"opentelemetry": MagicMock(), "opentelemetry.trace": mock_trace}
+        ):
             exc = ValueError("test error")
             response = create_error_response(exc, include_trace_id=True)
         # Should complete without error
@@ -540,14 +548,16 @@ class TestCreateErrorResponseTraceCoverage:
         mock_span = MagicMock()
         mock_span_ctx = MagicMock()
         mock_span_ctx.is_valid = True
-        mock_span_ctx.trace_id = 0x1234567890abcdef1234567890abcdef
-        mock_span_ctx.span_id = 0x1234567890abcdef
+        mock_span_ctx.trace_id = 0x1234567890ABCDEF1234567890ABCDEF
+        mock_span_ctx.span_id = 0x1234567890ABCDEF
         mock_span.get_span_context.return_value = mock_span_ctx
 
         mock_trace = MagicMock()
         mock_trace.get_current_span.return_value = mock_span
 
-        with patch.dict("sys.modules", {"opentelemetry": MagicMock(), "opentelemetry.trace": mock_trace}):
+        with patch.dict(
+            "sys.modules", {"opentelemetry": MagicMock(), "opentelemetry.trace": mock_trace}
+        ):
             exc = ValueError("test error")
             response = create_error_response(exc, include_trace_id=True)
         assert response is not None
@@ -565,13 +575,15 @@ class TestFormatExceptionTraceCoverage:
         mock_span = MagicMock()
         mock_span_ctx = MagicMock()
         mock_span_ctx.is_valid = True
-        mock_span_ctx.trace_id = 0xabcdef1234567890abcdef1234567890
+        mock_span_ctx.trace_id = 0xABCDEF1234567890ABCDEF1234567890
         mock_span.get_span_context.return_value = mock_span_ctx
 
         mock_trace = MagicMock()
         mock_trace.get_current_span.return_value = mock_span
 
-        with patch.dict("sys.modules", {"opentelemetry": MagicMock(), "opentelemetry.trace": mock_trace}):
+        with patch.dict(
+            "sys.modules", {"opentelemetry": MagicMock(), "opentelemetry.trace": mock_trace}
+        ):
             exc = ValueError("test")
             result = format_exception(exc)
         assert isinstance(result, str)
@@ -585,7 +597,9 @@ class TestFormatExceptionTraceCoverage:
         mock_trace = MagicMock()
         mock_trace.get_current_span.side_effect = RuntimeError("OTel error")
 
-        with patch.dict("sys.modules", {"opentelemetry": MagicMock(), "opentelemetry.trace": mock_trace}):
+        with patch.dict(
+            "sys.modules", {"opentelemetry": MagicMock(), "opentelemetry.trace": mock_trace}
+        ):
             exc = ValueError("test")
             result = format_exception(exc)
         assert isinstance(result, str)
@@ -597,6 +611,7 @@ class TestErrorResponseMoreCoverage:
     def test_create_error_response_include_trace_id_false(self):
         """Test that include_trace_id=False skips trace block (line 297->309)."""
         from obskit.errors.responses import create_error_response
+
         exc = ValueError("test")
         # include_trace_id=False should skip the OTel trace block
         response = create_error_response(exc, include_trace_id=False)
@@ -614,8 +629,8 @@ class TestErrorResponseMoreCoverage:
         mock_span = MagicMock()
         mock_span_ctx = MagicMock()
         mock_span_ctx.is_valid = True
-        mock_span_ctx.trace_id = 0x1234567890abcdef1234567890abcdef
-        mock_span_ctx.span_id = 0x1234567890abcdef
+        mock_span_ctx.trace_id = 0x1234567890ABCDEF1234567890ABCDEF
+        mock_span_ctx.span_id = 0x1234567890ABCDEF
         mock_span.get_span_context.return_value = mock_span_ctx
 
         with patch.object(otel_trace, "get_current_span", return_value=mock_span):
@@ -635,7 +650,7 @@ class TestErrorResponseMoreCoverage:
         mock_span = MagicMock()
         mock_span_ctx = MagicMock()
         mock_span_ctx.is_valid = True
-        mock_span_ctx.trace_id = 0x123abc456def789012345678901234ab
+        mock_span_ctx.trace_id = 0x123ABC456DEF789012345678901234AB
         mock_span.get_span_context.return_value = mock_span_ctx
 
         with patch.object(otel_trace, "get_current_span", return_value=mock_span):

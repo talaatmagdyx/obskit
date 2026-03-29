@@ -366,8 +366,12 @@ class TestCachedDecoratorCoverage:
         """Test cached with custom key_builder (line 231-232)."""
         tracker = CacheTracker("test_cache")
 
-        @cached(tracker=tracker, ttl=300, key_prefix="custom",
-                key_builder=lambda uid, **kw: f"user-{uid}")
+        @cached(
+            tracker=tracker,
+            ttl=300,
+            key_prefix="custom",
+            key_builder=lambda uid, **kw: f"user-{uid}",
+        )
         def get_user(user_id):
             return {"id": user_id}
 
@@ -378,6 +382,7 @@ class TestCachedDecoratorCoverage:
     def test_cached_value_expired_then_missed(self):
         """Test cached value with TTL of 0 (expired immediately) - triggers line 254-256."""
         import time
+
         tracker = CacheTracker("test_cache")
         call_count = [0]
 
@@ -396,6 +401,7 @@ class TestCachedDecoratorCoverage:
     async def test_async_cached_value_expired(self):
         """Test async cached value with TTL of 0 (expired) - triggers lines 282-286."""
         import asyncio
+
         tracker = CacheTracker("test_cache")
         call_count = [0]
 
@@ -415,6 +421,7 @@ class TestCachedDecoratorCoverage:
     async def test_async_cached_result_not_none(self):
         """Test async cached result is cached (line 288-289)."""
         import asyncio
+
         tracker = CacheTracker("test_cache")
         call_count = [0]
 
@@ -440,6 +447,7 @@ class TestRedisCacheTrackerCoverage:
             "db0": {"keys": 500},
         }
         from obskit.cache import RedisCacheTracker
+
         tracker = RedisCacheTracker("redis", mock_redis)
         tracker.sync_stats()
         # Should not raise
@@ -451,6 +459,7 @@ class TestRedisCacheTrackerCoverage:
             "used_memory": 2048,
         }
         from obskit.cache import RedisCacheTracker
+
         tracker = RedisCacheTracker("redis", mock_redis)
         tracker.sync_stats()
 
@@ -462,6 +471,7 @@ class TestRedisCacheTrackerCoverage:
             "keyspace_misses": 300,
         }
         from obskit.cache import RedisCacheTracker
+
         tracker = RedisCacheTracker("redis", mock_redis)
         tracker.sync_stats()
 
@@ -491,11 +501,12 @@ class TestCacheMissingBranches:
 
     def test_update_hit_rate_with_zero_window_size(self):
         """Test _update_hit_rate when window_size=0, making _recent_results empty (line 82->exit).
-        
+
         When window_size=0: after appending and immediately popping, the list is empty.
         The if self._recent_results: check at line 82 is False.
         """
         from obskit.cache import CacheTracker
+
         # window_size=0 means results are always popped after appending
         tracker = CacheTracker("test_zero_window", window_size=0)
         # After appending and popping, _recent_results is empty
@@ -505,7 +516,7 @@ class TestCacheMissingBranches:
 
     def test_async_cached_skip_none_with_null_return(self):
         """Test async cached decorator when result is None and skip_none=True (line 288->294).
-        
+
         When the async function returns None and skip_none=True, the result should NOT
         be cached (the if result is not None or not skip_none: check is False).
         """
@@ -531,7 +542,7 @@ class TestCacheMissingBranches:
 
     def test_invalidate_nonexistent_key(self):
         """Test invalidate when key is NOT in cache (line 300->exit).
-        
+
         Calling invalidate() on a key that was never cached should not raise
         and should not call record_delete (the if _cache.pop(key, None) is not None check
         at line 300 is False).
@@ -584,6 +595,7 @@ class TestCacheMoreCoverage:
     async def test_async_cached_skip_none_result(self):
         """Test async cache skips caching when result is None and skip_none=True (line 288->294)."""
         import asyncio
+
         tracker = CacheTracker("test_cache")
         call_count = [0]
 

@@ -314,8 +314,7 @@ class TestObskitFlaskMiddleware:
             # Error metrics and logging should be recorded
             mock_red.observe_request.assert_called()
 
-
-    @patch('obskit.middleware.flask.get_red_metrics')
+    @patch("obskit.middleware.flask.get_red_metrics")
     def test_get_obskit_flask_creates_instance(self, mock_get_red_metrics):
         """Test get_obskit_flask creates singleton when _obskit_flask is None (lines 331-333)."""
         import obskit.middleware.flask as flask_module
@@ -338,7 +337,7 @@ class TestObskitFlaskMiddleware:
         finally:
             flask_module._obskit_flask = original
 
-    @patch('obskit.middleware.flask.get_red_metrics')
+    @patch("obskit.middleware.flask.get_red_metrics")
     def test_get_obskit_flask_returns_existing_instance(self, mock_get_red_metrics):
         """Test get_obskit_flask returns existing instance when already set."""
         import obskit.middleware.flask as flask_module

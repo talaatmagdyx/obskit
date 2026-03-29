@@ -395,12 +395,8 @@ class TestDLQTrackerGetStats:
 
     def test_get_stats_with_messages(self):
         tracker = DLQTracker("dlq_stats_with_msgs")
-        tracker.track_message_sent(
-            original_queue="orders", reason="parse_error", message_id="s-1"
-        )
-        tracker.track_message_sent(
-            original_queue="orders", reason="timeout", message_id="s-2"
-        )
+        tracker.track_message_sent(original_queue="orders", reason="parse_error", message_id="s-1")
+        tracker.track_message_sent(original_queue="orders", reason="timeout", message_id="s-2")
         tracker.track_message_sent(
             original_queue="payments", reason="parse_error", message_id="s-3"
         )
@@ -479,18 +475,14 @@ class TestDLQTrackerGetMessages:
     def test_get_messages_returns_all(self):
         tracker = DLQTracker("dlq_getmsgs_all")
         for i in range(5):
-            tracker.track_message_sent(
-                original_queue="q", reason="r", message_id=f"msg-{i}"
-            )
+            tracker.track_message_sent(original_queue="q", reason="r", message_id=f"msg-{i}")
         msgs = tracker.get_messages()
         assert len(msgs) == 5
 
     def test_get_messages_limit(self):
         tracker = DLQTracker("dlq_getmsgs_limit")
         for i in range(10):
-            tracker.track_message_sent(
-                original_queue="q", reason="r", message_id=f"msg-lim-{i}"
-            )
+            tracker.track_message_sent(original_queue="q", reason="r", message_id=f"msg-lim-{i}")
         msgs = tracker.get_messages(limit=3)
         assert len(msgs) == 3
 
@@ -506,9 +498,7 @@ class TestDLQTrackerGetMessages:
     def test_get_messages_default_limit_100(self):
         tracker = DLQTracker("dlq_getmsgs_default")
         for i in range(150):
-            tracker.track_message_sent(
-                original_queue="q", reason="r", message_id=f"msg-{i}"
-            )
+            tracker.track_message_sent(original_queue="q", reason="r", message_id=f"msg-{i}")
         msgs = tracker.get_messages()  # default limit=100
         assert len(msgs) == 100
 
@@ -540,6 +530,7 @@ class TestDLQRegistryHelpers:
     def setup_method(self):
         """Clear the module-level registry before each test."""
         import obskit.dlq as module
+
         module._dlq_trackers.clear()
 
     def test_get_dlq_tracker_creates_new(self):
@@ -593,6 +584,7 @@ class TestGetDlqTrackerDoubleLock:
             def __enter__(self):
                 dlq_mod._dlq_trackers[key] = sentinel
                 return self
+
             def __exit__(self, *a):
                 pass  # NOSONAR
 

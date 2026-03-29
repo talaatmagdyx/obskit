@@ -1,6 +1,7 @@
 """
 Targeted tests to achieve 100% line/branch coverage for obskit-health.
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -36,7 +37,6 @@ def make_async_redis_mock(return_value=True):
 
 
 class TestAggregatorMissingBranches:
-
     def test_remove_dependency_not_exists(self):
         """
         Branch 199->exit: 'if name in self._dependencies:' is False.
@@ -168,7 +168,6 @@ class TestAggregatorMissingBranches:
 
 
 class TestCheckPostgres:
-
     @pytest.mark.asyncio
     async def test_check_postgres_success(self):
         """Lines 427-433: Success path with mocked asyncpg."""
@@ -199,7 +198,6 @@ class TestCheckPostgres:
 
 
 class TestCheckRedis:
-
     @pytest.mark.asyncio
     async def test_check_redis_success(self):
         """Lines 440-446: Success path with mocked aioredis."""
@@ -230,7 +228,6 @@ class TestCheckRedis:
 
 
 class TestCheckRabbitMQ:
-
     @pytest.mark.asyncio
     async def test_check_rabbitmq_success(self):
         """Lines 453-458: Success path with mocked aio_pika."""
@@ -265,13 +262,14 @@ class TestCheckRabbitMQ:
 
 
 class TestServerMissingBranches:
-
     def setup_method(self):
         from obskit.health.server import stop_health_server
+
         stop_health_server()
 
     def teardown_method(self):
         from obskit.health.server import stop_health_server
+
         stop_health_server()
 
     def test_start_health_server_exception_cleans_up(self):
@@ -323,7 +321,6 @@ class TestServerMissingBranches:
 
 
 class TestSLOCheckMissingBranches:
-
     def test_get_slo_health_status_tracker_slos_access_raises(self):
         """
         Lines 315-316: Accessing tracker._slos raises Exception -> slo_names=[].
@@ -340,3 +337,57 @@ class TestSLOCheckMissingBranches:
 
         assert result is not None
         assert isinstance(result, dict)
+
+
+# =============================================================================
+# checker.py — line 194 (HealthResult.degraded property True branch)
+# router.py — lines 137, 143 (duplicate check guard early returns)
+# =============================================================================
+
+
+class TestHealthResultDegradedProperty:
+    """HealthResult.degraded property — True branch."""
+
+    def test_degraded_returns_true_when_status_is_degraded(self) -> None:
+        """degraded property returns True when status is DEGRADED."""
+        from obskit.health.checker import HealthResult, HealthStatus
+
+        result = HealthResult(
+            healthy=True,
+            status=HealthStatus.DEGRADED,
+            checks={},
+        )
+        assert result.degraded is True
+
+    def test_degraded_returns_false_when_healthy(self) -> None:
+        """degraded property returns False when status is HEALTHY."""
+        from obskit.health.checker import HealthResult, HealthStatus
+
+        result = HealthResult(
+            healthy=True,
+            status=HealthStatus.HEALTHY,
+            checks={},
+        )
+        assert result.degraded is False
+
+
+class TestBuildHealthRouterDuplicateGuard:
+    """build_health_router — duplicate check registration guard (lines 137, 143)."""
+
+    def test_duplicate_readiness_check_ignored(self) -> None:
+        """Registering the same check twice is silently ignored (line 137)."""
+        from obskit.health.checker import HealthCheck
+        from obskit.health.router import build_health_router
+
+        check = HealthCheck(name="db", check_fn=lambda: True, critical=True)
+        # Register same check twice — second should be ignored (no error)
+        build_health_router(checks=[check, check])
+
+    def test_duplicate_liveness_check_ignored(self) -> None:
+        """Registering duplicate liveness check is ignored (line 143)."""
+        from obskit.health.checker import HealthCheck
+        from obskit.health.router import build_health_router
+
+        check = HealthCheck(name="live_check", check_fn=lambda: True, critical=False)
+        # Register via liveness_checks with duplicate
+        build_health_router(liveness_checks=[check, check])

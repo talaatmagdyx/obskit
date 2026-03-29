@@ -1,4 +1,5 @@
 """Additional coverage tests for breakdown.py."""
+
 from __future__ import annotations
 
 import time
@@ -9,7 +10,6 @@ import pytest
 
 
 class TestBreakdownCoverage:
-
     def test_exit_closes_open_phase_sets_duration(self):
         """Lines 162-163: __exit__ closes open phase with no end_time."""
         bd = LatencyBreakdown("op-close-phase", log_breakdown=False)
@@ -35,7 +35,9 @@ class TestBreakdownCoverage:
 
     def test_exit_logs_debug_below_bottleneck_threshold(self):
         """Line 199: logs debug when bottleneck_percent < alert threshold."""
-        bd = LatencyBreakdown("op-debug-log", log_breakdown=True, alert_bottleneck_percent=200.0)  # > 100% to always take else branch
+        bd = LatencyBreakdown(
+            "op-debug-log", log_breakdown=True, alert_bottleneck_percent=200.0
+        )  # > 100% to always take else branch
         with patch("obskit.breakdown.logger") as mock_logger:
             with bd:
                 with bd.phase("small_phase"):
@@ -80,15 +82,15 @@ class TestBreakdownLoopBranches:
 
         from obskit.breakdown import LatencyBreakdown, PhaseRecord
 
-        bd = LatencyBreakdown('op-zero-total', log_breakdown=False)
+        bd = LatencyBreakdown("op-zero-total", log_breakdown=False)
 
         # Patch time.perf_counter to return same value for both __enter__ and __exit__
-        with patch('obskit.breakdown.time') as mock_time:
+        with patch("obskit.breakdown.time") as mock_time:
             mock_time.perf_counter.return_value = 100.0
             bd.__enter__()
             # Add phases manually (with zero duration)
             bd._phases = [
-                PhaseRecord(name='phase1', start_time=100.0, end_time=100.0, duration_seconds=0.0),
+                PhaseRecord(name="phase1", start_time=100.0, end_time=100.0, duration_seconds=0.0),
             ]
             bd.__exit__(None, None, None)
 

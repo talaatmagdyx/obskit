@@ -46,6 +46,7 @@ Example:
 from __future__ import annotations
 
 import asyncio
+import inspect
 import json
 import time
 from collections.abc import Awaitable, Callable
@@ -172,6 +173,25 @@ class HealthResult:
     timestamp: datetime = field(default_factory=lambda: datetime.now(UTC))
     service: str = ""
     version: str = ""
+
+    @property
+    def degraded(self) -> bool:
+        """True when the service is partially degraded (non-critical check failures).
+
+        A degraded service is still serving traffic (``healthy=True``) but one
+        or more non-critical dependencies have failed.  Callers that need to
+        distinguish degraded from fully-healthy can check this property instead
+        of inspecting ``status`` directly.
+
+        Example
+        -------
+        >>> result = await checker.check_health()
+        >>> if result.degraded:
+        ...     metrics.increment("service.degraded")
+        >>> elif not result.healthy:
+        ...     metrics.increment("service.down")
+        """
+        return self.status == HealthStatus.DEGRADED
 
     def to_dict(self) -> dict[str, Any]:
         """
@@ -492,6 +512,32 @@ class HealthChecker:
 
         return decorator
 
+    def register_readiness_check(self, check: HealthCheck) -> None:
+        """Register a HealthCheck object directly as a readiness check.
+
+        Unlike the decorator-style ``add_readiness_check``, this method
+        accepts a pre-constructed :class:`HealthCheck` instance.
+
+        Parameters
+        ----------
+        check : HealthCheck
+            The health check to register.
+        """
+        self._readiness_checks.append(check)
+
+    def register_liveness_check(self, check: HealthCheck) -> None:
+        """Register a HealthCheck object directly as a liveness check.
+
+        Unlike the decorator-style ``add_liveness_check``, this method
+        accepts a pre-constructed :class:`HealthCheck` instance.
+
+        Parameters
+        ----------
+        check : HealthCheck
+            The health check to register.
+        """
+        self._liveness_checks.append(check)
+
     async def _run_check(self, check: HealthCheck) -> CheckResult:
         """
         Run a single health check with timeout.
@@ -509,17 +555,32 @@ class HealthChecker:
         start_time = time.perf_counter()
 
         try:
-            # Call the check function — supports both sync and async callables.
-            # Sync callables (e.g. lambda: redis.ping()) return a value directly.
-            # Async callables return a coroutine that we await with a timeout.
-            call_result = check.check_fn()  # type: ignore[misc]
+            # Detect whether the callable is async by inspecting it, not by
+            # calling it first (calling it twice would double-execute side effects).
+            try:
+                loop = asyncio.get_running_loop()
+            except RuntimeError:  # pragma: no cover
+                loop = asyncio.get_event_loop()
 
-            if asyncio.iscoroutine(call_result):
-                # Async path: enforce timeout on the awaitable
-                result = await asyncio.wait_for(call_result, timeout=check.timeout)
+            fn = check.check_fn
+            is_async = (
+                inspect.iscoroutinefunction(fn)
+                or (callable(fn) and inspect.iscoroutinefunction(fn.__class__.__call__))
+                or inspect.iscoroutinefunction(getattr(fn, "__wrapped__", None))
+            )
+            if is_async:
+                # Async callable: call and await under timeout
+                result = await asyncio.wait_for(
+                    check.check_fn(),  # type: ignore[misc]
+                    timeout=check.timeout,
+                )
             else:
-                # Sync path: value already computed, no timeout needed
-                result = call_result
+                # Sync callable: run in executor so a blocking call cannot hang
+                # the event loop beyond the configured per-check timeout.
+                result = await asyncio.wait_for(
+                    loop.run_in_executor(None, check.check_fn),  # type: ignore[arg-type]
+                    timeout=check.timeout,
+                )
 
             duration_ms = (time.perf_counter() - start_time) * 1000
 
@@ -539,7 +600,30 @@ class HealthChecker:
                     details=result.get("details", {}),
                     error=result.get("error"),
                 )
-            # Treat truthy values as healthy
+            # Handle int results (non-zero = healthy, 0 = unhealthy)
+            if isinstance(result, int):
+                import logging as _hc_logging
+
+                _hc_logging.getLogger(__name__).warning(
+                    "health_check_unexpected_result_type: check=%r returned int %r, "
+                    "interpreting as bool (non-zero=healthy)",
+                    check.name,
+                    result,
+                )
+                return CheckResult(
+                    name=check.name,
+                    healthy=(result != 0),
+                    duration_ms=duration_ms,
+                )
+            # Treat truthy values as healthy (unexpected type — log warning)
+            import logging as _hc_logging
+
+            _hc_logging.getLogger(__name__).warning(
+                "health_check_unexpected_result_type: check=%r returned %r (%s), treating as bool",
+                check.name,
+                result,
+                type(result).__name__,
+            )
             return CheckResult(
                 name=check.name,
                 healthy=bool(result),

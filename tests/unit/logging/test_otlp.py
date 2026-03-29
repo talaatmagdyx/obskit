@@ -18,14 +18,17 @@ import pytest
 class TestOTLPModuleState:
     def test_module_importable(self):
         from obskit.logging import otlp
+
         assert otlp is not None
 
     def test_otel_availability_flag_is_bool(self):
         from obskit.logging.otlp import OTEL_LOGGING_AVAILABLE
+
         assert isinstance(OTEL_LOGGING_AVAILABLE, bool)
 
     def test_otlp_exporter_availability_flag_is_bool(self):
         from obskit.logging.otlp import OTLP_EXPORTER_AVAILABLE
+
         assert isinstance(OTLP_EXPORTER_AVAILABLE, bool)
 
 
@@ -37,22 +40,29 @@ class TestOTLPModuleState:
 class TestConfigureOTLPLogging:
     def test_returns_false_when_otel_not_available(self):
         from obskit.logging import otlp as otlp_mod
+
         with patch.object(otlp_mod, "OTEL_LOGGING_AVAILABLE", False):
             result = otlp_mod.configure_otlp_logging()
         assert result is False
 
     def test_returns_false_when_exporter_not_available(self):
         from obskit.logging import otlp as otlp_mod
-        with patch.object(otlp_mod, "OTEL_LOGGING_AVAILABLE", True), \
-             patch.object(otlp_mod, "OTLP_EXPORTER_AVAILABLE", False):
+
+        with (
+            patch.object(otlp_mod, "OTEL_LOGGING_AVAILABLE", True),
+            patch.object(otlp_mod, "OTLP_EXPORTER_AVAILABLE", False),
+        ):
             result = otlp_mod.configure_otlp_logging()
         assert result is False
 
     def test_returns_true_when_already_configured(self):
         from obskit.logging import otlp as otlp_mod
-        with patch.object(otlp_mod, "OTEL_LOGGING_AVAILABLE", True), \
-             patch.object(otlp_mod, "OTLP_EXPORTER_AVAILABLE", True), \
-             patch.object(otlp_mod, "_otlp_configured", True):
+
+        with (
+            patch.object(otlp_mod, "OTEL_LOGGING_AVAILABLE", True),
+            patch.object(otlp_mod, "OTLP_EXPORTER_AVAILABLE", True),
+            patch.object(otlp_mod, "_otlp_configured", True),
+        ):
             result = otlp_mod.configure_otlp_logging()
         assert result is True
 
@@ -66,14 +76,16 @@ class TestConfigureOTLPLogging:
         mock_resource_cls = MagicMock()
         mock_resource_cls.create.return_value = mock_resource
 
-        with patch.object(otlp_mod, "OTEL_LOGGING_AVAILABLE", True), \
-             patch.object(otlp_mod, "OTLP_EXPORTER_AVAILABLE", True), \
-             patch.object(otlp_mod, "_otlp_configured", False), \
-             patch.object(otlp_mod, "_otlp_logger_provider", None), \
-             patch.object(otlp_mod, "Resource", mock_resource_cls), \
-             patch.object(otlp_mod, "LoggerProvider", return_value=mock_provider), \
-             patch.object(otlp_mod, "OTLPLogExporter", return_value=mock_exporter), \
-             patch.object(otlp_mod, "BatchLogRecordProcessor", return_value=mock_processor):
+        with (
+            patch.object(otlp_mod, "OTEL_LOGGING_AVAILABLE", True),
+            patch.object(otlp_mod, "OTLP_EXPORTER_AVAILABLE", True),
+            patch.object(otlp_mod, "_otlp_configured", False),
+            patch.object(otlp_mod, "_otlp_logger_provider", None),
+            patch.object(otlp_mod, "Resource", mock_resource_cls),
+            patch.object(otlp_mod, "LoggerProvider", return_value=mock_provider),
+            patch.object(otlp_mod, "OTLPLogExporter", return_value=mock_exporter),
+            patch.object(otlp_mod, "BatchLogRecordProcessor", return_value=mock_processor),
+        ):
             result = otlp_mod.configure_otlp_logging(
                 endpoint="http://localhost:4317",
                 service_name="test_service",
@@ -96,14 +108,16 @@ class TestConfigureOTLPLogging:
         original_provider = otlp_mod._otlp_logger_provider
 
         try:
-            with patch.object(otlp_mod, "OTEL_LOGGING_AVAILABLE", True), \
-                 patch.object(otlp_mod, "OTLP_EXPORTER_AVAILABLE", True), \
-                 patch.object(otlp_mod, "_otlp_configured", False), \
-                 patch.object(otlp_mod, "_otlp_logger_provider", None), \
-                 patch.object(otlp_mod, "Resource", mock_resource_cls), \
-                 patch.object(otlp_mod, "LoggerProvider", return_value=mock_provider), \
-                 patch.object(otlp_mod, "OTLPLogExporter", return_value=mock_exporter), \
-                 patch.object(otlp_mod, "BatchLogRecordProcessor", return_value=mock_processor):
+            with (
+                patch.object(otlp_mod, "OTEL_LOGGING_AVAILABLE", True),
+                patch.object(otlp_mod, "OTLP_EXPORTER_AVAILABLE", True),
+                patch.object(otlp_mod, "_otlp_configured", False),
+                patch.object(otlp_mod, "_otlp_logger_provider", None),
+                patch.object(otlp_mod, "Resource", mock_resource_cls),
+                patch.object(otlp_mod, "LoggerProvider", return_value=mock_provider),
+                patch.object(otlp_mod, "OTLPLogExporter", return_value=mock_exporter),
+                patch.object(otlp_mod, "BatchLogRecordProcessor", return_value=mock_processor),
+            ):
                 otlp_mod.configure_otlp_logging(endpoint="http://test:4317")
                 assert otlp_mod._otlp_configured is True
         finally:
@@ -119,6 +133,7 @@ class TestConfigureOTLPLogging:
 class TestShutdownOTLPLogging:
     def test_no_op_when_not_configured(self):
         from obskit.logging import otlp as otlp_mod
+
         # Should not raise
         original_provider = otlp_mod._otlp_logger_provider
         otlp_mod._otlp_logger_provider = None
@@ -155,6 +170,7 @@ class TestShutdownOTLPLogging:
 class TestGetOTLPHandler:
     def test_returns_none_when_not_available(self):
         from obskit.logging import otlp as otlp_mod
+
         with patch.object(otlp_mod, "OTEL_LOGGING_AVAILABLE", False):
             result = otlp_mod.get_otlp_handler()
         assert result is None
@@ -166,9 +182,11 @@ class TestGetOTLPHandler:
         mock_handler = MagicMock(spec=logging.Handler)
         mock_logging_handler_cls = MagicMock(return_value=mock_handler)
 
-        with patch.object(otlp_mod, "OTEL_LOGGING_AVAILABLE", True), \
-             patch.object(otlp_mod, "_otlp_logger_provider", mock_provider), \
-             patch.object(otlp_mod, "LoggingHandler", mock_logging_handler_cls):
+        with (
+            patch.object(otlp_mod, "OTEL_LOGGING_AVAILABLE", True),
+            patch.object(otlp_mod, "_otlp_logger_provider", mock_provider),
+            patch.object(otlp_mod, "LoggingHandler", mock_logging_handler_cls),
+        ):
             result = otlp_mod.get_otlp_handler()
 
         assert result is mock_handler
@@ -182,6 +200,7 @@ class TestGetOTLPHandler:
 class TestOTLPLogHandler:
     def _create_handler(self):
         from obskit.logging.otlp import OTLPLogHandler
+
         handler = OTLPLogHandler(
             endpoint="http://localhost:4317",
             service_name="test_service",
@@ -310,11 +329,13 @@ class TestOTLPLogHandler:
 class TestCreateOTLPLogProcessor:
     def test_returns_callable(self):
         from obskit.logging.otlp import create_otlp_log_processor
+
         processor = create_otlp_log_processor()
         assert callable(processor)
 
     def test_processor_adds_severity_number(self):
         from obskit.logging.otlp import create_otlp_log_processor
+
         processor = create_otlp_log_processor()
         event_dict = {"event": "test"}
         result = processor(None, "info", event_dict)
@@ -322,36 +343,42 @@ class TestCreateOTLPLogProcessor:
 
     def test_processor_debug_severity(self):
         from obskit.logging.otlp import create_otlp_log_processor
+
         processor = create_otlp_log_processor()
         result = processor(None, "debug", {"event": "test"})
         assert result["severity_number"] == 5
 
     def test_processor_warning_severity(self):
         from obskit.logging.otlp import create_otlp_log_processor
+
         processor = create_otlp_log_processor()
         result = processor(None, "warning", {"event": "test"})
         assert result["severity_number"] == 13
 
     def test_processor_error_severity(self):
         from obskit.logging.otlp import create_otlp_log_processor
+
         processor = create_otlp_log_processor()
         result = processor(None, "error", {"event": "test"})
         assert result["severity_number"] == 17
 
     def test_processor_critical_severity(self):
         from obskit.logging.otlp import create_otlp_log_processor
+
         processor = create_otlp_log_processor()
         result = processor(None, "critical", {"event": "test"})
         assert result["severity_number"] == 21
 
     def test_processor_unknown_severity_defaults_to_9(self):
         from obskit.logging.otlp import create_otlp_log_processor
+
         processor = create_otlp_log_processor()
         result = processor(None, "custom_level", {"event": "test"})
         assert result["severity_number"] == 9
 
     def test_processor_preserves_existing_keys(self):
         from obskit.logging.otlp import create_otlp_log_processor
+
         processor = create_otlp_log_processor()
         event_dict = {"event": "test", "custom_key": "custom_value"}
         result = processor(None, "info", event_dict)
@@ -360,6 +387,7 @@ class TestCreateOTLPLogProcessor:
 
     def test_processor_endpoint_parameter_accepted(self):
         from obskit.logging.otlp import create_otlp_log_processor
+
         # Should accept endpoint parameter without error
         processor = create_otlp_log_processor(endpoint="http://localhost:4317")
         assert callable(processor)
@@ -379,8 +407,10 @@ class TestCreateOTLPLogProcessor:
         mock_trace = MagicMock()
         mock_trace.get_current_span.return_value = mock_span
 
-        with patch.object(otlp_mod, "OTEL_LOGGING_AVAILABLE", True), \
-             patch.object(otlp_mod, "trace", mock_trace):
+        with (
+            patch.object(otlp_mod, "OTEL_LOGGING_AVAILABLE", True),
+            patch.object(otlp_mod, "trace", mock_trace),
+        ):
             processor = create_otlp_log_processor()
             result = processor(None, "info", {"event": "test"})
 
@@ -398,8 +428,10 @@ class TestCreateOTLPLogProcessor:
         mock_trace = MagicMock()
         mock_trace.get_current_span.return_value = mock_span
 
-        with patch.object(otlp_mod, "OTEL_LOGGING_AVAILABLE", True), \
-             patch.object(otlp_mod, "trace", mock_trace):
+        with (
+            patch.object(otlp_mod, "OTEL_LOGGING_AVAILABLE", True),
+            patch.object(otlp_mod, "trace", mock_trace),
+        ):
             processor = create_otlp_log_processor()
             result = processor(None, "info", {"event": "test"})
 

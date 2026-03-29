@@ -327,12 +327,12 @@ class TestTenantREDMetrics:
             status="success",
         )
 
-        # Should call observe_request with tenant in operation name
+        # Operation label must NOT contain the tenant_id — baking tenant_id into
+        # the operation creates unbounded Prometheus cardinality in multi-tenant systems.
         mock_red_instance.observe_request.assert_called_once()
         call_args = mock_red_instance.observe_request.call_args
-        assert "tenant-123" in call_args.kwargs.get(
-            "operation", call_args.args[0] if call_args.args else ""
-        )
+        operation = call_args.kwargs.get("operation", call_args.args[0] if call_args.args else "")
+        assert operation == "create_order", "tenant_id must not be embedded in the operation label"
 
     @patch("obskit.metrics.tenant.REDMetrics")
     def test_observe_request_failure(self, mock_red):
@@ -358,17 +358,23 @@ class TestTenantREDMetrics:
 
     @patch("obskit.metrics.tenant.REDMetrics")
     def test_track_request(self, mock_red):
-        """Test track_request context manager."""
-        from obskit.metrics.tenant import TenantREDMetrics
+        """Test track_request context manager keeps tenant context active during the operation."""
+        from obskit.metrics.tenant import TenantREDMetrics, get_tenant_id
 
         mock_red_instance = MagicMock()
-        mock_context = MagicMock()
-        mock_red_instance.track_request.return_value = mock_context
+        # track_request on the inner REDMetrics must itself be a context manager
+        mock_red_instance.track_request.return_value.__enter__ = MagicMock(return_value=None)
+        mock_red_instance.track_request.return_value.__exit__ = MagicMock(return_value=False)
         mock_red.return_value = mock_red_instance
 
+        captured_tenant = []
         metrics = TenantREDMetrics("order_service")
-        result = metrics.track_request("tenant-123", "process_order")
 
-        # Should return the context manager from RED metrics
-        mock_red_instance.track_request.assert_called_once()
-        assert result == mock_context
+        with metrics.track_request("tenant-123", "process_order"):
+            # tenant_id must be active for the entire duration of the with-block
+            captured_tenant.append(get_tenant_id())
+
+        mock_red_instance.track_request.assert_called_once_with("process_order")
+        assert captured_tenant == ["tenant-123"]
+        # After the context exits, tenant_id is restored
+        assert get_tenant_id() is None

@@ -40,9 +40,9 @@ Example - Context Manager
 
 from __future__ import annotations
 
-from collections.abc import Generator
+from collections.abc import Generator, Iterator
 from contextlib import contextmanager
-from contextvars import ContextVar
+from contextvars import ContextVar, Token
 from typing import Any, Literal
 
 from obskit.metrics.red import REDMetrics
@@ -63,7 +63,7 @@ def get_tenant_id() -> str | None:
     return _tenant_id.get()
 
 
-def set_tenant_id(tenant_id: str | None) -> None:
+def set_tenant_id(tenant_id: str | None) -> Token[str | None]:
     """
     Set the tenant ID for the current context.
 
@@ -71,8 +71,15 @@ def set_tenant_id(tenant_id: str | None) -> None:
     ----------
     tenant_id : str or None
         The tenant ID to set.
+
+    Returns
+    -------
+    Token
+        A token that can be passed to ``_tenant_id.reset(token)`` to restore
+        the previous value.  Prefer :func:`tenant_metrics_context` for
+        automatic cleanup.
     """
-    _tenant_id.set(tenant_id)
+    return _tenant_id.set(tenant_id)
 
 
 @contextmanager
@@ -291,9 +298,12 @@ class TenantREDMetrics:
         Parameters
         ----------
         tenant_id : str
-            The tenant ID for this request.
+            The tenant ID for this request.  Stored in the tenant context
+            for trace attribute injection but NOT baked into the operation
+            label — doing so would create one Prometheus series per tenant,
+            causing cardinality explosion in multi-tenant systems.
         operation : str
-            Name of the operation.
+            Name of the operation (fixed, low-cardinality string).
         duration_seconds : float
             Request duration in seconds.
         status : {"success", "failure"}
@@ -301,38 +311,38 @@ class TenantREDMetrics:
         error_type : str, optional
             Error type if status="failure".
         """
-        # Use context to inject tenant_id
+        # Set tenant context (used by trace attribute injection, not labels).
         with tenant_metrics_context(tenant_id):
-            # Note: This requires modifying REDMetrics to check for tenant_id
-            # For now, we'll add tenant_id to operation label
-            # In a full implementation, we'd extend REDMetrics to support
-            # dynamic label injection
-            operation_with_tenant = f"{operation}_tenant_{tenant_id}"
             self._red.observe_request(
-                operation=operation_with_tenant,
+                operation=operation,
                 duration_seconds=duration_seconds,
                 status=status,
                 error_type=error_type,
             )
 
-    def track_request(self, tenant_id: str, operation: str) -> Any:
+    @contextmanager
+    def track_request(self, tenant_id: str, operation: str) -> Iterator[None]:
         """
         Context manager for tracking requests with tenant_id.
+
+        The tenant context is active for the **entire** duration of the
+        ``with`` block, not just during context-manager creation.
 
         Parameters
         ----------
         tenant_id : str
-            The tenant ID.
+            The tenant ID (set in context; not added to the operation label).
         operation : str
             Operation name.
 
-        Yields
-        ------
-        None
+        Example
+        -------
+        >>> with tenant_metrics.track_request("tenant-123", "process_order"):
+        ...     result = await process()  # tenant_id in context throughout
         """
         with tenant_metrics_context(tenant_id):
-            operation_with_tenant = f"{operation}_tenant_{tenant_id}"
-            return self._red.track_request(operation_with_tenant)
+            with self._red.track_request(operation):
+                yield
 
 
 __all__ = [

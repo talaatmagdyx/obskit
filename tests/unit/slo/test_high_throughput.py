@@ -86,9 +86,7 @@ class TestHighThroughputSLOTrackerRecording:
         local = tracker._get_local()
         local.deques.setdefault("avail", __import__("collections").deque(maxlen=50_000))
         old_ts = datetime.now(UTC) - timedelta(seconds=10)
-        local.deques["avail"].appendleft(
-            SLOMeasurement(timestamp=old_ts, value=1.0, success=False)
-        )
+        local.deques["avail"].appendleft(SLOMeasurement(timestamp=old_ts, value=1.0, success=False))
         # Fresh success
         tracker.record_measurement("avail", 1.0, success=True)
 
@@ -197,7 +195,7 @@ class TestMeasurementsInWindow:
     def test_partial_window(self):
         measurements = (
             [self._make_measurement(-10 + i) for i in range(3)]  # old
-            + [self._make_measurement(i) for i in range(3)]       # recent
+            + [self._make_measurement(i) for i in range(3)]  # recent
         )
         measurements.sort(key=lambda m: m.timestamp)
         window_start = datetime.now(UTC) - timedelta(seconds=1)

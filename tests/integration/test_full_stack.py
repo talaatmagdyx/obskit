@@ -61,7 +61,9 @@ class TestMetricsIntegration:
 
         # Record metrics using the actual v2 GoldenSignals API
         golden.observe_request("api_call", duration_seconds=0.05)
-        golden.observe_request("api_call", duration_seconds=0.01, status="failure", error_type="ValidationError")
+        golden.observe_request(
+            "api_call", duration_seconds=0.01, status="failure", error_type="ValidationError"
+        )
         golden.set_saturation("cpu", 0.75)
         golden.set_queue_depth("requests", 42)
 
@@ -119,6 +121,7 @@ class TestLoggingIntegration:
         """
         try:
             from obskit.compliance import redact_pii  # noqa: F401
+
             pytest.skip("obskit.compliance unexpectedly present — remove this skip when re-added")
         except (ImportError, ModuleNotFoundError):
             pass  # Expected: compliance module was removed in v2.0

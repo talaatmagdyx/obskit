@@ -1,4 +1,5 @@
 """Additional coverage tests for logging/otlp.py."""
+
 from __future__ import annotations
 
 import logging
@@ -32,11 +33,19 @@ class TestOTLPHandlerCoverage:
         handler._shutdown = True  # Prevent actual background processing
 
         record = logging.LogRecord(
-            name="test", level=logging.INFO, pathname="",
-            lineno=0, msg="test message", args=(), exc_info=None
+            name="test",
+            level=logging.INFO,
+            pathname="",
+            lineno=0,
+            msg="test message",
+            args=(),
+            exc_info=None,
         )
 
-        with patch.object(otlp_mod, "OTEL_LOGGING_AVAILABLE", True),              patch.object(otlp_mod, "trace", mock_trace):
+        with (
+            patch.object(otlp_mod, "OTEL_LOGGING_AVAILABLE", True),
+            patch.object(otlp_mod, "trace", mock_trace),
+        ):
             # Reset shutdown so emit works, then immediately shutdown
             handler._shutdown = False
             handler.emit(record)

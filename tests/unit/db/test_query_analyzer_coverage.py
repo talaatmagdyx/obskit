@@ -117,10 +117,7 @@ class TestQueryAnalyzerSuggestions:
     def test_large_sort_suggestion(self):
         """Test large sort suggestion is added (lines 302-303)."""
         analyzer = QueryAnalyzer("test_db")
-        explain_output = (
-            "Sort  (cost=0.00..100.00 rows=20000 width=4)\n"
-            "  Sort Key: created_at\n"
-        )
+        explain_output = "Sort  (cost=0.00..100.00 rows=20000 width=4)\n  Sort Key: created_at\n"
         analysis = analyzer.analyze(
             "SELECT * FROM events ORDER BY created_at",
             explain_output=explain_output,

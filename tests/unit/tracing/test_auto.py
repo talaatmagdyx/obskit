@@ -9,9 +9,11 @@ import pytest
 from obskit.tracing.auto import (
     _INSTRUMENTORS,
     _applied,
+    _failed_instrumentors,
     apply_instrumentors,
     detect_available_instrumentors,
     get_applied_instrumentors,
+    get_failed_instrumentors,
     get_instrumentor_registry,
     uninstrument_all,
 )
@@ -175,10 +177,13 @@ class TestApplyInstrumentors:
         mock_inst = MagicMock()
         mock_mod.DjangoInstrumentor = MagicMock(return_value=mock_inst)
 
-        with patch(
-            "obskit.tracing.auto.detect_available_instrumentors",
-            return_value=["django"],
-        ), patch("obskit.tracing.auto.importlib.import_module", return_value=mock_mod):
+        with (
+            patch(
+                "obskit.tracing.auto.detect_available_instrumentors",
+                return_value=["django"],
+            ),
+            patch("obskit.tracing.auto.importlib.import_module", return_value=mock_mod),
+        ):
             result = apply_instrumentors(None)
 
         assert "django" in result
@@ -377,3 +382,83 @@ class TestGetInstrumentorRegistry:
     def test_size_matches_internal_dict(self) -> None:
         reg = get_instrumentor_registry()
         assert len(reg) == len(_INSTRUMENTORS)
+
+
+# ---------------------------------------------------------------------------
+# TestGetFailedInstrumentors
+# ---------------------------------------------------------------------------
+
+
+class TestGetFailedInstrumentors:
+    """get_failed_instrumentors() — snapshot of failed names."""
+
+    def setup_method(self) -> None:
+        uninstrument_all()
+
+    def teardown_method(self) -> None:
+        uninstrument_all()
+
+    def test_empty_initially(self) -> None:
+        """No failures initially."""
+        assert get_failed_instrumentors() == []
+
+    def test_returns_list(self) -> None:
+        """Always returns a list."""
+        result = get_failed_instrumentors()
+        assert isinstance(result, list)
+
+    def test_failed_import_appears_in_failed(self) -> None:
+        """Name whose import fails appears in get_failed_instrumentors()."""
+        with patch(
+            "obskit.tracing.auto.importlib.import_module",
+            side_effect=ImportError("not installed"),
+        ):
+            apply_instrumentors(["redis"])
+
+        assert "redis" in get_failed_instrumentors()
+
+    def test_successful_apply_clears_failure(self) -> None:
+        """After successful apply, name is removed from failed list."""
+        # First, fail it
+        with patch(
+            "obskit.tracing.auto.importlib.import_module",
+            side_effect=ImportError("not installed"),
+        ):
+            apply_instrumentors(["redis"])
+
+        assert "redis" in get_failed_instrumentors()
+
+        # Now succeed — clear applied first to allow re-apply
+        _applied.pop("redis", None)
+        mock_mod = MagicMock()
+        mock_inst = MagicMock()
+        mock_mod.RedisInstrumentor = MagicMock(return_value=mock_inst)
+        with patch("obskit.tracing.auto.importlib.import_module", return_value=mock_mod):
+            apply_instrumentors(["redis"])
+
+        assert "redis" not in get_failed_instrumentors()
+
+    def test_returns_copy_not_reference(self) -> None:
+        """Mutating the returned list does not affect internal state."""
+        result = get_failed_instrumentors()
+        result.append("injected_fake")
+        assert "injected_fake" not in get_failed_instrumentors()
+
+    def test_retry_after_failure_path(self) -> None:
+        """Instrumentor that previously failed can be retried (not short-circuited)."""
+        # Manually put "redis" in both _applied and _failed_instrumentors
+        # to exercise the branch: if name in _applied AND name in _failed_instrumentors → retry
+        _applied["redis"] = MagicMock()
+        _failed_instrumentors.add("redis")
+
+        mock_mod = MagicMock()
+        mock_inst = MagicMock()
+        mock_mod.RedisInstrumentor = MagicMock(return_value=mock_inst)
+
+        with patch("obskit.tracing.auto.importlib.import_module", return_value=mock_mod):
+            result = apply_instrumentors(["redis"])
+
+        # It retried — instrument() was called and succeeded
+        mock_inst.instrument.assert_called_once()
+        assert "redis" in result
+        assert "redis" not in _failed_instrumentors

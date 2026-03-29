@@ -452,15 +452,16 @@ class CircuitBreaker:
         >>> # Force close after manual service restart
         >>> breaker.reset()
         """
-        self._state = CircuitState.CLOSED
-        self._failure_count = 0
-        self._last_failure_time = None
-        self._half_open_successes = 0
+        with self._lock:
+            self._state = CircuitState.CLOSED
+            self._failure_count = 0
+            self._last_failure_time = None
+            self._half_open_successes = 0
 
         logger.info(
             "circuit_breaker_reset",
             breaker=self.name,
-            new_state=self._state.value,
+            new_state=CircuitState.CLOSED.value,
         )
 
     async def _should_allow_request(self) -> bool:  # NOSONAR

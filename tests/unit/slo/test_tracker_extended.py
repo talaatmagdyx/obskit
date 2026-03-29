@@ -120,7 +120,9 @@ class TestSLOTrackerExtended:
         # Record measurements
         tracker.record_measurement("window_test", 1.0, success=True)
         # Manually age the measurement
-        tracker._measurements["window_test"][0].timestamp = datetime.now(UTC) - timedelta(seconds=10)
+        tracker._measurements["window_test"][0].timestamp = datetime.now(UTC) - timedelta(
+            seconds=10
+        )
         # New recording triggers eviction
         tracker.record_measurement("window_test", 1.0, success=True)
         # The old measurement should be evicted
@@ -351,7 +353,9 @@ class TestWithSloTrackingSync:
         tracker.register_slo("custom_sync", SLOType.AVAILABILITY, 0.99)
         tracker.register_slo("my_custom_latency", SLOType.LATENCY, 1.0, percentile=95)
 
-        @with_slo_tracking_sync("custom_sync", track_latency=True, latency_slo_name="my_custom_latency")
+        @with_slo_tracking_sync(
+            "custom_sync", track_latency=True, latency_slo_name="my_custom_latency"
+        )
         def func():
             return "ok"
 

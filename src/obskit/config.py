@@ -269,10 +269,12 @@ class ObskitSettings(BaseSettings):
     )
 
     otlp_insecure: bool = Field(
-        default=True,
+        default=False,
         description=(
             "Use insecure (non-TLS) connection to OTLP endpoint. "
-            "Set to False in production with proper TLS configuration."
+            "Defaults to False (TLS required) for security. "
+            "Set to True only for local development or when the OTLP collector "
+            "is co-located on the same host/pod with no network exposure."
         ),
     )
 
@@ -309,9 +311,11 @@ class ObskitSettings(BaseSettings):
     trace_export_timeout: float = Field(
         default=30.0,
         ge=1.0,
+        le=300.0,
         description=(
-            "Timeout for trace export operations in seconds. "
-            "Exports exceeding this timeout are cancelled."
+            "Timeout for trace export operations in seconds (1–300). "
+            "Exports exceeding this timeout are cancelled. "
+            "Values above 300s risk hanging application shutdown indefinitely."
         ),
     )
 
@@ -335,6 +339,8 @@ class ObskitSettings(BaseSettings):
         description=(
             "Port for Prometheus metrics HTTP server. "
             "Default 9090 is the standard Prometheus port. "
+            "WARNING: In Kubernetes environments with a Prometheus sidecar agent "
+            "also binding 9090, use a different port (e.g. 9091) to avoid conflicts. "
             "Ensure this port is accessible to your Prometheus scraper."
         ),
     )
@@ -538,9 +544,13 @@ class ObskitSettings(BaseSettings):
         ge=0.0,
         le=1.0,
         description=(
-            "Metrics sampling rate from 0.0 (no metrics) to 1.0 (all metrics). "
-            "Use lower values for high-frequency operations to reduce cardinality. "
-            "Example: 0.1 = sample 10% of operations for metrics."
+            "Metrics sampling rate from 0.0 to 1.0 (default 1.0 = all observations). "
+            "IMPORTANT ASYMMETRY: sampling only applies to duration histogram/summary "
+            "observations. requests_total and errors_total counters are ALWAYS exact "
+            "regardless of this setting — rate and error-rate metrics remain accurate. "
+            "Setting this to 0.0 disables histograms; set OBSKIT_METRICS_ENABLED=false "
+            "to disable all metrics. "
+            "Example: 0.1 = sample 10% of duration observations."
         ),
     )
 
@@ -575,11 +585,13 @@ class ObskitSettings(BaseSettings):
 
     metrics_auth_token: str = Field(
         default="",
+        repr=False,
         description=(
             "Authentication token for metrics endpoint. "
             "Required if metrics_auth_enabled=True. "
             "Set via environment variable for security."
         ),
+        json_schema_extra={"secret": True},
     )
 
     # =========================================================================
@@ -689,16 +701,20 @@ def get_settings() -> ObskitSettings:
     """
     global _settings
 
-    # Double-checked locking pattern for thread safety
+    # Double-checked locking for construction; lock also covers the return read
+    # so a concurrent configure() replacement is never observed half-written.
+    # This pattern is correct and intentional for CPython (GIL ensures atomicity
+    # of the outer `if _settings is None` check for the common fast-path case).
     if _settings is None:
         with _settings_lock:
-            if _settings is None:  # pragma: no branch
-                _settings = ObskitSettings()
+            if _settings is None:  # pragma: no cover  # re-check inside lock
+                _settings = ObskitSettings()  # pragma: no cover
+            return _settings
 
     return _settings
 
 
-def configure(**kwargs: object) -> ObskitSettings:
+def configure(*, strict: bool = False, **kwargs: object) -> ObskitSettings:
     """
     Configure obskit settings programmatically.
 
@@ -708,6 +724,13 @@ def configure(**kwargs: object) -> ObskitSettings:
 
     Parameters
     ----------
+    strict : bool, default=False
+        When True, raise ``ValueError`` if any configuration validation errors
+        are detected (e.g. conflicting options, missing required fields for an
+        enabled feature).  When False (default) errors are logged as warnings
+        and execution continues — useful during development.  Set to ``True``
+        in production to catch misconfiguration at startup rather than
+        at runtime.
     **kwargs : object
         Configuration values matching ObskitSettings fields.
         See ObskitSettings class for available options.
@@ -783,10 +806,32 @@ def configure(**kwargs: object) -> ObskitSettings:
     """
     global _settings
 
+    # Validate that all kwargs are known ObskitSettings field names
+    valid_fields = set(ObskitSettings.model_fields.keys())
+    invalid = set(kwargs) - valid_fields
+    if invalid:
+        raise ValueError(
+            f"Unknown obskit settings: {invalid}. Valid settings are: {sorted(valid_fields)}"
+        )
+
     with _settings_lock:
         # Create new settings with provided values
         # Type ignore because we're passing dynamic kwargs
         _settings = ObskitSettings(**kwargs)  # type: ignore[arg-type]
+
+    # Validate config and surface any issues at startup via stdlib logging
+    # so operators see them regardless of structlog configuration state.
+    import logging as _std_logging
+
+    _cfg_logger = _std_logging.getLogger("obskit.config")
+    is_valid, errors = validate_config()
+    if not is_valid:
+        for err in errors:
+            _cfg_logger.warning("obskit config issue: %s", err)
+        if strict:
+            raise ValueError(
+                f"obskit configuration has {len(errors)} error(s): " + "; ".join(errors)
+            )
 
     return _settings
 

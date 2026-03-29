@@ -172,8 +172,7 @@ class TestConsumerLagTrackerSetLag:
         tracker.set_lag(messages=100)
         # Only the new sample should remain (old one pruned)
         assert all(
-            s.timestamp > datetime.now(UTC) - timedelta(seconds=2)
-            for s in tracker._lag_samples
+            s.timestamp > datetime.now(UTC) - timedelta(seconds=2) for s in tracker._lag_samples
         )
 
     def test_set_lag_zero(self):
@@ -216,8 +215,7 @@ class TestConsumerLagTrackerMessagesConsumed:
         tracker.messages_consumed(count=1)
         # Old timestamps should be pruned
         remaining = [
-            t for t in tracker._consumed_timestamps
-            if t <= datetime.now(UTC) - timedelta(seconds=2)
+            t for t in tracker._consumed_timestamps if t <= datetime.now(UTC) - timedelta(seconds=2)
         ]
         assert len(remaining) == 0
 
@@ -276,9 +274,7 @@ class TestConsumerLagTrackerCalculateVelocity:
         tracker = ConsumerLagTracker("test_velocity_calc", window_seconds=60)
         now = datetime.now(UTC)
         # Simulate 10 messages over 10 seconds
-        tracker._consumed_timestamps = [
-            now - timedelta(seconds=10 - i) for i in range(10)
-        ]
+        tracker._consumed_timestamps = [now - timedelta(seconds=10 - i) for i in range(10)]
         velocity = tracker._calculate_velocity()
         assert velocity > 0.0
 
@@ -371,9 +367,7 @@ class TestConsumerLagTrackerGetStats:
         tracker._current_lag = 100
         now = datetime.now(UTC)
         # Simulate some consumed messages to get velocity
-        tracker._consumed_timestamps = [
-            now - timedelta(seconds=10 - i) for i in range(10)
-        ]
+        tracker._consumed_timestamps = [now - timedelta(seconds=10 - i) for i in range(10)]
         stats = tracker.get_stats()
         # catch_up should be > 0 since lag > 0 and velocity > 0
         assert stats.estimated_catch_up_seconds >= 0
@@ -431,6 +425,7 @@ class TestRegistryHelpers:
     def setup_method(self):
         """Clear the module-level registry before each test."""
         import obskit.consumer_lag as module
+
         module._lag_trackers.clear()
 
     def test_get_consumer_lag_tracker_creates_new(self):
@@ -534,9 +529,7 @@ class TestConsumerLagCoverageGaps:
         tracker = ConsumerLagTracker("test_catchup_velocity")
         now = datetime.now(UTC)
         # Pre-populate consumed_timestamps so velocity > 0
-        tracker._consumed_timestamps = [
-            now - timedelta(seconds=5 - i * 0.5) for i in range(10)
-        ]
+        tracker._consumed_timestamps = [now - timedelta(seconds=5 - i * 0.5) for i in range(10)]
         # set_lag with messages > 0 should hit lines 244-245
         tracker.set_lag(messages=100)
         stats = tracker.get_stats()

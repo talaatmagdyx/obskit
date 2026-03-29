@@ -141,9 +141,7 @@ class TestLivenessEndpoint:
         assert resp.status_code == 200
 
     def test_live_200_when_liveness_passes(self):
-        router = build_health_router(
-            liveness_checks=[_healthy_check("memory")]
-        )
+        router = build_health_router(liveness_checks=[_healthy_check("memory")])
         client = TestClient(_app(router))
         resp = client.get("/health/live")
         assert resp.status_code == 200
@@ -151,9 +149,7 @@ class TestLivenessEndpoint:
         assert body["healthy"] is True
 
     def test_live_503_when_liveness_fails(self):
-        router = build_health_router(
-            liveness_checks=[_unhealthy_check("memory")]
-        )
+        router = build_health_router(liveness_checks=[_unhealthy_check("memory")])
         client = TestClient(_app(router))
         resp = client.get("/health/live")
         assert resp.status_code == 503
@@ -226,9 +222,7 @@ class TestReadinessEndpoint:
         assert "postgres" in body["checks"]
 
     def test_ready_uses_readiness_checks_param(self):
-        router = build_health_router(
-            readiness_checks=[_unhealthy_check("db")]
-        )
+        router = build_health_router(readiness_checks=[_unhealthy_check("db")])
         client = TestClient(_app(router))
         assert client.get("/health/ready").status_code == 503
 
@@ -402,13 +396,14 @@ class TestImportError:
             def patched_build(*args, **kwargs):
                 try:
                     import fastapi  # noqa: F401
+
                     if fastapi is None:
                         raise ImportError("mocked missing fastapi")
-                except (ImportError, TypeError):
+                except (ImportError, TypeError) as exc:
                     raise ImportError(
                         "fastapi is required for build_health_router. "
                         "Install it with: pip install 'obskit[fastapi]'"
-                    )
+                    ) from exc
                 return original_fn(*args, **kwargs)
 
             monkeypatch.setattr(router_mod, "build_health_router", patched_build)

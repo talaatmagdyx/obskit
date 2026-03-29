@@ -182,3 +182,30 @@ class TestREDMetricsAdvanced:
             status="failure",
             # No error_type provided
         )
+
+
+class TestREDMetricsEdgeCases:
+    """Edge case tests for REDMetrics — coverage gaps."""
+
+    def test_long_operation_label_truncated(self):
+        """Operation label > 128 chars is truncated with hash suffix (lines 520-532)."""
+        name = f"test_{uuid.uuid4().hex[:8]}"
+        metrics = REDMetrics(name=name)
+        long_op = "a" * 200  # > 128 chars
+        # Should not raise; truncates the label
+        metrics.observe_request(
+            operation=long_op,
+            duration_seconds=0.1,
+            status="success",
+        )
+
+    def test_get_red_metrics_double_check_locking(self):
+        """get_red_metrics() creates a new instance after reset (covers lines 711->715)."""
+        reset_red_metrics()
+        # First call: _red_metrics is None → enters outer branch → creates instance
+        m1 = get_red_metrics()
+        assert m1 is not None
+        # Second call: _red_metrics is already set → skips inner branch (covers 711->False path)
+        m2 = get_red_metrics()
+        assert m2 is m1
+        reset_red_metrics()

@@ -650,30 +650,30 @@ class TestMiddlewareTracing:
         mock_inject.assert_called_once()
 
 
-@pytest.mark.skipif(not DJANGO_AVAILABLE, reason='Django not installed')
+@pytest.mark.skipif(not DJANGO_AVAILABLE, reason="Django not installed")
 class TestMiddlewareExceptionBranches:
     """Tests for exception handler branch coverage (lines 240->249 and 249->253)."""
 
-    @patch('obskit.middleware.django.DJANGO_AVAILABLE', True)
-    @patch('obskit.middleware.django.settings')
-    @patch('obskit.middleware.django.get_red_metrics')
+    @patch("obskit.middleware.django.DJANGO_AVAILABLE", True)
+    @patch("obskit.middleware.django.settings")
+    @patch("obskit.middleware.django.get_red_metrics")
     def test_exception_no_metrics(self, mock_get_red_metrics, mock_settings):
         """Test exception path with track_metrics=False (branch 240->249 False)."""
         from obskit.middleware.django import ObskitDjangoMiddleware
 
         mock_settings.OBSKIT = {
-            'track_metrics': False,
-            'track_logging': True,
+            "track_metrics": False,
+            "track_logging": True,
         }
         mock_red = MagicMock()
         mock_get_red_metrics.return_value = mock_red
 
         def raising_get_response(request):
-            raise RuntimeError('metrics disabled error')
+            raise RuntimeError("metrics disabled error")
 
         mock_request = MagicMock()
-        mock_request.path = '/api/test'
-        mock_request.method = 'GET'
+        mock_request.path = "/api/test"
+        mock_request.method = "GET"
         mock_request.headers = {}
         mock_request.META = {}
         mock_request.user.is_authenticated = False
@@ -681,33 +681,34 @@ class TestMiddlewareExceptionBranches:
         middleware = ObskitDjangoMiddleware(raising_get_response)
 
         import pytest as _pytest
+
         with _pytest.raises(RuntimeError):
             middleware(mock_request)
 
         # With track_metrics=False, observe_request should NOT be called
         mock_red.observe_request.assert_not_called()
 
-    @patch('obskit.middleware.django.DJANGO_AVAILABLE', True)
-    @patch('obskit.middleware.django.settings')
-    @patch('obskit.middleware.django.get_red_metrics')
-    @patch('obskit.middleware.django.logger')
+    @patch("obskit.middleware.django.DJANGO_AVAILABLE", True)
+    @patch("obskit.middleware.django.settings")
+    @patch("obskit.middleware.django.get_red_metrics")
+    @patch("obskit.middleware.django.logger")
     def test_exception_no_logging(self, mock_logger, mock_get_red_metrics, mock_settings):
         """Test exception path with track_logging=False (branch 249->253 False)."""
         from obskit.middleware.django import ObskitDjangoMiddleware
 
         mock_settings.OBSKIT = {
-            'track_metrics': True,
-            'track_logging': False,
+            "track_metrics": True,
+            "track_logging": False,
         }
         mock_red = MagicMock()
         mock_get_red_metrics.return_value = mock_red
 
         def raising_get_response(request):
-            raise RuntimeError('logging disabled error')
+            raise RuntimeError("logging disabled error")
 
         mock_request = MagicMock()
-        mock_request.path = '/api/test'
-        mock_request.method = 'GET'
+        mock_request.path = "/api/test"
+        mock_request.method = "GET"
         mock_request.headers = {}
         mock_request.META = {}
         mock_request.user.is_authenticated = False
@@ -715,6 +716,7 @@ class TestMiddlewareExceptionBranches:
         middleware = ObskitDjangoMiddleware(raising_get_response)
 
         import pytest as _pytest
+
         with _pytest.raises(RuntimeError):
             middleware(mock_request)
 

@@ -1,4 +1,5 @@
 """Tests to cover remaining branch misses in pools.py."""
+
 from __future__ import annotations
 
 from unittest.mock import patch

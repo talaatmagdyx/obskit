@@ -203,7 +203,10 @@ class RetryConfig:
     exponential_base: float = 2.0
     jitter: bool = True
     retry_on: tuple[type[Exception], ...] = (Exception,)
-    no_retry_on: tuple[type[Exception], ...] = ()
+    # asyncio.TimeoutError is a deadline set by the *caller* — the caller chose
+    # a budget and it expired.  Retrying would silently exceed that budget, so
+    # we treat it as a permanent failure by default.
+    no_retry_on: tuple[type[Exception], ...] = (asyncio.TimeoutError,)
 
     @classmethod
     def from_settings(cls) -> RetryConfig:
@@ -260,13 +263,58 @@ def calculate_delay(
     # Cap at max_delay
     delay = min(delay, config.max_delay)
 
-    # Add jitter if enabled
+    # Add jitter if enabled — uses "equal jitter" strategy:
+    #   delay = (delay / 2) + random(0, delay / 2)
+    # This guarantees a minimum delay of delay/2 (avoids thundering-herd
+    # where full jitter can return 0) while still spreading retry windows.
+    # Reference: https://aws.amazon.com/blogs/architecture/exponential-backoff-and-jitter/
     if config.jitter:
-        # Full jitter: random value between 0 and delay
+        half = delay / 2
         # nosec B311 - random is used for retry jitter timing, not security
-        delay = random.uniform(0, delay)  # nosec B311
+        # max(0.001, ...) ensures minimum jitter > 0 so delay is never effectively 0
+        delay = half + max(0.001, random.uniform(0, half))  # nosec B311
 
     return delay
+
+
+def _is_permanent_http_failure(exception: Exception) -> bool:
+    """Return True if the exception represents a permanent HTTP client error.
+
+    HTTP 4xx errors (except 429 Too Many Requests) are client errors that
+    will not succeed on retry — retrying wastes time and produces noise.
+    This detection is best-effort: it checks for ``httpx`` and ``requests``
+    status error types without importing them at module level.
+
+    Status codes treated as *permanent* (never retry):
+      400 Bad Request, 401 Unauthorized, 403 Forbidden, 404 Not Found,
+      405 Method Not Allowed, 409 Conflict, 410 Gone, 422 Unprocessable
+
+    Status codes treated as *transient* (retry allowed):
+      429 Too Many Requests, 5xx Server Errors
+    """
+    _PERMANENT_4XX = frozenset({400, 401, 403, 404, 405, 409, 410, 422})
+    exc_type_name = type(exception).__name__
+
+    # httpx.HTTPStatusError
+    if exc_type_name == "HTTPStatusError" and hasattr(exception, "response"):
+        try:
+            status = getattr(exception.response, "status_code", None)
+        except AttributeError:  # pragma: no cover
+            status = None  # pragma: no cover
+        if isinstance(status, int) and status in _PERMANENT_4XX:
+            return True
+
+    # requests.HTTPError
+    if exc_type_name == "HTTPError":
+        try:
+            resp = getattr(exception, "response", None)
+            status = getattr(resp, "status_code", None) if resp is not None else None
+        except AttributeError:  # pragma: no cover
+            status = None  # pragma: no cover
+        if isinstance(status, int) and status in _PERMANENT_4XX:
+            return True
+
+    return False
 
 
 def should_retry(
@@ -275,6 +323,9 @@ def should_retry(
 ) -> bool:
     """
     Determine if an exception should trigger a retry.
+
+    HTTP 4xx client errors (except 429) are treated as permanent failures
+    and are never retried, even if they match ``retry_on``.
 
     Parameters
     ----------
@@ -288,7 +339,11 @@ def should_retry(
     bool
         True if should retry, False otherwise.
     """
-    # Never retry on excluded exceptions
+    # Never retry permanent HTTP client errors (400/401/403/404/422 etc.)
+    if _is_permanent_http_failure(exception):
+        return False
+
+    # Never retry on explicitly excluded exceptions
     if isinstance(exception, config.no_retry_on):
         return False
 
@@ -303,7 +358,7 @@ def retry(
     exponential_base: float | None = None,
     jitter: bool = True,
     retry_on: tuple[type[Exception], ...] = (Exception,),
-    no_retry_on: tuple[type[Exception], ...] = (),
+    no_retry_on: tuple[type[Exception], ...] = (asyncio.TimeoutError,),
 ) -> Callable[[Callable[P, Awaitable[T]]], Callable[P, Awaitable[T]]]:
     """
     Decorator for retrying async functions with exponential backoff.
@@ -500,7 +555,7 @@ def retry_sync(
     exponential_base: float | None = None,
     jitter: bool = True,
     retry_on: tuple[type[Exception], ...] = (Exception,),
-    no_retry_on: tuple[type[Exception], ...] = (),
+    no_retry_on: tuple[type[Exception], ...] = (),  # sync code cannot raise asyncio.TimeoutError
 ) -> Callable[[Callable[P, T]], Callable[P, T]]:
     """
     Decorator for retrying synchronous functions.

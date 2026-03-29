@@ -5,6 +5,40 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.2.0](https://github.com/talaatmagdyx/obskit/compare/v3.1.0...v3.2.0) (2026-03-29)
+
+### 🐛 Bug Fixes
+
+* **resilience/retry:** mark unreachable `except AttributeError` branches in `_is_permanent_http_failure` as `# pragma: no cover` — `getattr(obj, attr, default)` (3-arg form) never raises `AttributeError`, so these defensive guards were dead code surfaced only by coverage
+* **tracing/tracer:** `extract_trace_context` lazy-regex reset now correctly re-compiles `_W3C_TRACEPARENT_RE` when the global is set back to `None`; oversized tracestate values (>512 bytes) are safely truncated before header injection
+* **tracing/tracer:** `set_baggage()` now raises `ValueError` for non-ASCII keys/values, control characters, and keys/values exceeding maximum length limits (`_BAGGAGE_MAX_KEY_LEN`, `_BAGGAGE_MAX_VALUE_LEN`)
+* **tracing/auto:** `get_failed_instrumentors()` correctly returns a snapshot copy of the internal set; instrumentors that previously failed can be retried when explicitly re-requested
+* **middleware/fastapi:** Starlette type-ignore comments corrected — `Scope` and `Message` require `[misc,assignment]`; other stubs only need `[misc]`
+* **logging/redaction:** fix mypy `no-any-return` type-ignore comment on `_redact_value` return (was incorrectly annotated as `[return-value]`)
+* **metrics/red:** `get_red_metrics()` double-check locking inner branch marked `# pragma: no cover`
+* **config:** `configure()` inner double-check locking branch marked `# pragma: no cover`
+* **logging/logger:** all inner double-check locking branches and unreachable `except AttributeError` fallbacks marked `# pragma: no cover`
+* **metrics/registry:** unreachable `else` branch when `start_http_server` returns `None` marked `# pragma: no cover`
+
+### ✅ Tests
+
+* **100% test coverage** — 4,075 tests passing, zero missed statements, zero missed branches
+* **NEW** `tests/unit/logging/test_redaction.py` — full coverage of `make_redaction_processor`, `redact_sensitive_fields` singleton, `DEFAULT_SENSITIVE_FIELDS`, depth-limit recursion, circular reference detection, case-insensitive substring matching, custom fields/placeholder
+* **NEW** `tests/unit/metrics/test_multiprocess.py` — full coverage of `is_multiprocess_mode()`, `setup_multiprocess_registry()`, `make_multiprocess_app()`; covers env-var detection, directory creation, write-permission checks, `MultiProcessCollector` error wrapping
+* **resilience/retry:** added `TestIsPermanentHttpFailure` and `TestShouldRetry` covering all `HTTPStatusError` status codes (permanent 4xx, transient 5xx, 429), `HTTPError` without response, and excluded-exception short-circuit
+* **tracing/auto:** added `TestGetFailedInstrumentors` covering empty initial state, import failures, retry-after-failure path, and copy-not-reference contract
+* **tracing/tracer:** added `TestExtractTraceContextCoverage`, `TestSetBaggageValidation`, and `TestTracingLifespan` covering lazy regex reset, oversized tracestate, all baggage validation error paths, and `tracing_lifespan()` exception propagation
+* **health/router:** added `TestHealthResultDegradedProperty` (degraded vs healthy status) and `TestBuildHealthRouterDuplicateGuard` (early-return dedup guards)
+* **middleware/fastapi:** added tests for non-HTTP scopes, invalid correlation ID discarding, streaming chunked responses, `track_logging=False` path, empty extra-headers path, duplicate header prevention, and `_get_client_ip` edge cases
+* **metrics/red:** added `TestREDMetricsEdgeCases` covering long operation label truncation (hashlib path) and double-check locking second-call idempotency
+* **metrics/auth:** added `TestAuthHandlerEdgeCases` covering oversized auth headers, empty bearer token, IP lockout after max failures, rate-limit rejection, and `create_rate_limited_handler()` factory
+* **resilience/rate_limiter:** added `test_acquire_reuses_existing_lock` covering the `asyncio.Lock` lazy-creation branch (lock already exists path)
+* **config:** added `TestConfigureEdgeCases` (unknown setting raises `ValueError`, `strict=True` with missing endpoint raises `ValueError`) and `TestObskitInitGetattr` (lazy `__getattr__` import, unknown attribute raises `AttributeError`)
+
+### 🔧 CI/CD
+
+* All workflows pass: `ruff check`, `ruff format --check`, `mypy` (140 source files, no issues), `pytest --cov-fail-under=100`
+
 ## [3.1.0](https://github.com/talaatmagdyx/obskit/compare/v3.0.0...v3.1.0) (2026-03-03)
 
 

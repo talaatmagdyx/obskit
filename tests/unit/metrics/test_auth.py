@@ -197,3 +197,96 @@ class TestAuthenticatedMetricsHandlerInit:
         handler = AuthenticatedMetricsHandler(mock_request, mock_client_address, mock_server)
 
         assert handler.auth_token is None
+
+
+class TestAuthHandlerEdgeCases:
+    """Additional tests for edge cases in AuthenticatedMetricsHandler.do_GET()."""
+
+    def _make_handler(self, auth_token=None, auth_header=None, path="/metrics"):
+        """Create a handler with mocked response methods."""
+        from io import BytesIO
+
+        handler = object.__new__(AuthenticatedMetricsHandler)
+        handler.auth_token = auth_token
+        handler.path = path
+        handler.requestline = f"GET {path} HTTP/1.1"
+        handler.request_version = "HTTP/1.1"
+        handler.command = "GET"
+        handler.wfile = BytesIO()
+        handler.client_address = ("127.0.0.1", 12345)
+        headers = {}
+        if auth_header:
+            headers["Authorization"] = auth_header
+        handler.headers = headers
+        handler._response_code = None
+        handler._response_headers = []
+        handler.send_response = lambda code: setattr(handler, "_response_code", code)
+        handler.send_header = lambda k, v: handler._response_headers.append((k, v))
+        handler.end_headers = lambda: None
+        return handler
+
+    def test_auth_header_too_long_returns_401(self):
+        """Authorization header > 512 bytes returns 401."""
+        long_header = "Bearer " + "x" * 600
+        handler = self._make_handler(auth_token="secret", auth_header=long_header)
+        handler.do_GET()
+        assert handler._response_code == 401
+        assert b"too long" in handler.wfile.getvalue()
+
+    def test_empty_bearer_token_returns_401(self):
+        """'Bearer ' with empty token returns 401."""
+        handler = self._make_handler(auth_token="secret", auth_header="Bearer ")
+        handler.do_GET()
+        assert handler._response_code == 401
+        assert b"Empty token" in handler.wfile.getvalue()
+
+    def test_auth_lockout_returns_429(self):
+        """IP that has exceeded failed-auth threshold returns 429."""
+        import time
+        from obskit.metrics.auth import _failed_auth, _FAILED_AUTH_MAX
+
+        handler = self._make_handler(auth_token="secret")
+        client_ip = "127.0.0.3"
+        handler.client_address = (client_ip, 12345)
+        # Simulate enough recent failed attempts to trigger lockout
+        now = time.time()
+        _failed_auth[client_ip] = [now] * (_FAILED_AUTH_MAX + 1)
+        try:
+            handler.do_GET()
+            assert handler._response_code == 429
+            assert b"Too Many" in handler.wfile.getvalue()
+        finally:
+            _failed_auth.pop(client_ip, None)
+
+    def test_rate_limited_returns_429(self):
+        """Rate limiter exceeded returns 429."""
+        from unittest.mock import MagicMock, patch
+
+        mock_limiter = MagicMock()
+        mock_limiter.is_allowed.return_value = False
+        handler = self._make_handler(auth_token=None)
+        with patch("obskit.metrics.auth._get_rate_limiter", return_value=mock_limiter):
+            handler.do_GET()
+        assert handler._response_code == 429
+        assert b"Rate limit" in handler.wfile.getvalue()
+
+
+class TestCreateRateLimitedHandler:
+    """Tests for create_rate_limited_handler()."""
+
+    def test_returns_handler_class(self):
+        """Returns a class that is a subclass of AuthenticatedMetricsHandler."""
+        from obskit.metrics.auth import create_rate_limited_handler
+
+        HandlerClass = create_rate_limited_handler()
+        assert issubclass(HandlerClass, AuthenticatedMetricsHandler)
+
+    @patch("http.server.BaseHTTPRequestHandler.__init__")
+    def test_handler_has_no_auth_token(self, mock_base_init):
+        """Rate-limited handler sets auth_token=None."""
+        from obskit.metrics.auth import create_rate_limited_handler
+
+        mock_base_init.return_value = None
+        HandlerClass = create_rate_limited_handler()
+        handler = HandlerClass(MagicMock(), ("127.0.0.1", 12345), MagicMock())
+        assert handler.auth_token is None

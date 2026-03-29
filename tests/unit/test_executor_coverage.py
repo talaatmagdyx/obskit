@@ -1,4 +1,5 @@
 """Additional coverage tests for executor.py."""
+
 from __future__ import annotations
 
 from obskit.executor import ExecutorTracker
@@ -51,6 +52,7 @@ class TestExecutorBranchCoverage:
         class MockExecutorNoShutdown:
             def submit(self, fn, *args, **kwargs):
                 import concurrent.futures
+
                 f = concurrent.futures.Future()
                 f.set_result(None)
                 return f

@@ -2,6 +2,7 @@
 Targeted tests to achieve 100% line/branch coverage for obskit-slo.
 Covers the specific missing branches identified in the coverage report.
 """
+
 from __future__ import annotations
 
 import collections
@@ -17,7 +18,6 @@ import pytest
 
 
 class TestAlertDedupMissingBranches:
-
     def test_suppression_window_active_with_on_aggregated(self):
         """
         Lines 195->True branch + 206-207: suppression window is active (now < suppression_end),
@@ -94,6 +94,7 @@ class TestAlertDedupMissingBranches:
 
         try:
             from obskit.alert_dedup import get_alert_deduplicator
+
             # First call: both outer and inner checks are True -> creates instance
             d1 = get_alert_deduplicator()
             # Now _deduplicator is set. Second call: outer 'if _deduplicator is None'
@@ -110,7 +111,6 @@ class TestAlertDedupMissingBranches:
 
 
 class TestSlowOperationMissingBranches:
-
     def test_importerror_branch_sets_unavailable(self):
         """
         Lines 50-51: The except ImportError branch.
@@ -131,6 +131,7 @@ class TestSlowOperationMissingBranches:
             sys.modules["obskit.slo.alertmanager"] = None  # type: ignore
 
             import obskit.alerts.slow_operation as fresh_mod
+
             # When the import raises, ALERTMANAGER_AVAILABLE should be False
             # But since None in sys.modules doesn't raise ImportError by itself
             # we test via the flag
@@ -156,6 +157,7 @@ class TestSlowOperationMissingBranches:
         so_module.ALERTMANAGER_AVAILABLE = True
         try:
             from obskit.alerts.slow_operation import SlowOperationDetector
+
             with patch("obskit.alerts.slow_operation.SyncAlertmanagerWebhook") as mock_cls:
                 mock_cls.return_value = MagicMock()
                 detector = SlowOperationDetector(
@@ -196,11 +198,14 @@ class TestSlowOperationMissingBranches:
         so_module.ALERTMANAGER_AVAILABLE = True
         try:
             from obskit.alerts.slow_operation import check_slow_operation
+
             with patch("obskit.alerts.slow_operation.SyncAlertmanagerWebhook") as mock_cls:
                 mock_wh = MagicMock()
                 mock_cls.return_value = mock_wh
                 result = check_slow_operation(
-                    "url_op", duration_seconds=10.0, threshold_ms=5000,
+                    "url_op",
+                    duration_seconds=10.0,
+                    threshold_ms=5000,
                     alertmanager_url="http://alertmanager:9093",
                 )
                 assert result is not None
@@ -218,12 +223,15 @@ class TestSlowOperationMissingBranches:
         so_module.ALERTMANAGER_AVAILABLE = True
         try:
             from obskit.alerts.slow_operation import check_slow_operation
+
             with patch("obskit.alerts.slow_operation.SyncAlertmanagerWebhook") as mock_cls:
                 mock_wh = MagicMock()
                 mock_wh.fire_alert.side_effect = Exception("timeout")
                 mock_cls.return_value = mock_wh
                 result = check_slow_operation(
-                    "exc_op", duration_seconds=10.0, threshold_ms=5000,
+                    "exc_op",
+                    duration_seconds=10.0,
+                    threshold_ms=5000,
                     alertmanager_url="http://alertmanager:9093",
                 )
                 assert result is not None  # still returns alert_id
@@ -237,7 +245,6 @@ class TestSlowOperationMissingBranches:
 
 
 class TestBudgetsMissingBranches:
-
     def test_cleanup_old_data_removes_errors_and_requests(self):
         """
         Lines 153-156: _cleanup_old_data removes old errors and requests.
@@ -262,6 +269,7 @@ class TestBudgetsMissingBranches:
     def test_calculate_percentile_none_when_empty(self):
         """Line 161: Returns None when no latencies."""
         from obskit.budgets import PerformanceBudget
+
         budget = PerformanceBudget(name="pct_none_v2")
         assert budget._calculate_percentile(95) is None
 
@@ -370,7 +378,6 @@ class TestBudgetsMissingBranches:
 
 
 class TestExternalMissingBranches:
-
     def test_set_expected_sla_all_fields(self):
         """Lines 222-229: set_expected_sla with all params."""
         from obskit.external import ExternalAPISLATracker
@@ -522,6 +529,7 @@ class TestExternalMissingBranches:
         tracker._recent_breaches.clear()
         # Mock get_compliance_report to return a breach with unknown type
         from obskit.external import SLAComplianceReport
+
         now = datetime.now(UTC)
         mock_report = SLAComplianceReport(
             api_name="unknown_breach_test",
@@ -563,6 +571,7 @@ class TestExternalMissingBranches:
 
         try:
             from obskit.external import get_external_api_tracker
+
             t1 = get_external_api_tracker(unique_name)
             t2 = get_external_api_tracker(unique_name)
             assert t1 is t2
@@ -576,14 +585,17 @@ class TestExternalMissingBranches:
 
 
 class TestSLAPredictorMissingBranches:
-
     def test_sla_definition_to_dict(self):
         """Lines 82-90: SLADefinition.to_dict()"""
         from obskit.sla_predictor import SLADefinition
 
         sla = SLADefinition(
-            name="lat_sla", target_value=200.0, percentile=95,
-            comparison="less_than", window_hours=2, description="test",
+            name="lat_sla",
+            target_value=200.0,
+            percentile=95,
+            comparison="less_than",
+            window_hours=2,
+            description="test",
         )
         d = sla.to_dict()
         assert d["name"] == "lat_sla"
@@ -761,6 +773,7 @@ class TestSLAPredictorMissingBranches:
 
         try:
             from obskit.sla_predictor import get_sla_predictor
+
             p1 = get_sla_predictor()
             assert p1 is not None
             # _predictor is now set; second call outer if is False -> returns p1
@@ -776,7 +789,6 @@ class TestSLAPredictorMissingBranches:
 
 
 class TestHighThroughputMissingBranches:
-
     def test_calculate_value_empty_measurements(self):
         """Line 260: Returns 0.0 for empty list."""
         from obskit.slo.high_throughput import HighThroughputSLOTracker
@@ -874,6 +886,7 @@ class TestHighThroughputMissingBranches:
         assert status is not None
         assert status.compliance is False
 
+
 # =============================================================================
 # Additional branch coverage tests
 # =============================================================================
@@ -935,7 +948,7 @@ class TestAdditionalBranches:
         but latencies to be empty. This requires records with empty latency list.
         Since latencies = [r.latency_seconds * 1000 for r in self._records]
         and records always have latency_seconds, latencies is never empty if records exist.
-        
+
         This is a defensive/dead branch that can only be triggered by directly
         manipulating internal state.
         """
@@ -992,6 +1005,7 @@ class TestAdditionalBranches:
                 # Simulate another thread added the tracker before we got the lock
                 ext_module._api_trackers[unique] = ExternalAPISLATracker(unique)
                 return self
+
             def __exit__(self, *args):
                 pass  # NOSONAR
 
@@ -1023,6 +1037,7 @@ class TestAdditionalBranches:
                 # Simulate another thread set _deduplicator before we got the lock
                 dedup_module._deduplicator = AlertDeduplicator()
                 return self
+
             def __exit__(self, *args):
                 pass  # NOSONAR
 
@@ -1052,6 +1067,7 @@ class TestAdditionalBranches:
                 # Another thread set _predictor before we got the lock
                 pred_module._predictor = SLAPredictor()
                 return self
+
             def __exit__(self, *args):
                 pass  # NOSONAR
 
@@ -1106,7 +1122,7 @@ class TestAdditionalBranches:
         data_points = [
             DataPoint(
                 timestamp=base_time + timedelta(hours=i),
-                value=80.0 - i * 0.5  # 80->72.5, all above 50
+                value=80.0 - i * 0.5,  # 80->72.5, all above 50
             )
             for i in range(20)
         ]
@@ -1118,5 +1134,3 @@ class TestAdditionalBranches:
         assert risk is not None
         # P95 of 80->72.5 values is ~79.5, target=50, current > target
         # slope is negative (declining) -> lines 311-316 hit
-
-

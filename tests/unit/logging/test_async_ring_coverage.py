@@ -1,4 +1,5 @@
 """Tests for async_ring.py branch coverage."""
+
 from __future__ import annotations
 
 import threading
@@ -12,7 +13,7 @@ class TestAsyncRingBranchCoverage:
 
     def test_drain_loop_with_non_empty_queue(self):
         """Line 153->150: queue NOT empty, so loop back without wait.
-        
+
         drain_batch defaults to 500. If we put 1001 items, after the first
         drain_once call there are still 501 items left (queue NOT empty),
         so the loop goes back to line 150 without the wait at line 154.

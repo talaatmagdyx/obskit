@@ -189,5 +189,3 @@ class TestCreateHttpCheck:
         with patch("httpx.AsyncClient", return_value=mock_client):
             result = await check()
         assert result["healthy"] is True
-
-

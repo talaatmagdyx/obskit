@@ -1,4 +1,5 @@
 """Tests for obskit.testing.context module."""
+
 import pytest
 
 from obskit.testing.context import capture_metrics, capture_traces, disable_observability
@@ -12,6 +13,7 @@ class TestCaptureMetrics:
 
     def test_capture_metrics_yields_mock(self):
         from obskit.testing.mocks import MockMetrics
+
         with capture_metrics() as m:
             assert isinstance(m, MockMetrics)
 
@@ -23,6 +25,7 @@ class TestCaptureTraces:
 
     def test_capture_traces_yields_mock_tracer(self):
         from obskit.testing.mocks import MockTracer
+
         with capture_traces() as t:
             assert isinstance(t, MockTracer)
 
@@ -34,10 +37,10 @@ class TestDisableObservabilityContext:
 
     def test_disable_then_noop_span(self):
         from obskit.testing.context import disable_observability
+
         # disable_observability yields None (bare yield)
         with disable_observability():
             pass  # Just verifies it works without error
-
 
 
 class TestDisableObservabilityNoop:
@@ -45,9 +48,11 @@ class TestDisableObservabilityNoop:
         from unittest.mock import patch
 
         from obskit.testing.context import disable_observability
+
         with disable_observability():
             # Test that trace_span patches work
             import obskit.tracing as tr
+
             # Access the patched trace_span and invoke it
             span_cm = tr.trace_span("test")
             with span_cm as span:
@@ -61,6 +66,7 @@ class TestContextCoverageGaps:
         """Test that noop_span is actually called inside disable_observability (line 87)."""
         import obskit.tracing as tracing_mod
         from obskit.testing.context import disable_observability
+
         with disable_observability():
             # Call trace_span which is patched to noop_span
             # This triggers execution of the inner noop_span yielding MagicMock
@@ -88,6 +94,7 @@ class TestContextCoverageGaps:
 class TestObskitTestContext:
     def test_context_manager(self):
         from obskit.testing.context import ObskitTestContext
+
         ctx = ObskitTestContext()
         with ctx:
             pass  # NOSONAR
@@ -95,23 +102,27 @@ class TestObskitTestContext:
     def test_context_has_metrics(self):
         from obskit.testing.context import ObskitTestContext
         from obskit.testing.mocks import MockMetrics
+
         ctx = ObskitTestContext()
         assert isinstance(ctx.metrics, MockMetrics)
 
     def test_context_has_tracer(self):
         from obskit.testing.context import ObskitTestContext
         from obskit.testing.mocks import MockTracer
+
         ctx = ObskitTestContext()
         assert isinstance(ctx.tracer, MockTracer)
 
     def test_context_has_slo_tracker(self):
         from obskit.testing.context import ObskitTestContext
         from obskit.testing.mocks import MockSLOTracker
+
         ctx = ObskitTestContext()
         assert isinstance(ctx.slo_tracker, MockSLOTracker)
 
     def test_context_reset(self):
         from obskit.testing.context import ObskitTestContext
+
         ctx = ObskitTestContext()
         with ctx:
             ctx.metrics.observe_request("op", 0.1, "success")
@@ -123,12 +134,14 @@ class TestObskitTestContext:
 class TestMockObservabilityContext:
     def test_mock_observability_yields_context(self):
         from obskit.testing.context import ObskitTestContext, mock_observability
+
         with mock_observability() as ctx:
             assert isinstance(ctx, ObskitTestContext)
 
     def test_mock_observability_with_custom_metrics(self):
         from obskit.testing.context import mock_observability
         from obskit.testing.mocks import MockMetrics
+
         custom_metrics = MockMetrics()
         with mock_observability(metrics=custom_metrics) as ctx:
             assert ctx.metrics is custom_metrics
@@ -136,6 +149,7 @@ class TestMockObservabilityContext:
     def test_mock_observability_with_custom_tracer(self):
         from obskit.testing.context import mock_observability
         from obskit.testing.mocks import MockTracer
+
         custom_tracer = MockTracer()
         with mock_observability(tracer=custom_tracer) as ctx:
             assert ctx.tracer is custom_tracer
@@ -143,6 +157,7 @@ class TestMockObservabilityContext:
     def test_mock_observability_with_custom_slo(self):
         from obskit.testing.context import mock_observability
         from obskit.testing.mocks import MockSLOTracker
+
         custom_slo = MockSLOTracker()
         with mock_observability(slo_tracker=custom_slo) as ctx:
             assert ctx.slo_tracker is custom_slo

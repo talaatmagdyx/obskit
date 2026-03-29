@@ -255,6 +255,7 @@ class TestASGIMiddleware:
 
     def test_init_creates_base_middleware(self):
         from obskit.middleware.base import ASGIMiddleware
+
         mock_app = MagicMock()
         mw = ASGIMiddleware(mock_app, service_name="test_svc", record_metrics=False)
         assert mw.app is mock_app
@@ -264,6 +265,7 @@ class TestASGIMiddleware:
         import asyncio
 
         from obskit.middleware.base import ASGIMiddleware
+
         mock_app = AsyncMock()
         mw = ASGIMiddleware(mock_app, record_metrics=False)
 
@@ -315,6 +317,7 @@ class TestWSGIMiddleware:
 
     def test_init_creates_base_middleware(self):
         from obskit.middleware.base import WSGIMiddleware
+
         mock_app = MagicMock()
         mw = WSGIMiddleware(mock_app, service_name="wsgi_svc", record_metrics=False)
         assert mw.app is mock_app
@@ -397,6 +400,7 @@ class TestCreateHeadersCoverage:
         """Test include_tenant_id=True when tenant_id is set (line 147->148)."""
         from obskit.metrics.tenant import set_tenant_id
         from obskit.middleware.base import inject_context_to_headers
+
         set_tenant_id("test-tenant")
         headers = inject_context_to_headers(include_tenant_id=True)
         assert headers.get("X-Tenant-ID") == "test-tenant"
@@ -406,6 +410,7 @@ class TestCreateHeadersCoverage:
         """Test include_tenant_id=False skips tenant header (line 145->151)."""
         from obskit.metrics.tenant import set_tenant_id
         from obskit.middleware.base import inject_context_to_headers
+
         set_tenant_id("some-tenant")
         headers = inject_context_to_headers(include_tenant_id=False)
         assert "X-Tenant-ID" not in headers
@@ -416,6 +421,7 @@ class TestCreateHeadersCoverage:
         from unittest.mock import patch
 
         from obskit.middleware.base import inject_context_to_headers
+
         with patch("obskit.tracing.inject_trace_context", side_effect=RuntimeError("trace error")):
             # Should not raise
             headers = inject_context_to_headers()

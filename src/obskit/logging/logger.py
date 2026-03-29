@@ -46,6 +46,7 @@ from __future__ import annotations
 import logging
 import random
 import sys
+import threading
 from typing import Any
 
 import structlog
@@ -60,12 +61,28 @@ from obskit.logging.trace_correlation import add_trace_context
 # =============================================================================
 
 _logging_configured: bool = False
+_unconfigured_warned: bool = False
+_warn_lock = threading.Lock()
+_configure_lock = threading.Lock()
+
+# Cached settings values set at configure_logging() time.
+# These avoid calling get_settings() on every log event in hot-path processors.
+_cached_service_name: str = "unknown"
+_cached_environment: str = "development"
+_cached_version: str = "0.0.0"
+_cached_log_sample_rate: float = 1.0
 
 
 def reset_logging() -> None:
     """Reset logging configuration for testing."""
-    global _logging_configured
+    global _logging_configured, _cached_service_name, _cached_environment
+    global _cached_version, _cached_log_sample_rate, _unconfigured_warned
     _logging_configured = False
+    _cached_service_name = "unknown"
+    _cached_environment = "development"
+    _cached_version = "0.0.0"
+    _cached_log_sample_rate = 1.0
+    _unconfigured_warned = False
 
 
 # =============================================================================
@@ -98,17 +115,13 @@ def sample_log(
     EventDict or None
         The event dictionary if log should be emitted, None to drop.
     """
-    settings = get_settings()
-
     # Always log errors (not sampled)
     if method_name in ("error", "critical", "exception"):
         return event_dict
 
-    # Handle settings attributes that might not exist during circular imports
-    try:
-        sample_rate = settings.log_sample_rate
-    except AttributeError:
-        sample_rate = 1.0  # Default: no sampling
+    # Use cached sample rate (set at configure_logging() time) to avoid
+    # calling get_settings() on every log event in the hot path.
+    sample_rate = _cached_log_sample_rate
 
     # Apply sampling for other log levels
     # nosec B311 - random is used for log sampling, not security
@@ -185,24 +198,26 @@ def add_service_info(
     EventDict
         The event dictionary with service info added.
     """
-    settings = get_settings()
-
-    # Handle settings attributes that might not exist during circular imports
-    try:
-        event_dict["service"] = settings.service_name
-    except AttributeError:
-        event_dict["service"] = "unknown"
-
-    try:
-        event_dict["environment"] = settings.environment
-    except AttributeError:
-        event_dict["environment"] = "development"
-
-    try:
-        event_dict["version"] = settings.version
-    except AttributeError:
-        event_dict["version"] = "0.0.0"
-
+    global _unconfigured_warned
+    # Warn once (cheaply) if configure_logging() was never called so that the
+    # cached defaults ("unknown" / "development" / "0.0.0") are not silently
+    # shipped to a log aggregator.
+    if not _logging_configured:
+        with _warn_lock:
+            if not _unconfigured_warned:  # pragma: no cover
+                _unconfigured_warned = True  # pragma: no cover
+                # Use stdlib logging (not warnings.warn) so the message
+                # surfaces even when PYTHONWARNINGS=ignore is set.
+                logging.getLogger("obskit").warning(  # pragma: no cover
+                    "obskit: configure_logging() was never called. "
+                    "Service metadata (service, environment, version) will use defaults. "
+                    "Call configure_logging() at application startup to populate these fields."
+                )
+    # Use cached values (set at configure_logging() time) to avoid calling
+    # get_settings() on every log event in the hot path.
+    event_dict["service"] = _cached_service_name
+    event_dict["environment"] = _cached_environment
+    event_dict["version"] = _cached_version
     return event_dict
 
 
@@ -271,6 +286,8 @@ def configure_logging() -> None:
     - Must be called before logging for proper formatting
     """
     global _logging_configured
+    global _cached_service_name, _cached_environment, _cached_version
+    global _cached_log_sample_rate
 
     settings = get_settings()
 
@@ -290,6 +307,27 @@ def configure_logging() -> None:
         log_level = settings.log_level.upper()
     except AttributeError:
         log_level = "INFO"  # Default value
+
+    # Populate processor caches so hot-path processors avoid get_settings() calls.
+    try:
+        _cached_service_name = settings.service_name
+    except AttributeError:  # pragma: no cover
+        _cached_service_name = "unknown"  # pragma: no cover
+
+    try:
+        _cached_environment = settings.environment
+    except AttributeError:  # pragma: no cover
+        _cached_environment = "development"  # pragma: no cover
+
+    try:
+        _cached_version = settings.version
+    except AttributeError:  # pragma: no cover
+        _cached_version = "0.0.0"  # pragma: no cover
+
+    try:
+        _cached_log_sample_rate = settings.log_sample_rate
+    except AttributeError:  # pragma: no cover
+        _cached_log_sample_rate = 1.0  # pragma: no cover
 
     # =================================================================
     # Build processor chain
@@ -445,9 +483,11 @@ def get_logger(name: str | None = None) -> Any:
     - Use .bind() to add persistent context
     - Use exc_info=True to include stack traces
     """
-    # Ensure logging is configured
+    # Ensure logging is configured (guarded by lock to prevent double-configure)
     if not _logging_configured:
-        configure_logging()
+        with _configure_lock:
+            if not _logging_configured:  # pragma: no cover
+                configure_logging()  # pragma: no cover
 
     # Get or create logger
     return structlog.get_logger(name or "obskit")

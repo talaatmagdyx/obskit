@@ -130,14 +130,28 @@ def build_health_router(
     # Build an internal HealthChecker from the provided check lists.
     checker = HealthChecker()
 
+    _registered_names: set[str] = set()
+
+    def _register_readiness(hc: HealthCheck) -> None:
+        if hc.name in _registered_names:
+            return  # Guard against duplicate registrations
+        checker.register_readiness_check(hc)
+        _registered_names.add(hc.name)
+
+    def _register_liveness(hc: HealthCheck) -> None:
+        if hc.name in _registered_names:
+            return
+        checker.register_liveness_check(hc)
+        _registered_names.add(hc.name)
+
     for hc in checks or []:
-        checker._readiness_checks.append(hc)
+        _register_readiness(hc)
 
     for hc in readiness_checks or []:
-        checker._readiness_checks.append(hc)
+        _register_readiness(hc)
 
     for hc in liveness_checks or []:
-        checker._liveness_checks.append(hc)
+        _register_liveness(hc)
 
     router = APIRouter(prefix=prefix, tags=tags or ["health"])  # type: ignore[arg-type]
 

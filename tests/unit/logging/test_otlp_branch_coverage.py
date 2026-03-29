@@ -1,4 +1,5 @@
 """Additional coverage tests for otlp.py branch misses."""
+
 from __future__ import annotations
 
 import logging
@@ -19,8 +20,13 @@ class TestOTLPBranchCoverage:
         handler._shutdown = True  # don't flush in background
 
         record = logging.LogRecord(
-            name="test", level=logging.INFO, pathname="",
-            lineno=0, msg="test without otel", args=(), exc_info=None
+            name="test",
+            level=logging.INFO,
+            pathname="",
+            lineno=0,
+            msg="test without otel",
+            args=(),
+            exc_info=None,
         )
 
         # Patch OTEL unavailable -> skips trace context block
@@ -41,16 +47,34 @@ class TestOTLPBranchCoverage:
 
         # Create a record-like object with no __dict__
         class NoDict:
-            __slots__ = ["levelno", "levelname", "name", "msg", "pathname",
-                         "lineno", "funcName", "created", "msecs",
-                         "relativeCreated", "thread", "threadName",
-                         "processName", "process"]
+            __slots__ = [
+                "levelno",
+                "levelname",
+                "name",
+                "msg",
+                "pathname",
+                "lineno",
+                "funcName",
+                "created",
+                "msecs",
+                "relativeCreated",
+                "thread",
+                "threadName",
+                "processName",
+                "process",
+            ]
+
             def getMessage(self):
                 return "test without dict"
 
         record = logging.LogRecord(
-            name="test", level=logging.INFO, pathname="",
-            lineno=0, msg="test", args=(), exc_info=None
+            name="test",
+            level=logging.INFO,
+            pathname="",
+            lineno=0,
+            msg="test",
+            args=(),
+            exc_info=None,
         )
 
         # Patch hasattr to return False for record.__dict__

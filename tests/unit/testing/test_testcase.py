@@ -320,7 +320,9 @@ class TestAsyncObskitTestCaseAsSubclass(AsyncObskitTestCase):
 class TestObskitTestCaseTeardownEdgeCases:
     def test_teardown_when_context_is_none(self):
         class MyTest(ObskitTestCase):
-            def runTest(self): pass
+            def runTest(self):
+                pass
+
         t = MyTest()
         t.__class__.setUpClass()
         t.setUp()
@@ -333,7 +335,9 @@ class TestObskitTestCaseTeardownEdgeCases:
 class TestAsyncObskitTestCase:
     def test_async_testcase_setup(self):
         class MyAsyncTest(AsyncObskitTestCase):
-            def runTest(self): pass
+            def runTest(self):
+                pass
+
         t = MyAsyncTest()
         t.__class__.setUpClass()
         t.setUp()
@@ -342,7 +346,9 @@ class TestAsyncObskitTestCase:
 
     def test_async_testcase_teardown_closes_loop(self):
         class MyAsyncTest(AsyncObskitTestCase):
-            def runTest(self): pass
+            def runTest(self):
+                pass
+
         t = MyAsyncTest()
         t.__class__.setUpClass()
         t.setUp()
@@ -353,12 +359,16 @@ class TestAsyncObskitTestCase:
 
     def test_async_testcase_run_async(self):
         class MyAsyncTest(AsyncObskitTestCase):
-            def runTest(self): pass
+            def runTest(self):
+                pass
+
         t = MyAsyncTest()
         t.__class__.setUpClass()
         t.setUp()
+
         async def my_coroutine():  # NOSONAR
             return 42
+
         result = t.run_async(my_coroutine())
         assert result == 42
         t.tearDown()

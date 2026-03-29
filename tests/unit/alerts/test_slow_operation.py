@@ -256,9 +256,7 @@ class TestCheckSlowOperation:
         assert result is None  # 5000ms <= 5000ms threshold
 
     def test_just_above_threshold_is_slow(self):
-        result = check_slow_operation(
-            "just_above_op", duration_seconds=5.001, threshold_ms=5000
-        )
+        result = check_slow_operation("just_above_op", duration_seconds=5.001, threshold_ms=5000)
         assert result is not None
 
     def test_with_tenant_id(self):

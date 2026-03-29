@@ -6,6 +6,7 @@ Reduce log volume while maintaining visibility for important events.
 
 import hashlib
 import random
+import threading
 import time
 from collections import defaultdict
 from dataclasses import dataclass, field
@@ -26,8 +27,9 @@ def _get_logger():
     return _base_logger
 
 
-# Sampling metrics tracked internally
+# Sampling metrics tracked internally — protected by _sampling_stats_lock
 _sampling_stats: dict[str, dict[str, int]] = defaultdict(lambda: defaultdict(int))
+_sampling_stats_lock = threading.Lock()
 
 
 @dataclass
@@ -112,13 +114,17 @@ class SampledLogger:
         self.config = config or SamplingConfig()
         self._logger = base_logger or structlog.get_logger(name)
 
-        # Track for deduplication
+        # Track for deduplication — protected by _dedup_lock
         self._recent_logs: dict[str, float] = {}  # dedupe_key -> last_logged_time
         self._occurrence_counts: dict[str, int] = defaultdict(int)
+        self._dedup_lock = threading.Lock()
 
         # Track sampling stats
         self._sampled_count: dict[str, int] = defaultdict(int)
         self._dropped_count: dict[str, int] = defaultdict(int)
+
+        # Call counter for periodic cleanup (every 1000 calls instead of 1% random)
+        self._log_count: int = 0
 
     def _get_sample_rate(self, level: str, event: str) -> float:
         """Get sample rate for a log level/event."""
@@ -181,18 +187,20 @@ class SampledLogger:
         if duration_seconds and duration_seconds >= self.config.slow_threshold_seconds:
             return True, "slow_operation"
 
-        # Check occurrence count
+        # Check occurrence count and deduplication — protect shared dicts with lock
         dedupe_key = self._get_dedupe_key(level, event, **kwargs)
-        self._occurrence_counts[dedupe_key] += 1
+        with self._dedup_lock:
+            self._occurrence_counts[dedupe_key] += 1
+            count = self._occurrence_counts[dedupe_key]
 
-        if self._occurrence_counts[dedupe_key] <= self.config.always_log_first_n:
+        if count <= self.config.always_log_first_n:
             return True, "first_occurrences"
 
         # Check deduplication
         now = time.time()
-        if dedupe_key in self._recent_logs:
-            last_logged = self._recent_logs[dedupe_key]
-            if now - last_logged < self.config.dedupe_window_seconds:
+        with self._dedup_lock:
+            last_logged = self._recent_logs.get(dedupe_key)
+            if last_logged is not None and now - last_logged < self.config.dedupe_window_seconds:
                 return False, "deduplicated"
 
         # Apply sample rate
@@ -201,7 +209,8 @@ class SampledLogger:
             return False, "sampled_out"
 
         # Log it
-        self._recent_logs[dedupe_key] = now
+        with self._dedup_lock:
+            self._recent_logs[dedupe_key] = now
         return True, "sampled_in"
 
     def _cleanup_recent(self):
@@ -209,9 +218,10 @@ class SampledLogger:
         now = time.time()
         cutoff = now - self.config.dedupe_window_seconds * 2
 
-        keys_to_remove = [k for k, v in self._recent_logs.items() if v < cutoff]
-        for k in keys_to_remove:
-            del self._recent_logs[k]
+        with self._dedup_lock:
+            keys_to_remove = [k for k, v in self._recent_logs.items() if v < cutoff]
+            for k in keys_to_remove:
+                del self._recent_logs[k]
 
     def _log(self, level: str, event: str, **kwargs):
         """Internal log method with sampling."""
@@ -221,24 +231,30 @@ class SampledLogger:
 
         should_log, reason = self._should_log(level, event, duration, important, **kwargs)
 
-        if should_log:
-            self._sampled_count[level] += 1
+        with _sampling_stats_lock:
+            if should_log:
+                self._sampled_count[level] += 1
+            else:
+                self._dropped_count[level] += 1
 
+        if should_log:
             # Add sampling metadata
             kwargs["_sampling_reason"] = reason
 
             log_method = getattr(self._logger, level)
             log_method(event, **kwargs)
-        else:
-            self._dropped_count[level] += 1
 
-        # Periodic cleanup
-        if random.random() < 0.01:  # 1% chance
+        # Periodic cleanup — run every 1000 calls instead of 1% random
+        self._log_count += 1
+        if self._log_count % 1000 == 0:
             self._cleanup_recent()
 
-        # Update global stats
-        _sampling_stats[self.name]["sampled"] = sum(self._sampled_count.values())
-        _sampling_stats[self.name]["dropped"] = sum(self._dropped_count.values())
+        # Update global stats under lock to prevent torn reads in get_sampling_stats()
+        with _sampling_stats_lock:
+            sampled = sum(self._sampled_count.values())
+            dropped = sum(self._dropped_count.values())
+            _sampling_stats[self.name]["sampled"] = sampled
+            _sampling_stats[self.name]["dropped"] = dropped
 
     def debug(self, event: str, **kwargs):
         """Log debug message."""
@@ -269,8 +285,11 @@ class SampledLogger:
         """Bind context to logger."""
         bound_logger = self._logger.bind(**kwargs)
         new_sampled = SampledLogger(self.name, self.config, bound_logger)
+        # Share the same dedup state AND the same lock so bound loggers
+        # don't race with the parent on the shared dicts.
         new_sampled._recent_logs = self._recent_logs
         new_sampled._occurrence_counts = self._occurrence_counts
+        new_sampled._dedup_lock = self._dedup_lock
         return new_sampled
 
     def get_stats(self) -> dict[str, Any]:
@@ -337,50 +356,55 @@ class AdaptiveSampledLogger(SampledLogger):
         self._current_rate = 1.0
         self._log_count_in_window = 0
         self._window_start = time.time()
+        self._adaptive_lock = threading.Lock()
 
     def _maybe_adjust_rate(self):
         """Adjust sampling rate based on current volume."""
         now = time.time()
-        elapsed = now - self._window_start
+        with self._adaptive_lock:
+            elapsed = now - self._window_start
 
-        if elapsed >= self.adjustment_interval:
-            # Calculate current rate
-            current_lps = self._log_count_in_window / elapsed
+            if elapsed >= self.adjustment_interval:
+                # Calculate current rate
+                current_lps = self._log_count_in_window / elapsed
 
-            if current_lps > 0:
-                # Calculate desired rate
-                desired_rate = self.target_lps / current_lps
+                if current_lps > 0:
+                    # Calculate desired rate
+                    desired_rate = self.target_lps / current_lps
 
-                # Apply bounds and smoothing
-                new_rate = self._current_rate * 0.7 + desired_rate * 0.3
-                self._current_rate = max(self.min_rate, min(self.max_rate, new_rate))
+                    # Apply bounds and smoothing
+                    new_rate = self._current_rate * 0.7 + desired_rate * 0.3
+                    self._current_rate = max(self.min_rate, min(self.max_rate, new_rate))
 
-            # Reset window
-            self._log_count_in_window = 0
-            self._window_start = now
+                # Reset window
+                self._log_count_in_window = 0
+                self._window_start = now
 
-            _get_logger().debug(
-                "adaptive_sampling_adjusted",
-                logger=self.name,
-                new_rate=self._current_rate,
-                current_lps=current_lps,
-            )
+                _get_logger().debug(
+                    "adaptive_sampling_adjusted",
+                    logger=self.name,
+                    new_rate=self._current_rate,
+                    current_lps=current_lps,
+                )
 
     def _get_sample_rate(self, level: str, event: str) -> float:
         """Get adaptive sample rate."""
         base_rate = super()._get_sample_rate(level, event)
-        return base_rate * self._current_rate
+        with self._adaptive_lock:
+            return base_rate * self._current_rate
 
     def _log(self, level: str, event: str, **kwargs):
         """Log with adaptive sampling."""
-        self._log_count_in_window += 1
+        with self._adaptive_lock:
+            self._log_count_in_window += 1
         self._maybe_adjust_rate()
         super()._log(level, event, **kwargs)
 
 
 def get_sampling_stats() -> dict[str, dict[str, int]]:
-    """Get global sampling statistics for all loggers."""
-    return dict(_sampling_stats)
+    """Get global sampling statistics for all loggers (thread-safe snapshot)."""
+    with _sampling_stats_lock:
+        return {name: dict(counts) for name, counts in _sampling_stats.items()}
 
 
 __all__ = [

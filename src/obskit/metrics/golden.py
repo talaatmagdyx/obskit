@@ -161,6 +161,7 @@ References
 
 from __future__ import annotations
 
+import threading
 from typing import Literal
 
 from obskit.config import get_settings
@@ -336,6 +337,9 @@ class GoldenSignals:
             registry=registry,
         )
 
+        # Lock for thread-safe lazy initialization of _progress_gauges
+        self._progress_init_lock = threading.Lock()
+
     def observe_request(
         self,
         operation: str,
@@ -478,6 +482,22 @@ class GoldenSignals:
         """
         Increment queue depth by a specified amount.
 
+        **API choice guidance** — use ONE approach consistently per queue:
+
+        * **Option A — absolute value** (recommended when you can query the
+          real queue length, e.g. ``redis.llen()``)::
+
+              golden.set_queue_depth("orders", redis.llen("order_queue"))
+
+        * **Option B — delta tracking** (use when you control all
+          enqueue/dequeue sites)::
+
+              golden.inc_queue_depth("orders", len(batch))   # on enqueue
+              golden.dec_queue_depth("orders", len(batch))   # on dequeue
+
+        Mixing ``set_queue_depth`` with ``inc/dec_queue_depth`` on the same
+        queue will produce incorrect gauge values.
+
         Use this when adding items to a queue.
 
         Parameters
@@ -558,50 +578,54 @@ class GoldenSignals:
         >>> # batch_processor_total_items{operation="process_orders"} 1000
         >>> # batch_processor_completed_items{operation="process_orders"} 455
         """
-        # Create progress gauge if it doesn't exist
-        if not hasattr(self, "_progress_gauges"):
-            from obskit.metrics.types import Gauge
+        # Hold the lock for the full body: initialization + set().
+        # This prevents two threads from both initializing and then racing
+        # on the first .labels().set() call before the gauge is fully wired up.
+        with self._progress_init_lock:
+            if not hasattr(self, "_progress_gauges"):
+                from obskit.metrics.types import Gauge
 
-            registry = get_registry()
+                registry = get_registry()
 
-            self._progress_gauges = {
-                "progress": Gauge(
-                    name=f"{self.name}_progress",
-                    documentation=f"Progress percentage for {self.name} operations",
-                    labelnames=["operation"],
-                    registry=registry,
-                ),
-                "total_items": Gauge(
-                    name=f"{self.name}_total_items",
-                    documentation=f"Total items for {self.name} operations",
-                    labelnames=["operation"],
-                    registry=registry,
-                ),
-                "completed_items": Gauge(
-                    name=f"{self.name}_completed_items",
-                    documentation=f"Completed items for {self.name} operations",
-                    labelnames=["operation"],
-                    registry=registry,
-                ),
-            }
+                self._progress_gauges = {
+                    "progress": Gauge(
+                        name=f"{self.name}_progress",
+                        documentation=f"Progress percentage for {self.name} operations",
+                        labelnames=["operation"],
+                        registry=registry,
+                    ),
+                    "total_items": Gauge(
+                        name=f"{self.name}_total_items",
+                        documentation=f"Total items for {self.name} operations",
+                        labelnames=["operation"],
+                        registry=registry,
+                    ),
+                    "completed_items": Gauge(
+                        name=f"{self.name}_completed_items",
+                        documentation=f"Completed items for {self.name} operations",
+                        labelnames=["operation"],
+                        registry=registry,
+                    ),
+                }
 
-        # Set progress metrics
-        self._progress_gauges["progress"].labels(operation=operation).set(progress_percent)
+            # Set progress metrics (prometheus Gauge.labels().set() is itself
+            # thread-safe, but holding the lock here prevents a race between
+            # gauge creation and first write on a cold start).
+            self._progress_gauges["progress"].labels(operation=operation).set(progress_percent)
 
-        if total_items is not None:
-            self._progress_gauges["total_items"].labels(operation=operation).set(total_items)
+            if total_items is not None:
+                self._progress_gauges["total_items"].labels(operation=operation).set(total_items)
 
-        if completed_items is not None:
-            self._progress_gauges["completed_items"].labels(operation=operation).set(
-                completed_items
-            )
+            if completed_items is not None:
+                self._progress_gauges["completed_items"].labels(operation=operation).set(
+                    completed_items
+                )
 
 
 # =============================================================================
 # Module-Level Singleton
 # =============================================================================
 
-import threading
 
 _golden_signals: GoldenSignals | None = None
 _golden_signals_lock = threading.Lock()

@@ -1,4 +1,5 @@
 """Additional coverage tests for adaptive_sampling.py."""
+
 from __future__ import annotations
 
 import time

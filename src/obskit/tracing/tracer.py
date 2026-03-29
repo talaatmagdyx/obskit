@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import contextlib
+import logging as _std_logging
 import threading
 from collections.abc import AsyncGenerator, Callable, Generator
 from functools import wraps
@@ -10,6 +11,8 @@ from typing import TYPE_CHECKING, Any, ParamSpec, TypeVar
 
 from obskit.config import get_settings
 from obskit.tracing._version import __version__ as _OBSKIT_TRACING_VERSION
+
+_tracer_logger = _std_logging.getLogger(__name__)
 
 if TYPE_CHECKING:
     pass  # NOSONAR
@@ -127,70 +130,74 @@ def configure_tracing(
             provider_kwargs["sampler"] = sampler
         provider = TracerProvider(**provider_kwargs)
 
-    # ── Debug console exporter ────────────────────────────────────────────
-    if debug:
-        try:
-            from opentelemetry.sdk.trace.export.in_memory_span_exporter import (
-                InMemorySpanExporter,
-            )
-
-            # Prefer the built-in console exporter
+        # ── Debug console exporter ────────────────────────────────────────
+        if debug:
             try:
-                from opentelemetry.sdk.trace.export import ConsoleSpanExporter
+                from opentelemetry.sdk.trace.export.in_memory_span_exporter import (
+                    InMemorySpanExporter,
+                )
 
-                _console_exporter = ConsoleSpanExporter()
+                # Prefer the built-in console exporter
+                try:
+                    from opentelemetry.sdk.trace.export import ConsoleSpanExporter
+
+                    _console_exporter = ConsoleSpanExporter()
+                except ImportError:  # pragma: no cover
+                    _console_exporter = InMemorySpanExporter()  # type: ignore[assignment]
+
+                provider.add_span_processor(SimpleSpanProcessor(_console_exporter))
             except ImportError:  # pragma: no cover
-                _console_exporter = InMemorySpanExporter()  # type: ignore[assignment]
+                pass  # NOSONAR
 
-            provider.add_span_processor(SimpleSpanProcessor(_console_exporter))
-        except ImportError:  # pragma: no cover
-            pass  # NOSONAR
+        # ── OTLP exporter ─────────────────────────────────────────────────
+        # Track whether provider was registered in the OTLP branch so the
+        # debug-only fallback below can use a standalone `if` (coverage.py
+        # propagates `# pragma: no cover` to sibling `elif` clauses in the
+        # same compound statement, making them untrackable).
+        _provider_registered = False
+        if endpoint and settings.tracing_enabled:  # pragma: no cover
+            try:
+                from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import (
+                    OTLPSpanExporter,
+                )
 
-    # ── OTLP exporter ────────────────────────────────────────────────────
-    # Track whether provider was registered in the OTLP branch so the
-    # debug-only fallback below can use a standalone `if` (coverage.py
-    # propagates `# pragma: no cover` to sibling `elif` clauses in the
-    # same compound statement, making them untrackable).
-    _provider_registered = False
-    if endpoint and settings.tracing_enabled:  # pragma: no cover
-        try:
-            from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import (
-                OTLPSpanExporter,
+                exporter = OTLPSpanExporter(
+                    endpoint=endpoint,
+                    insecure=settings.otlp_insecure,
+                )
+
+                max_queue_size = getattr(settings, "trace_export_queue_size", 2048)
+                max_export_batch_size = getattr(settings, "trace_export_batch_size", 512)
+                export_timeout = getattr(settings, "trace_export_timeout", 30.0)
+
+                processor = BatchSpanProcessor(
+                    exporter,
+                    max_queue_size=max_queue_size,
+                    max_export_batch_size=max_export_batch_size,
+                    export_timeout_millis=int(export_timeout * 1000),
+                )
+                provider.add_span_processor(processor)
+            except ImportError:  # pragma: no cover
+                pass  # NOSONAR
+
+            # Set global provider
+            trace.set_tracer_provider(provider)
+
+            _tracer = trace.get_tracer(__name__)
+            _configured = True
+            _provider_registered = True
+
+        # When debug=True but no OTLP endpoint, still set the provider so spans render.
+        # Intentionally a separate `if` (not `elif`) so coverage.py can track it
+        # independently of the `# pragma: no cover` block above.
+        if debug and not _provider_registered:
+            trace.set_tracer_provider(provider)
+            _tracer = trace.get_tracer(__name__)
+            _configured = True
+            _tracer_logger.info(
+                "tracing_debug_mode_no_otlp_export: spans visible locally only. "
+                "Set tracing_enabled=True and otlp_endpoint to export to a backend."
             )
-
-            exporter = OTLPSpanExporter(
-                endpoint=endpoint,
-                insecure=settings.otlp_insecure,
-            )
-
-            max_queue_size = getattr(settings, "trace_export_queue_size", 2048)
-            max_export_batch_size = getattr(settings, "trace_export_batch_size", 512)
-            export_timeout = getattr(settings, "trace_export_timeout", 30.0)
-
-            processor = BatchSpanProcessor(
-                exporter,
-                max_queue_size=max_queue_size,
-                max_export_batch_size=max_export_batch_size,
-                export_timeout_millis=int(export_timeout * 1000),
-            )
-            provider.add_span_processor(processor)
-        except ImportError:  # pragma: no cover
-            pass  # NOSONAR
-
-        # Set global provider
-        trace.set_tracer_provider(provider)
-
-        _tracer = trace.get_tracer(__name__)
-        _configured = True
-        _provider_registered = True
-
-    # When debug=True but no OTLP endpoint, still set the provider so spans render.
-    # Intentionally a separate `if` (not `elif`) so coverage.py can track it
-    # independently of the `# pragma: no cover` block above.
-    if debug and not _provider_registered:
-        trace.set_tracer_provider(provider)
-        _tracer = trace.get_tracer(__name__)
-        _configured = True
 
     return True
 
@@ -262,7 +269,12 @@ def trace_span(
                 span.set_attribute("operation", operation)
             if attributes:  # pragma: no cover
                 for key, value in attributes.items():
-                    span.set_attribute(key, str(value))
+                    # Preserve native OTel types (int, float, bool) to avoid
+                    # unnecessary string conversion and loss of type semantics.
+                    if isinstance(value, (bool, int, float, str)):
+                        span.set_attribute(key, value)
+                    else:
+                        span.set_attribute(key, str(value))
 
         try:
             yield span
@@ -318,7 +330,12 @@ async def async_trace_span(
                 span.set_attribute("operation", operation)
             if attributes:  # pragma: no cover
                 for key, value in attributes.items():
-                    span.set_attribute(key, str(value))
+                    # Preserve native OTel types (int, float, bool) to avoid
+                    # unnecessary string conversion and loss of type semantics.
+                    if isinstance(value, (bool, int, float, str)):
+                        span.set_attribute(key, value)
+                    else:
+                        span.set_attribute(key, str(value))
 
         try:
             yield span
@@ -410,8 +427,26 @@ def inject_trace_context(headers: dict[str, str] | None = None) -> dict[str, str
     return headers
 
 
+_W3C_TRACEPARENT_RE = None  # Compiled on first use
+
+
+def _get_traceparent_re() -> Any:
+    """Return compiled W3C traceparent regex (lazy, avoids import-time cost)."""
+    global _W3C_TRACEPARENT_RE
+    if _W3C_TRACEPARENT_RE is None:
+        import re
+
+        _W3C_TRACEPARENT_RE = re.compile(
+            r"^[0-9a-fA-F]{2}-[0-9a-fA-F]{32}-[0-9a-fA-F]{16}-[0-9a-fA-F]{2}$"
+        )
+    return _W3C_TRACEPARENT_RE
+
+
 def extract_trace_context(headers: dict[str, str] | None = None) -> Any:
     """Extract W3C Trace Context from incoming request headers.
+
+    Invalid ``traceparent`` values (wrong format, oversized ``tracestate``)
+    are silently discarded to prevent malformed data propagating downstream.
 
     Args:
         headers: Headers dictionary.
@@ -424,6 +459,22 @@ def extract_trace_context(headers: dict[str, str] | None = None) -> Any:
 
     if headers is None:
         return None
+
+    # Validate traceparent format before handing to OTel parser.
+    traceparent = headers.get("traceparent") or headers.get("Traceparent")
+    if traceparent is not None:
+        if not _get_traceparent_re().match(traceparent):
+            return None  # Malformed — do not propagate
+
+    # Guard against oversized tracestate (W3C recommends max 512 bytes).
+    tracestate = headers.get("tracestate") or headers.get("Tracestate", "")
+    if len(tracestate) > 512:
+        # Truncation risks breaking key=value syntax; safest to drop entirely.
+        _tracer_logger.warning(
+            "tracestate_dropped_oversized: size=%d bytes (max 512)", len(tracestate)
+        )
+        filtered = {k: v for k, v in headers.items() if k.lower() not in ("tracestate",)}
+        headers = filtered
 
     try:  # pragma: no cover
         from opentelemetry.trace.propagation.tracecontext import (
@@ -470,6 +521,10 @@ def trace_context(headers: dict[str, str] | None = None) -> Generator[Any, None,
 # ---------------------------------------------------------------------------
 
 
+_BAGGAGE_MAX_KEY_LEN = 128
+_BAGGAGE_MAX_VALUE_LEN = 1024
+
+
 def set_baggage(key: str, value: str) -> Any:
     """Set a W3C Baggage entry in the current context.
 
@@ -478,12 +533,15 @@ def set_baggage(key: str, value: str) -> Any:
     OTel propagation will receive these values automatically.
 
     Args:
-        key: Baggage key (ASCII printable, no whitespace).
-        value: Baggage value (ASCII printable).
+        key: Baggage key (ASCII printable, no whitespace). Max 128 chars.
+        value: Baggage value (ASCII printable). Max 1024 chars.
 
     Returns:
         The updated OTel context token (can be passed to
         :func:`clear_baggage` to restore the previous state).
+
+    Raises:
+        ValueError: If key or value exceeds the size limits.
 
     Example::
 
@@ -492,6 +550,28 @@ def set_baggage(key: str, value: str) -> Any:
     """
     if not OPENTELEMETRY_AVAILABLE:  # pragma: no cover
         return None
+
+    if not (key.isascii() and all(32 < ord(c) < 127 for c in key)):
+        raise ValueError(
+            f"baggage key {key!r} contains non-ASCII-printable characters. "
+            "Keys must be ASCII printable (no whitespace or control characters)."
+        )
+    if not (value.isascii() and all(32 <= ord(c) < 127 for c in value)):
+        raise ValueError(
+            f"baggage value for key {key!r} contains non-ASCII-printable characters. "
+            "Values must be ASCII printable (no control characters)."
+        )
+
+    if len(key) > _BAGGAGE_MAX_KEY_LEN:
+        raise ValueError(
+            f"baggage key too long ({len(key)} chars, max {_BAGGAGE_MAX_KEY_LEN}). "
+            "Oversized baggage causes memory exhaustion in downstream services."
+        )
+    if len(value) > _BAGGAGE_MAX_VALUE_LEN:
+        raise ValueError(
+            f"baggage value for key {key!r} too long ({len(value)} chars, "
+            f"max {_BAGGAGE_MAX_VALUE_LEN})."
+        )
 
     try:
         ctx = baggage_api.set_baggage(key, value)
@@ -636,7 +716,12 @@ def reset_tracing() -> None:
 def shutdown_tracing() -> None:
     """Flush all pending spans and shut down the tracer provider.
 
-    Call this during application shutdown to avoid losing spans.
+    Call this during application shutdown to avoid losing buffered spans.
+    ``BatchSpanProcessor`` queues up to 30 seconds of spans; without an
+    explicit shutdown they are silently dropped on process exit.
+
+    This is called automatically when using :func:`tracing_lifespan` or
+    :func:`setup_signal_handlers`.
 
     Example::
 
@@ -653,7 +738,59 @@ def shutdown_tracing() -> None:
         if _configured and trace is not None:  # pragma: no cover
             try:
                 provider = trace.get_tracer_provider()
+                if hasattr(provider, "force_flush"):  # pragma: no cover
+                    provider.force_flush(timeout_millis=5000)
                 if hasattr(provider, "shutdown"):  # pragma: no cover
                     provider.shutdown()
             except Exception:  # pragma: no cover  # nosec B110
                 pass  # NOSONAR
+
+
+@contextlib.contextmanager
+def tracing_lifespan() -> Generator[None, None, None]:
+    """Context manager that ensures tracing is flushed on exit.
+
+    Use this in your application lifespan to guarantee in-flight spans
+    are exported before the process ends — even on SIGTERM.
+
+    FastAPI example::
+
+        from contextlib import asynccontextmanager
+        from obskit.tracing.tracer import tracing_lifespan
+
+        @asynccontextmanager
+        async def lifespan(app):
+            with tracing_lifespan():
+                yield  # app runs here
+
+        app = FastAPI(lifespan=lifespan)
+
+    Plain Python example::
+
+        with tracing_lifespan():
+            run_worker()
+    """
+    try:
+        yield
+    finally:
+        shutdown_tracing()
+
+
+def setup_signal_handlers() -> None:  # pragma: no cover
+    """Register SIGTERM/SIGINT handlers that flush traces before exit.
+
+    Call once at application startup.  Works independently of the
+    application framework — suitable for workers, CLIs, and scripts.
+
+    Example::
+
+        from obskit.tracing.tracer import setup_signal_handlers
+        setup_signal_handlers()
+    """
+    import signal
+
+    def _handler(signum: int, frame: object) -> None:
+        shutdown_tracing()
+
+    signal.signal(signal.SIGTERM, _handler)
+    signal.signal(signal.SIGINT, _handler)

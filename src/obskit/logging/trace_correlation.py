@@ -45,7 +45,11 @@ unchanged.
 
 from __future__ import annotations
 
+import logging as _std_logging
+
 from structlog.types import EventDict, WrappedLogger
+
+_tc_logger = _std_logging.getLogger(__name__)
 
 # ---------------------------------------------------------------------------
 # OTel availability check (graceful degradation)
@@ -104,7 +108,7 @@ def add_trace_context(
             event_dict["trace_id"] = format(ctx.trace_id, "032x")
             event_dict["span_id"] = format(ctx.span_id, "016x")
     except Exception:  # nosec B110 — never let logging crash the app
-        pass  # NOSONAR
+        _tc_logger.debug("trace_context_unavailable", exc_info=True)
 
     return event_dict
 

@@ -302,3 +302,60 @@ class TestValidateConfig:
         is_valid, errors = validate_config()
         assert is_valid
         assert len(errors) == 0
+
+
+class TestConfigureEdgeCases:
+    """Tests for configure() edge cases — lines 813, 832."""
+
+    def setup_method(self):
+        """Reset settings before each test."""
+        from obskit.config import reset_settings
+
+        reset_settings()
+
+    def teardown_method(self):
+        """Reset settings after each test."""
+        from obskit.config import reset_settings
+
+        reset_settings()
+
+    def test_unknown_setting_raises_value_error(self):
+        """configure() raises ValueError for unknown settings (line 813)."""
+        import pytest
+        from obskit.config import configure
+
+        with pytest.raises(ValueError, match="Unknown obskit settings"):
+            configure(this_does_not_exist="value")
+
+    def test_strict_mode_raises_on_invalid_config(self):
+        """configure(strict=True) raises ValueError when config is invalid (line 832)."""
+        import pytest
+        from obskit.config import configure
+
+        # Invalid config: tracing_enabled=True but no endpoint → validation error
+        with pytest.raises(ValueError, match="obskit configuration has"):
+            configure(
+                tracing_enabled=True,
+                otlp_endpoint="",  # empty string → invalid
+                strict=True,
+            )
+
+
+class TestObskitInitGetattr:
+    """Tests for obskit.__init__.__getattr__ lazy imports (lines 51-56)."""
+
+    def test_build_health_router_accessible(self):
+        """obskit.build_health_router is lazily accessible via __getattr__."""
+        import obskit
+
+        # Access via module __getattr__
+        fn = obskit.build_health_router
+        assert callable(fn)
+
+    def test_unknown_attribute_raises(self):
+        """Accessing an unknown attribute raises AttributeError (line 56)."""
+        import obskit
+        import pytest
+
+        with pytest.raises(AttributeError, match="has no attribute"):
+            _ = obskit.this_does_not_exist_anywhere

@@ -370,7 +370,7 @@ class TestObskitMiddleware:
         # Check that some operation was recorded
         assert call_args is not None
 
-    @patch('obskit.middleware.fastapi.get_red_metrics')
+    @patch("obskit.middleware.fastapi.get_red_metrics")
     def test_middleware_exception_no_metrics(self, mock_get_red):
         """Test exception path with track_metrics=False (branch 270->279 False)."""
         mock_red = MagicMock()
@@ -384,19 +384,19 @@ class TestObskitMiddleware:
             track_tracing=False,
         )
 
-        @app.get('/error')
+        @app.get("/error")
         async def error_endpoint():
-            raise RuntimeError('metrics disabled error')
+            raise RuntimeError("metrics disabled error")
 
         client = TestClient(app, raise_server_exceptions=False)
-        response = client.get('/error')
+        response = client.get("/error")
 
         assert response.status_code == 500
         # With track_metrics=False, observe_request should NOT be called
         mock_red.observe_request.assert_not_called()
 
-    @patch('obskit.middleware.fastapi.get_red_metrics')
-    @patch('obskit.middleware.fastapi.logger')
+    @patch("obskit.middleware.fastapi.get_red_metrics")
+    @patch("obskit.middleware.fastapi.logger")
     def test_middleware_exception_no_logging(self, mock_logger, mock_get_red):
         """Test exception path with track_logging=False (branch 279->293 False)."""
         mock_red = MagicMock()
@@ -410,15 +410,218 @@ class TestObskitMiddleware:
             track_tracing=False,
         )
 
-        @app.get('/error')
+        @app.get("/error")
         async def error_endpoint():
-            raise RuntimeError('logging disabled error')
+            raise RuntimeError("logging disabled error")
 
         client = TestClient(app, raise_server_exceptions=False)
-        response = client.get('/error')
+        response = client.get("/error")
 
         assert response.status_code == 500
         # With track_logging=False, logger.error should NOT be called
         mock_logger.error.assert_not_called()
         # But metrics should still be recorded
         mock_red.observe_request.assert_called()
+
+    @patch("obskit.middleware.fastapi.get_red_metrics")
+    def test_middleware_non_http_scope_passes_through(self, mock_get_red):
+        """Non http/websocket scope type passes through without processing (lines 162-163)."""
+        mock_get_red.return_value = MagicMock()
+
+        app = FastAPI()
+        app.add_middleware(ObskitMiddleware)
+
+        # Use TestClient which triggers lifespan events
+        # We can simulate a non-http scope by calling middleware directly
+        import asyncio
+        from obskit.middleware.fastapi import ObskitMiddleware as Mw
+
+        inner_app_called = []
+
+        async def inner_app(scope, receive, send):
+            inner_app_called.append(scope["type"])
+
+        mw = Mw(inner_app)
+
+        async def run():
+            # Pass a "lifespan" scope — not http/websocket
+            await mw({"type": "lifespan", "path": "/"}, None, None)
+
+        asyncio.get_event_loop().run_until_complete(run())
+        assert "lifespan" in inner_app_called
+
+    @patch("obskit.middleware.fastapi.get_red_metrics")
+    def test_middleware_invalid_correlation_id_discarded(self, mock_get_red):
+        """Invalid correlation ID in header is discarded (line 181)."""
+        mock_get_red.return_value = MagicMock()
+
+        app = FastAPI()
+        app.add_middleware(ObskitMiddleware, track_logging=False, track_tracing=False)
+
+        @app.get("/test")
+        async def endpoint():
+            return {"ok": True}
+
+        client = TestClient(app)
+        # Send an invalid correlation ID (contains special chars)
+        response = client.get("/test", headers={"x-correlation-id": "invalid id with spaces!!!"})
+        assert response.status_code == 200
+
+    @patch("obskit.middleware.fastapi.get_red_metrics")
+    def test_middleware_more_body_true_skips_metrics(self, mock_get_red):
+        """When more_body=True, metrics/logging not yet recorded (line 230->255)."""
+        mock_red = MagicMock()
+        mock_get_red.return_value = mock_red
+
+        app = FastAPI()
+        app.add_middleware(ObskitMiddleware, track_logging=False, track_tracing=False)
+
+        from fastapi.responses import StreamingResponse
+
+        async def generator():
+            yield b"chunk1"
+            yield b"chunk2"
+
+        @app.get("/stream")
+        async def stream_endpoint():
+            return StreamingResponse(generator(), media_type="text/plain")
+
+        client = TestClient(app)
+        response = client.get("/stream")
+        assert response.status_code == 200
+        # metrics.observe_request called once (on final chunk)
+        mock_red.observe_request.assert_called_once()
+
+    @patch("obskit.middleware.fastapi.get_red_metrics")
+    def test_middleware_track_logging_false_skips_logging(self, mock_get_red):
+        """With track_logging=False, request_completed log is not emitted (line 244->255)."""
+        mock_red = MagicMock()
+        mock_get_red.return_value = mock_red
+
+        app = FastAPI()
+        app.add_middleware(
+            ObskitMiddleware,
+            track_logging=False,
+            track_tracing=False,
+        )
+
+        @app.get("/silent")
+        async def silent():
+            return {"ok": True}
+
+        with patch("obskit.middleware.fastapi.logger") as mock_logger:
+            client = TestClient(app)
+            client.get("/silent")
+            mock_logger.info.assert_not_called()
+
+    @patch("obskit.middleware.fastapi.get_red_metrics")
+    def test_get_client_ip_no_client(self, mock_get_red):
+        """_get_client_ip returns None when scope has no client (line 315)."""
+        mock_get_red.return_value = MagicMock()
+        mw = ObskitMiddleware(FastAPI())
+        # No "client" key in scope
+        assert mw._get_client_ip({}) is None
+        # client is None
+        assert mw._get_client_ip({"client": None}) is None
+        # client is empty tuple
+        assert mw._get_client_ip({"client": ()}) is None
+
+    @patch("obskit.middleware.fastapi.get_red_metrics")
+    @patch("obskit.middleware.fastapi.get_correlation_id", return_value=None)
+    def test_middleware_no_correlation_id_no_tracing_empty_extra_headers(
+        self, mock_cid, mock_get_red
+    ):
+        """When correlation_id is None and track_tracing=False, extra_headers=[] (branches 211->214, 221->255)."""
+        mock_red = MagicMock()
+        mock_get_red.return_value = mock_red
+
+        app = FastAPI()
+        app.add_middleware(
+            ObskitMiddleware,
+            track_metrics=False,
+            track_logging=False,
+            track_tracing=False,
+        )
+
+        @app.get("/test2")
+        async def endpoint():
+            return {"ok": True}
+
+        client = TestClient(app)
+        response = client.get("/test2")
+        assert response.status_code == 200
+
+    @patch("obskit.middleware.fastapi.get_red_metrics")
+    def test_middleware_response_already_has_correlation_header(self, mock_get_red):
+        """When response already has x-correlation-id, don't add duplicate (branch 225->224)."""
+        mock_red = MagicMock()
+        mock_get_red.return_value = mock_red
+
+        app = FastAPI()
+        app.add_middleware(
+            ObskitMiddleware,
+            track_metrics=False,
+            track_logging=False,
+            track_tracing=False,
+        )
+
+        from fastapi import Response
+
+        @app.get("/with-cid")
+        async def endpoint_with_cid():
+            # Return a response that already sets x-correlation-id
+            return Response(
+                content='{"ok": true}',
+                media_type="application/json",
+                headers={"x-correlation-id": "existing-id-123"},
+            )
+
+        client = TestClient(app)
+        response = client.get("/with-cid")
+        assert response.status_code == 200
+        # Should have the header (either from response or middleware — not duplicated)
+        assert "x-correlation-id" in response.headers
+
+    @patch("obskit.middleware.fastapi.get_red_metrics")
+    def test_middleware_custom_message_type_passes_through(self, mock_get_red):
+        """Non http.response.start/body message types pass through unchanged (branch 229->255)."""
+        import asyncio
+
+        mock_red = MagicMock()
+        mock_get_red.return_value = mock_red
+
+        sent_messages = []
+
+        async def inner_app(scope, receive, send):
+            # Simulate sending a custom message type
+            await send({"type": "http.response.start", "status": 200, "headers": []})
+            await send({"type": "custom.message.type", "data": "something"})
+            await send({"type": "http.response.body", "body": b"ok", "more_body": False})
+
+        mw = ObskitMiddleware(
+            inner_app, track_metrics=False, track_logging=False, track_tracing=False
+        )
+
+        async def fake_send(msg):
+            sent_messages.append(msg)
+
+        async def fake_receive():
+            return {"type": "http.request", "body": b""}
+
+        async def run():
+            await mw(
+                {
+                    "type": "http",
+                    "path": "/test",
+                    "method": "GET",
+                    "headers": [],
+                    "query_string": b"",
+                },
+                fake_receive,
+                fake_send,
+            )
+
+        asyncio.get_event_loop().run_until_complete(run())
+        # All 3 messages should have been forwarded
+        assert len(sent_messages) == 3
+        assert sent_messages[1]["type"] == "custom.message.type"

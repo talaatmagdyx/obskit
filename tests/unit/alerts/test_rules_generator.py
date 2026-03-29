@@ -232,7 +232,9 @@ class TestGenerateAlertRules:
         assert any("HighLatency" in a for a in alerts)
 
     def test_infrastructure_alerts_excluded(self):
-        result = generate_alert_rules("order-service", self._make_slos(), include_infrastructure=False)
+        result = generate_alert_rules(
+            "order-service", self._make_slos(), include_infrastructure=False
+        )
         alerts = [r["alert"] for r in result["groups"][0]["rules"]]
         assert not any("NoTraffic" in a for a in alerts)
 

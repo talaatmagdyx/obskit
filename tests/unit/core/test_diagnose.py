@@ -85,8 +85,9 @@ class TestPackageInfo:
 
     def test_with_integrations(self) -> None:
         intg = IntegrationInfo(label="structlog", available=True, detail="24.1.0")
-        pkg = PackageInfo(name="obskit-logging", installed=True, version="2.0.0",
-                          integrations=[intg])
+        pkg = PackageInfo(
+            name="obskit-logging", installed=True, version="2.0.0", integrations=[intg]
+        )
         assert len(pkg.integrations) == 1
         assert pkg.integrations[0].label == "structlog"
 
@@ -131,8 +132,9 @@ class TestRender:
 
     def test_render_shows_integration_details(self) -> None:
         intg = IntegrationInfo(label="structlog", available=True, detail="24.1.0")
-        packages = [PackageInfo(name="obskit-logging", installed=True, version="2.0.0",
-                                integrations=[intg])]
+        packages = [
+            PackageInfo(name="obskit-logging", installed=True, version="2.0.0", integrations=[intg])
+        ]
         output = _render(packages)
         assert "structlog" in output
         assert "24.1.0" in output
@@ -166,11 +168,18 @@ class TestCollectDiagnostics:
         result = collect_diagnostics()
         names = [p.name for p in result]
         expected = [
-            "obskit-core", "obskit-logging", "obskit-metrics",
-            "obskit-tracing", "obskit-health", "obskit-resilience",
-            "obskit-slo", "obskit-middleware-fastapi",
-            "obskit-middleware-flask", "obskit-middleware-django",
-            "obskit-middleware-grpc", "obskit",
+            "obskit-core",
+            "obskit-logging",
+            "obskit-metrics",
+            "obskit-tracing",
+            "obskit-health",
+            "obskit-resilience",
+            "obskit-slo",
+            "obskit-middleware-fastapi",
+            "obskit-middleware-flask",
+            "obskit-middleware-django",
+            "obskit-middleware-grpc",
+            "obskit",
         ]
         for name in expected:
             assert name in names
@@ -233,6 +242,7 @@ class TestCheckFunctionsNotInstalled:
 
     def test_check_logging_not_installed(self) -> None:
         from obskit.core.diagnose import _check_logging
+
         with patch("obskit.core.diagnose._pkg_version", return_value=None):
             result = _check_logging()
         assert result.installed is False
@@ -241,6 +251,7 @@ class TestCheckFunctionsNotInstalled:
 
     def test_check_metrics_not_installed(self) -> None:
         from obskit.core.diagnose import _check_metrics
+
         with patch("obskit.core.diagnose._pkg_version", return_value=None):
             result = _check_metrics()
         assert result.installed is False
@@ -248,6 +259,7 @@ class TestCheckFunctionsNotInstalled:
 
     def test_check_tracing_not_installed(self) -> None:
         from obskit.core.diagnose import _check_tracing
+
         with patch("obskit.core.diagnose._pkg_version", return_value=None):
             result = _check_tracing()
         assert result.installed is False
@@ -255,6 +267,7 @@ class TestCheckFunctionsNotInstalled:
 
     def test_check_health_not_installed(self) -> None:
         from obskit.core.diagnose import _check_health
+
         with patch("obskit.core.diagnose._pkg_version", return_value=None):
             result = _check_health()
         assert result.installed is False
@@ -350,6 +363,7 @@ class TestMainEntryPoint:
     def test_main_runs_without_error(self, capsys: pytest.CaptureFixture[str]) -> None:
         """Running as __main__ should not raise."""
         import runpy
+
         runpy.run_module("obskit.core.diagnose", run_name="__main__", alter_sys=False)
         captured = capsys.readouterr()
         assert "obskit environment diagnostics" in captured.out

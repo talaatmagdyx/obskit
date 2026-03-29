@@ -229,20 +229,20 @@ class TestAuditTrailCoverage:
 
     def test_record_with_string_result_converts_to_enum(self):
         """Test recording with string result converts to AuditResult enum (line 223)."""
-        audit = AuditTrail('cover-service-1')
+        audit = AuditTrail("cover-service-1")
 
         entry = audit.record(
             action=AuditAction.CREATE,
-            actor='user:1',
-            resource='doc:1',
-            result='success',  # string, not enum
+            actor="user:1",
+            resource="doc:1",
+            result="success",  # string, not enum
         )
 
         assert entry.result == AuditResult.SUCCESS
 
     def test_record_trims_entries_when_over_10000(self):
         """Test that entries are trimmed when exceeding 10000 (line 253)."""
-        audit = AuditTrail('cover-service-trim')
+        audit = AuditTrail("cover-service-trim")
 
         # Manually add 10001 fake entries
         import time
@@ -253,16 +253,16 @@ class TestAuditTrailCoverage:
 
         for i in range(10001):
             entry = AuditEntry(
-                entry_id=f'e-{i}',
+                entry_id=f"e-{i}",
                 timestamp=datetime.now(UTC),
-                service='cover-service-trim',
-                action='read',
-                actor='u:1',
-                resource='r:1',
-                resource_type='doc',
+                service="cover-service-trim",
+                action="read",
+                actor="u:1",
+                resource="r:1",
+                resource_type="doc",
                 result=AR.SUCCESS,
             )
-            entry.hash = f'hash-{i}'
+            entry.hash = f"hash-{i}"
             audit._entries.append(entry)
 
         assert len(audit._entries) > 10000
@@ -270,22 +270,22 @@ class TestAuditTrailCoverage:
         # Now record one more to trigger the trim
         audit.record(
             action=AuditAction.READ,
-            actor='user:1',
-            resource='doc:1',
+            actor="user:1",
+            resource="doc:1",
         )
 
         assert len(audit._entries) <= 10000
 
     def test_record_with_sensitive_resource_type(self):
         """Test recording with a sensitive resource type increments metric (lines 261-263)."""
-        audit = AuditTrail('cover-service-sensitive')
-        audit.sensitive_resources = {'secret'}
+        audit = AuditTrail("cover-service-sensitive")
+        audit.sensitive_resources = {"secret"}
 
         entry = audit.record(
             action=AuditAction.READ,
-            actor='user:1',
-            resource='secret:key',
-            resource_type='secret',
+            actor="user:1",
+            resource="secret:key",
+            resource_type="secret",
         )
 
         assert entry is not None
@@ -294,35 +294,36 @@ class TestAuditTrailCoverage:
         """Test storage callback is called (lines 267-268)."""
         stored = []
 
-        audit = AuditTrail('cover-service-cb', storage_callback=stored.append)
+        audit = AuditTrail("cover-service-cb", storage_callback=stored.append)
 
         audit.record(
             action=AuditAction.CREATE,
-            actor='user:1',
-            resource='doc:1',
+            actor="user:1",
+            resource="doc:1",
         )
 
         assert len(stored) == 1
 
     def test_record_with_storage_callback_exception(self):
         """Test storage callback exception is caught and logged (lines 269-270)."""
-        def failing_callback(entry):
-            raise RuntimeError('storage error')
 
-        audit = AuditTrail('cover-service-cb-fail', storage_callback=failing_callback)
+        def failing_callback(entry):
+            raise RuntimeError("storage error")
+
+        audit = AuditTrail("cover-service-cb-fail", storage_callback=failing_callback)
 
         # Should not raise, exception should be caught
         entry = audit.record(
             action=AuditAction.CREATE,
-            actor='user:1',
-            resource='doc:1',
+            actor="user:1",
+            resource="doc:1",
         )
 
         assert entry is not None
 
     def test_verify_chain_empty_returns_true(self):
         """Test verify_chain with no entries returns (True, None) (line 300)."""
-        audit = AuditTrail('cover-service-empty-chain')
+        audit = AuditTrail("cover-service-empty-chain")
 
         is_valid, error = audit.verify_chain()
 
@@ -331,16 +332,16 @@ class TestAuditTrailCoverage:
 
     def test_verify_chain_tampered_entry(self):
         """Test verify_chain detects tampered hash (line 309)."""
-        audit = AuditTrail('cover-service-tampered')
+        audit = AuditTrail("cover-service-tampered")
 
         audit.record(
             action=AuditAction.CREATE,
-            actor='user:1',
-            resource='doc:1',
+            actor="user:1",
+            resource="doc:1",
         )
 
         # Tamper with the hash of first entry
-        audit._entries[0].hash = 'tampered-hash'
+        audit._entries[0].hash = "tampered-hash"
 
         is_valid, error = audit.verify_chain()
 
@@ -351,16 +352,24 @@ class TestAuditTrailCoverage:
         """Test query applies all filter conditions (lines 335, 337, 343, 345, 349, 354)."""
         from datetime import datetime, timedelta
 
-        audit = AuditTrail('cover-service-query-all')
+        audit = AuditTrail("cover-service-query-all")
 
         # Add entries with varying attributes
         audit.record(
-            action=AuditAction.CREATE, actor='user:1', resource='doc:1',
-            resource_type='document', result=AuditResult.SUCCESS, correlation_id='corr-1'
+            action=AuditAction.CREATE,
+            actor="user:1",
+            resource="doc:1",
+            resource_type="document",
+            result=AuditResult.SUCCESS,
+            correlation_id="corr-1",
         )
         audit.record(
-            action=AuditAction.READ, actor='user:2', resource='doc:2',
-            resource_type='report', result=AuditResult.FAILURE, correlation_id='corr-2'
+            action=AuditAction.READ,
+            actor="user:2",
+            resource="doc:2",
+            resource_type="report",
+            result=AuditResult.FAILURE,
+            correlation_id="corr-2",
         )
 
         # Query with start_time filter that excludes old entries
@@ -378,24 +387,24 @@ class TestAuditTrailCoverage:
         assert results == []
 
         # Query with actor filter
-        query = AuditQuery(actor='user:2')
+        query = AuditQuery(actor="user:2")
         results = audit.query(query)
-        assert all('user:2' in e.actor for e in results)
+        assert all("user:2" in e.actor for e in results)
 
         # Query with action filter
-        query = AuditQuery(action='read')
+        query = AuditQuery(action="read")
         results = audit.query(query)
-        assert all(e.action == 'read' for e in results)
+        assert all(e.action == "read" for e in results)
 
         # Query with resource filter
-        query = AuditQuery(resource='doc:2')
+        query = AuditQuery(resource="doc:2")
         results = audit.query(query)
-        assert all('doc:2' in e.resource for e in results)
+        assert all("doc:2" in e.resource for e in results)
 
         # Query with resource_type filter
-        query = AuditQuery(resource_type='report')
+        query = AuditQuery(resource_type="report")
         results = audit.query(query)
-        assert all(e.resource_type == 'report' for e in results)
+        assert all(e.resource_type == "report" for e in results)
 
         # Query with result filter
         query = AuditQuery(result=AuditResult.FAILURE)
@@ -403,18 +412,16 @@ class TestAuditTrailCoverage:
         assert all(e.result == AuditResult.FAILURE for e in results)
 
         # Query with correlation_id filter
-        query = AuditQuery(correlation_id='corr-1')
+        query = AuditQuery(correlation_id="corr-1")
         results = audit.query(query)
-        assert all(e.correlation_id == 'corr-1' for e in results)
+        assert all(e.correlation_id == "corr-1" for e in results)
 
     def test_query_limit_triggers_break(self):
         """Test query stops at limit (line 354 break)."""
-        audit = AuditTrail('cover-service-query-limit')
+        audit = AuditTrail("cover-service-query-limit")
 
         for i in range(10):
-            audit.record(
-                action=AuditAction.READ, actor='user:1', resource=f'doc:{i}'
-            )
+            audit.record(action=AuditAction.READ, actor="user:1", resource=f"doc:{i}")
 
         query = AuditQuery(limit=3)
         results = audit.query(query)
@@ -423,15 +430,13 @@ class TestAuditTrailCoverage:
 
     def test_get_denied_actions(self):
         """Test get_denied_actions returns DENIED entries (lines 392-396)."""
-        audit = AuditTrail('cover-service-denied')
+        audit = AuditTrail("cover-service-denied")
 
         audit.record(
-            action=AuditAction.CREATE, actor='user:1', resource='doc:1',
-            result=AuditResult.SUCCESS
+            action=AuditAction.CREATE, actor="user:1", resource="doc:1", result=AuditResult.SUCCESS
         )
         audit.record(
-            action=AuditAction.DELETE, actor='user:2', resource='doc:2',
-            result=AuditResult.DENIED
+            action=AuditAction.DELETE, actor="user:2", resource="doc:2", result=AuditResult.DENIED
         )
 
         denied = audit.get_denied_actions()
@@ -443,7 +448,7 @@ class TestAuditTrailCoverage:
         """Test get_audit_trail creates trail in inner lock branch (line 425)."""
         import obskit.audit as module
 
-        unique_name = '__test_trail_inner_branch__'
+        unique_name = "__test_trail_inner_branch__"
         module._trails.pop(unique_name, None)
 
         trail1 = module.get_audit_trail(unique_name)

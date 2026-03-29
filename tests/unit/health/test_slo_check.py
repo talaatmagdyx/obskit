@@ -133,8 +133,8 @@ class TestSLOReadinessCheck:
 
         check = SLOReadinessCheck(
             slo_name="warn_slo",
-            critical_threshold=0.05,   # < 5% is critical
-            warning_threshold=0.20,    # < 20% is warning
+            critical_threshold=0.05,  # < 5% is critical
+            warning_threshold=0.20,  # < 20% is warning
             slo_tracker=tracker,
         )
         result = check.check()
@@ -272,6 +272,7 @@ class TestAddSloReadinessCheck:
                 nonlocal registered_fn
                 registered_fn = fn
                 return fn
+
             return decorator
 
         mock_checker.add_readiness_check = capture_fn
@@ -308,6 +309,7 @@ class TestAddSloReadinessCheck:
                 nonlocal registered_fn
                 registered_fn = fn
                 return fn
+
             return decorator
 
         mock_checker.add_readiness_check = capture_fn
@@ -436,7 +438,14 @@ class TestGetSloHealthStatus:
             result = get_slo_health_status(slo_names=["keys_slo"])
 
         slo_result = result["slos"]["keys_slo"]
-        required_keys = {"status", "healthy", "error_budget_remaining", "current_value", "target_value", "message"}
+        required_keys = {
+            "status",
+            "healthy",
+            "error_budget_remaining",
+            "current_value",
+            "target_value",
+            "message",
+        }
         assert required_keys.issubset(slo_result.keys())
 
     def test_slos_detected_via_tracker_keys(self):

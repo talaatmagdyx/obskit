@@ -72,11 +72,24 @@ _INSTRUMENTORS: dict[str, tuple[str, str]] = {
         "opentelemetry.instrumentation.aio_pika",
         "AioPikaInstrumentor",
     ),
+    # psycopg3 (modern async-capable PostgreSQL driver)
+    "psycopg": (
+        "opentelemetry.instrumentation.psycopg",
+        "PsycopgInstrumentor",
+    ),
+    # psycopg2 (classic synchronous PostgreSQL driver)
+    "psycopg2": (
+        "opentelemetry.instrumentation.psycopg2",
+        "Psycopg2Instrumentor",
+    ),
 }
 
 # Active instrumentor instances (name → instance).
 # Kept as module-level state so uninstrument_all() can tear them down.
 _applied: dict[str, Any] = {}
+
+# Instrumentors that previously failed — allowed to retry on next call.
+_failed_instrumentors: set[str] = set()
 
 
 # ---------------------------------------------------------------------------
@@ -145,8 +158,10 @@ def apply_instrumentors(instruments: list[str] | None = None) -> list[str]:
 
         if name in _applied:
             # Already active in this process — idempotent
-            applied_names.append(name)
-            continue
+            # But if it previously failed, allow retry by not short-circuiting
+            if name not in _failed_instrumentors:
+                applied_names.append(name)
+                continue
 
         module_path, class_name = _INSTRUMENTORS[name]
         try:
@@ -155,15 +170,18 @@ def apply_instrumentors(instruments: list[str] | None = None) -> list[str]:
             instance = cls()
             instance.instrument()
             _applied[name] = instance
+            _failed_instrumentors.discard(name)  # Clear failure record on success
             applied_names.append(name)
             _logger.debug("Applied OTel auto-instrumentation: %s", name)
         except ImportError:
+            _failed_instrumentors.add(name)
             _logger.debug(
                 "OTel instrumentation package not installed: %s (%s)",
                 name,
                 module_path,
             )
         except Exception as exc:
+            _failed_instrumentors.add(name)
             _logger.warning(
                 "Failed to apply OTel instrumentor %r: %s",
                 name,
@@ -187,6 +205,7 @@ def uninstrument_all() -> None:
         except Exception:  # noqa: BLE001 — uninstrument errors must not block cleanup
             pass  # NOSONAR
     _applied.clear()
+    _failed_instrumentors.clear()
 
 
 def get_applied_instrumentors() -> list[str]:
@@ -196,6 +215,19 @@ def get_applied_instrumentors() -> list[str]:
         A snapshot (copy) of the applied instrumentor names.
     """
     return list(_applied.keys())
+
+
+def get_failed_instrumentors() -> list[str]:
+    """Return names of instrumentors that failed to apply on the last attempt.
+
+    Useful for health checks and startup diagnostics — if an expected
+    instrumentation package is installed but its instrumentor failed,
+    this will surface it.
+
+    Returns:
+        A snapshot (copy) of the failed instrumentor names.
+    """
+    return list(_failed_instrumentors)
 
 
 def get_instrumentor_registry() -> dict[str, tuple[str, str]]:

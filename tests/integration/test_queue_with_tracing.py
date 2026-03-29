@@ -11,7 +11,7 @@ Cross-package boundary tested:
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta, timezone, UTC
 from unittest.mock import MagicMock
 
 import pytest
@@ -250,10 +250,8 @@ class TestConsumerLagIntegration:
         tracker.set_lag(messages=1000)
 
         # Simulate consuming 50 messages spread over 5 seconds
-        now = datetime.now(timezone.utc)
-        tracker._consumed_timestamps = [
-            now - timedelta(seconds=5 - i * 0.1) for i in range(50)
-        ]
+        now = datetime.now(UTC)
+        tracker._consumed_timestamps = [now - timedelta(seconds=5 - i * 0.1) for i in range(50)]
 
         stats = tracker.get_stats()
         assert stats.consumer_velocity > 0

@@ -125,9 +125,7 @@ class TestAlertRuleExpressions:
         assert "rate(" in rule.expr
 
     def test_error_rate_expr_uses_status_label(self):
-        rule = AlertRule.error_rate(
-            metric="my_service_requests_total", error_label="5xx"
-        )
+        rule = AlertRule.error_rate(metric="my_service_requests_total", error_label="5xx")
         assert 'status="5xx"' in rule.expr
 
     def test_error_rate_expr_uses_window(self):
@@ -148,9 +146,7 @@ class TestAlertRuleExpressions:
 
     def test_latency_expr_threshold_converted_to_seconds(self):
         # 2000 ms → 2.0 s
-        rule = AlertRule.latency(
-            metric="http_request_duration_seconds", threshold_ms=2000
-        )
+        rule = AlertRule.latency(metric="http_request_duration_seconds", threshold_ms=2000)
         assert "> 2.0" in rule.expr
 
     def test_latency_expr_threshold_ms_500(self):
@@ -192,16 +188,12 @@ class TestAlertRuleExpressions:
         assert "and" in rule.expr
 
     def test_slo_burn_expr_burn_factor(self):
-        rule = AlertRule.slo_burn(
-            error_metric="http_requests_total", burn_factor=14.4
-        )
+        rule = AlertRule.slo_burn(error_metric="http_requests_total", burn_factor=14.4)
         assert "> 14.4" in rule.expr
 
     def test_slo_burn_error_budget_calculation(self):
         # slo_target=0.999 → error_budget = 0.001
-        rule = AlertRule.slo_burn(
-            error_metric="http_requests_total", slo_target=0.999
-        )
+        rule = AlertRule.slo_burn(error_metric="http_requests_total", slo_target=0.999)
         assert "0.001" in rule.expr
 
     def test_custom_passes_expr_through(self):
@@ -234,9 +226,7 @@ class TestAlertRuleCustomisation:
         assert rule.duration == "5m"
 
     def test_error_rate_custom_labels(self):
-        rule = AlertRule.error_rate(
-            metric="m", labels={"team": "sre", "env": "prod"}
-        )
+        rule = AlertRule.error_rate(metric="m", labels={"team": "sre", "env": "prod"})
         assert rule.labels["team"] == "sre"
         assert rule.labels["env"] == "prod"
 
@@ -270,9 +260,7 @@ class TestAlertRuleCustomisation:
         assert 'status="5xx"' in rule.expr
 
     def test_custom_duration(self):
-        rule = AlertRule.custom(
-            name="Q", expr="x > 1", severity="critical", duration="10m"
-        )
+        rule = AlertRule.custom(name="Q", expr="x > 1", severity="critical", duration="10m")
         assert rule.duration == "10m"
 
     def test_custom_labels(self):

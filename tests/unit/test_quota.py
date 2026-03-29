@@ -345,9 +345,7 @@ class TestQuotaTrackerGetUsage:
         tracker.set_limit("t1", limit=100, period=QuotaPeriod.MINUTE)
         tracker.check_and_increment("t1", amount=50)
         # Expire the period
-        tracker._usage["t1"]["requests"].period_start = (
-            datetime.now(UTC) - timedelta(seconds=70)
-        )
+        tracker._usage["t1"]["requests"].period_start = datetime.now(UTC) - timedelta(seconds=70)
         usage = tracker.get_usage("t1")
         assert usage.current_usage == 0  # Reset
 
@@ -522,6 +520,7 @@ class TestQuotaTrackerMaybeWarn:
 class TestGetQuotaTracker:
     def setup_method(self):
         import obskit.quota as module
+
         module._trackers.clear()
 
     def test_creates_new_tracker(self):

@@ -1,4 +1,5 @@
 """Additional coverage tests for audit.py."""
+
 from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone, UTC
@@ -67,8 +68,10 @@ class TestAuditTrailCoverage:
 
     def test_record_with_storage_callback_exception(self):
         """Lines 269-270: exception in storage callback is caught."""
+
         def failing_callback(entry):
             raise RuntimeError("storage error")
+
         audit = AuditTrail("cov-service-cb-fail", storage_callback=failing_callback)
         entry = audit.record(action=AuditAction.CREATE, actor="user:1", resource="doc:1")
         assert entry is not None
@@ -144,8 +147,12 @@ class TestAuditTrailCoverage:
     def test_query_result_filter(self):
         """Line 349: result filter skips non-matching entries."""
         audit = AuditTrail("cov-service-q-result")
-        audit.record(action=AuditAction.CREATE, actor="u:1", resource="r:1", result=AuditResult.SUCCESS)
-        audit.record(action=AuditAction.CREATE, actor="u:1", resource="r:2", result=AuditResult.FAILURE)
+        audit.record(
+            action=AuditAction.CREATE, actor="u:1", resource="r:1", result=AuditResult.SUCCESS
+        )
+        audit.record(
+            action=AuditAction.CREATE, actor="u:1", resource="r:2", result=AuditResult.FAILURE
+        )
         query = AuditQuery(result=AuditResult.FAILURE)
         results = audit.query(query)
         assert all(e.result == AuditResult.FAILURE for e in results)
@@ -171,8 +178,12 @@ class TestAuditTrailCoverage:
     def test_get_denied_actions(self):
         """Lines 392-396: get_denied_actions returns DENIED entries."""
         audit = AuditTrail("cov-service-denied")
-        audit.record(action=AuditAction.CREATE, actor="u:1", resource="r:1", result=AuditResult.SUCCESS)
-        audit.record(action=AuditAction.DELETE, actor="u:2", resource="r:2", result=AuditResult.DENIED)
+        audit.record(
+            action=AuditAction.CREATE, actor="u:1", resource="r:1", result=AuditResult.SUCCESS
+        )
+        audit.record(
+            action=AuditAction.DELETE, actor="u:2", resource="r:2", result=AuditResult.DENIED
+        )
         denied = audit.get_denied_actions()
         assert len(denied) >= 1
         assert all(e.result == AuditResult.DENIED for e in denied)

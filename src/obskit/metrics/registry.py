@@ -244,13 +244,35 @@ def start_http_server(
                     host=actual_host,
                 )
             else:
-                # Use default Prometheus handler (no auth)
-                # _start_http_server returns (WSGIServer, Thread), we only need the thread
-                server_result = _start_http_server(actual_port, addr=actual_host)
-                if server_result is not None:
-                    _server, _http_server_thread = server_result
-                    # Store server reference for potential future cleanup (currently unused)
-                    _http_server = _server
+                # Use default Prometheus handler, optionally with rate limiting.
+                # Rate limiting prevents DoS via metric serialisation CPU spikes.
+                if getattr(settings, "metrics_rate_limit_enabled", False):
+                    from http.server import HTTPServer
+
+                    from obskit.metrics.auth import create_rate_limited_handler
+
+                    handler_class = create_rate_limited_handler()
+                    _http_server = HTTPServer((actual_host, actual_port), handler_class)
+                    _http_server_thread = threading.Thread(
+                        target=_http_server.serve_forever,
+                        daemon=True,
+                        name="obskit-metrics-server",
+                    )
+                    _http_server_thread.start()
+                else:
+                    # Plain Prometheus handler — no auth, no rate limit
+                    # _start_http_server returns (WSGIServer, Thread)
+                    server_result = _start_http_server(actual_port, addr=actual_host)
+                    if server_result is not None:
+                        _server, _http_server_thread = server_result
+                        _http_server = _server
+                    else:  # pragma: no cover
+                        logger.error(  # pragma: no cover
+                            "metrics_server_start_returned_none",
+                            port=actual_port,
+                            detail="prometheus_client.start_http_server returned None; "
+                            "metrics endpoint may not be running",
+                        )
 
             _http_server_started = True
 
@@ -309,12 +331,12 @@ def stop_http_server() -> None:
                 if _http_server is not None:  # pragma: no branch
                     try:
                         _http_server.shutdown()
-                    except AttributeError:  # nosec B110 - shutdown method may not exist
-                        pass  # prometheus_client WSGIServer doesn't have shutdown method
-                    except (
-                        Exception
-                    ):  # pragma: no cover  # nosec B110 - shutdown errors non-critical
-                        pass  # Ignore errors during shutdown
+                    except Exception as _shutdown_exc:  # nosec B110 - shutdown errors non-critical
+                        logger.warning(
+                            "metrics_server_shutdown_warning",
+                            error=str(_shutdown_exc),
+                            error_type=type(_shutdown_exc).__name__,
+                        )
 
                 # The prometheus_client server thread is a daemon thread
                 # We need to access the internal server to stop it
@@ -351,8 +373,12 @@ def reset_registry() -> None:
 
     with _registry_lock:
         if PROMETHEUS_AVAILABLE and _registry is not None:
-            # Unregister all collectors
-            collectors = list(_registry._names_to_collectors.values())
+            # Unregister all collectors using public API with graceful fallback
+            collectors = (
+                list(_registry._names_to_collectors.values())
+                if hasattr(_registry, "_names_to_collectors")
+                else []
+            )
             for collector in collectors:  # pragma: no cover
                 try:
                     _registry.unregister(collector)

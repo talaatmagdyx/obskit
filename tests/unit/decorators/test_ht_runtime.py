@@ -195,7 +195,6 @@ class TestHTPipelineConfigure:
         mock_statsd.emit_counter.assert_called()
 
 
-
 class TestHTPipelineStopBranches:
     """Tests for _HTPipeline.stop() branches (lines 176->178, 178->180)."""
 
@@ -267,6 +266,7 @@ class TestHTPipelineEnsureStartedInnerBranch:
 
         class RaceConditionLock:
             """Simulates another thread starting pipeline while we waited for lock."""
+
             def __enter__(self):
                 # Simulate another thread calling _do_start while we waited
                 p._started = True

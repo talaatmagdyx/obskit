@@ -408,6 +408,7 @@ class TestTrackCostDecoratorPositionalArgs:
     async def test_async_decorator_extracts_tenant_from_positional_arg(self):
         """Test async decorator extracts tenant from positional arg (lines 389-396)."""
         import asyncio
+
         tracker = CostTracker()
 
         @track_cost(tracker, tenant_id_arg="tenant_id")
@@ -458,6 +459,7 @@ class TestTrackCostDecoratorMoreBranches:
     async def test_async_decorator_tenant_arg_not_at_positional_idx(self):
         """Test async when idx >= len(args) (line 395->398)."""
         import asyncio
+
         tracker = CostTracker()
 
         @track_cost(tracker, tenant_id_arg="tenant_id")
@@ -471,11 +473,11 @@ class TestTrackCostDecoratorMoreBranches:
         usage = tracker.get_usage("unknown")
         assert usage.cpu_time_seconds >= 0
 
-
     @pytest.mark.asyncio
     async def test_async_decorator_tenant_arg_not_in_params(self):
         """Test async when tenant_id_arg not in params (line 393->398)."""
         import asyncio
+
         tracker = CostTracker()
 
         @track_cost(tracker, tenant_id_arg="tenant_id")
@@ -494,11 +496,12 @@ class TestTrackCostDecoratorMissingBranches:
 
     def test_sync_decorator_tenant_arg_not_in_params(self):
         """Test sync decorator when tenant_id_arg is not in function params (line 374->379).
-        
+
         When tenant_id_arg='tenant_id' but function doesn't have 'tenant_id' parameter,
         the branch at line 374 (if tenant_id_arg in params) is False, going to line 379.
         """
         from obskit.cost import CostTracker, track_cost
+
         tracker = CostTracker()
 
         @track_cost(tracker, tenant_id_arg="tenant_id")
@@ -514,11 +517,12 @@ class TestTrackCostDecoratorMissingBranches:
 
     def test_sync_decorator_idx_out_of_range(self):
         """Test sync decorator when positional arg index is out of range (line 376->379).
-        
+
         Function has 'tenant_id' as second param (idx=1), but only 1 positional arg is passed.
         So idx >= len(args), making line 376 False.
         """
         from obskit.cost import CostTracker, track_cost
+
         tracker = CostTracker()
 
         @track_cost(tracker, tenant_id_arg="tenant_id")
@@ -535,6 +539,7 @@ class TestTrackCostDecoratorMissingBranches:
     def test_sync_decorator_positional_only_idx_out_of_range(self):
         """Test sync decorator positional extraction when idx >= len(args)."""
         from obskit.cost import CostTracker, track_cost
+
         tracker = CostTracker()
 
         @track_cost(tracker, tenant_id_arg="tenant_id")
@@ -551,11 +556,12 @@ class TestTrackCostDecoratorMissingBranches:
     @pytest.mark.asyncio
     async def test_async_decorator_tenant_arg_not_in_params(self):
         """Test async decorator when tenant_id_arg is not in function params (line 393->398).
-        
+
         When tenant_id_arg='tenant_id' but async function has no 'tenant_id' parameter,
         the branch at line 393 (if tenant_id_arg in params) is False, going to line 398.
         """
         from obskit.cost import CostTracker, track_cost
+
         tracker = CostTracker()
 
         @track_cost(tracker, tenant_id_arg="tenant_id")
@@ -570,10 +576,11 @@ class TestTrackCostDecoratorMissingBranches:
     @pytest.mark.asyncio
     async def test_async_decorator_idx_out_of_range(self):
         """Test async decorator when positional arg index is out of range (line 395->398).
-        
+
         tenant_id is at idx=1, but only 1 positional arg passed.
         """
         from obskit.cost import CostTracker, track_cost
+
         tracker = CostTracker()
 
         @track_cost(tracker, tenant_id_arg="tenant_id")

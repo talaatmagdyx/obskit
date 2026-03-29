@@ -265,7 +265,7 @@ class TestAutoscalingGaps:
             min_replicas=1,
             max_replicas=10,
             target_cpu_utilization=70.0,
-            scale_up_threshold=1.1,   # scale_up at 77%+
+            scale_up_threshold=1.1,  # scale_up at 77%+
             scale_down_threshold=0.5,  # scale_down at 35%-
             cooldown_seconds=0,
         )
@@ -823,7 +823,7 @@ class TestMemoryGaps:
 
     def setup_method(self):
         """Ensure metrics are cleanly initialized before each test.
-        
+
         We inject MagicMock objects for all prometheus metrics to avoid
         duplicate registration issues across test runs.
         """
@@ -847,6 +847,7 @@ class TestMemoryGaps:
     def test_has_psutil_flag_exists(self):
         """Lines 45-46: HAS_PSUTIL is a boolean (verifies import branch executed)."""
         import obskit.memory as memory_module
+
         assert isinstance(memory_module.HAS_PSUTIL, bool)
 
     def test_metrics_init_lines_77_to_80(self):
@@ -1125,6 +1126,7 @@ class TestMemoryGaps:
         )
 
         import time
+
         time.sleep(0.1)
         stop_memory_tracking()
 

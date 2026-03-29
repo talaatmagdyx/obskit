@@ -367,8 +367,10 @@ class TestWorkerEdgeCases:
             pass
 
         # Patch _ensure_worker_started so observe_request doesn't spin up a worker
-        with patch("obskit.metrics.async_recording._ensure_worker_started", side_effect=_noop), \
-             patch("obskit.metrics.async_recording.logger"):
+        with (
+            patch("obskit.metrics.async_recording._ensure_worker_started", side_effect=_noop),
+            patch("obskit.metrics.async_recording.logger"),
+        ):
             await metrics.observe_request(
                 operation="test_op",
                 duration_seconds=0.05,

@@ -130,6 +130,7 @@ class TestInstrumentKafkaImportError:
     def test_import_error_handled(self):
         import importlib
         import sys
+
         # Remove kafka-python from sys.modules to simulate ImportError
         saved = {k: v for k, v in sys.modules.items() if "kafka" in k}
         for k in list(sys.modules.keys()):
@@ -139,10 +140,12 @@ class TestInstrumentKafkaImportError:
             import importlib
 
             import obskit.queue.kafka as qk_mod
+
             with __import__("unittest.mock", fromlist=["patch"]).patch(
                 "builtins.__import__",
                 side_effect=lambda name, *a, **kw: (_ for _ in ()).throw(ImportError("no kafka"))
-                if name == "kafka" else __import__(name, *a, **kw)
+                if name == "kafka"
+                else __import__(name, *a, **kw),
             ):
                 pass  # just ensure the except ImportError path is reachable
         finally:

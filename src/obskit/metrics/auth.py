@@ -96,6 +96,33 @@ class RateLimiter:
 _metrics_rate_limiter: RateLimiter | None = None
 _rate_limiter_lock = threading.Lock()
 
+# Per-IP failed-auth tracking — lockout after 10 failures in 60 seconds
+_failed_auth: dict[str, list[float]] = {}
+_failed_auth_lock = threading.Lock()
+_FAILED_AUTH_MAX = 10
+_FAILED_AUTH_WINDOW = 60.0
+
+
+def _record_failed_auth(ip: str) -> bool:
+    """Record a failed auth attempt and return True if the IP should be locked out."""
+    now = time.time()
+    cutoff = now - _FAILED_AUTH_WINDOW
+    with _failed_auth_lock:
+        attempts = [t for t in _failed_auth.get(ip, []) if t > cutoff]
+        attempts.append(now)
+        _failed_auth[ip] = attempts
+        return len(attempts) > _FAILED_AUTH_MAX
+
+
+def _is_auth_locked_out(ip: str) -> bool:
+    """Return True if the IP has exceeded the failed-auth threshold."""
+    now = time.time()
+    cutoff = now - _FAILED_AUTH_WINDOW
+    with _failed_auth_lock:
+        attempts = [t for t in _failed_auth.get(ip, []) if t > cutoff]
+        _failed_auth[ip] = attempts  # prune stale entries
+        return len(attempts) > _FAILED_AUTH_MAX
+
 
 def _get_rate_limiter() -> RateLimiter | None:
     """Get the metrics rate limiter if enabled."""
@@ -136,6 +163,19 @@ class AuthenticatedMetricsHandler(BaseHTTPRequestHandler):
 
     def do_GET(self) -> None:
         """Handle GET requests with authentication and rate limiting."""
+        _addr = getattr(self, "client_address", None)
+        client_ip = _addr[0] if _addr else "unknown"
+
+        # Reject IPs that have exceeded the failed-auth threshold
+        if self.auth_token and _is_auth_locked_out(client_ip):
+            self.send_response(429)
+            self.send_header("Content-Type", _CONTENT_TYPE_TEXT)
+            self.send_header("Retry-After", str(int(_FAILED_AUTH_WINDOW)))
+            self.end_headers()
+            self.wfile.write(b"Too Many Requests: Too many failed authentication attempts\n")
+            logger.warning("metrics_auth_lockout", client=client_ip)
+            return
+
         # Check rate limiting
         rate_limiter = _get_rate_limiter()
         if rate_limiter is not None and not rate_limiter.is_allowed():
@@ -150,7 +190,15 @@ class AuthenticatedMetricsHandler(BaseHTTPRequestHandler):
         # Check authentication if enabled
         if self.auth_token:
             auth_header = self.headers.get("Authorization", "")
+            if len(auth_header) > 512:
+                self.send_response(401)
+                self.send_header("Content-Type", _CONTENT_TYPE_TEXT)
+                self.send_header("WWW-Authenticate", 'Bearer realm="metrics"')
+                self.end_headers()
+                self.wfile.write(b"Unauthorized: Authorization header too long\n")
+                return
             if not auth_header.startswith("Bearer "):
+                _record_failed_auth(client_ip)
                 self.send_response(401)
                 self.send_header("Content-Type", _CONTENT_TYPE_TEXT)
                 self.send_header("WWW-Authenticate", 'Bearer realm="metrics"')
@@ -159,7 +207,15 @@ class AuthenticatedMetricsHandler(BaseHTTPRequestHandler):
                 return
 
             token = auth_header[7:]  # Remove "Bearer " prefix
+            if not token:
+                self.send_response(401)
+                self.send_header("Content-Type", _CONTENT_TYPE_TEXT)
+                self.send_header("WWW-Authenticate", 'Bearer realm="metrics"')
+                self.end_headers()
+                self.wfile.write(b"Unauthorized: Empty token\n")
+                return
             if not hmac.compare_digest(token, self.auth_token):
+                _record_failed_auth(client_ip)
                 self.send_response(403)
                 self.send_header("Content-Type", _CONTENT_TYPE_TEXT)
                 self.end_headers()
@@ -194,6 +250,27 @@ class AuthenticatedMetricsHandler(BaseHTTPRequestHandler):
     def log_message(self, fmt: str, *args: object) -> None:
         """Override to use obskit logger instead of default."""
         logger.debug("metrics_request", message=fmt % args)
+
+
+def create_rate_limited_handler() -> type[AuthenticatedMetricsHandler]:
+    """Create a metrics handler with rate limiting but no authentication.
+
+    Use this when ``metrics_rate_limit_enabled=True`` but
+    ``metrics_auth_enabled=False`` — protects the scrape endpoint from
+    being used as a DoS vector without requiring a bearer token.
+
+    Returns
+    -------
+    type
+        Handler class with rate limiting only.
+    """
+
+    class Handler(AuthenticatedMetricsHandler):
+        def __init__(self, *args: Any, **kwargs: Any) -> None:
+            # auth_token=None → skips the auth check, keeps rate limiting
+            super().__init__(*args, auth_token=None, **kwargs)
+
+    return Handler
 
 
 def create_authenticated_handler(auth_token: str) -> type[AuthenticatedMetricsHandler]:

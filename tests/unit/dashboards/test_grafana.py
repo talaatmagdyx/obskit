@@ -46,6 +46,7 @@ from obskit.dashboards.grafana import (
 # Helpers
 # ---------------------------------------------------------------------------
 
+
 def _find_panels_by_type(panels: list[dict], panel_type: str) -> list[dict]:
     return [p for p in panels if p.get("type") == panel_type]
 
@@ -57,6 +58,7 @@ def _find_panels_by_title(panels: list[dict], title: str) -> list[dict]:
 # ===========================================================================
 # Panel dataclass tests
 # ===========================================================================
+
 
 class TestPanel:
     """Tests for the Panel dataclass."""
@@ -111,7 +113,15 @@ class TestPanel:
             fieldConfig={"defaults": {"unit": "short"}},
         )
         d = panel.to_dict()
-        assert set(d.keys()) == {"title", "type", "gridPos", "targets", "options", "fieldConfig", "datasource"}
+        assert set(d.keys()) == {
+            "title",
+            "type",
+            "gridPos",
+            "targets",
+            "options",
+            "fieldConfig",
+            "datasource",
+        }
 
     def test_to_dict_datasource(self):
         """to_dict() always injects prometheus datasource."""
@@ -146,6 +156,7 @@ class TestPanel:
 # ===========================================================================
 # DashboardBuilder.__init__ tests
 # ===========================================================================
+
 
 class TestDashboardBuilderInit:
     """Tests for DashboardBuilder initialisation."""
@@ -191,6 +202,7 @@ class TestDashboardBuilderInit:
 # DashboardBuilder._next_panel_id tests
 # ===========================================================================
 
+
 class TestNextPanelId:
     """Tests for _next_panel_id()."""
 
@@ -217,6 +229,7 @@ class TestNextPanelId:
 # ===========================================================================
 # DashboardBuilder._add_panel tests
 # ===========================================================================
+
 
 class TestAddPanel:
     """Tests for _add_panel()."""
@@ -298,6 +311,7 @@ class TestAddPanel:
 # DashboardBuilder.add_row tests
 # ===========================================================================
 
+
 class TestAddRow:
     """Tests for add_row()."""
 
@@ -353,6 +367,7 @@ class TestAddRow:
 # ===========================================================================
 # DashboardBuilder.add_stat_panel tests
 # ===========================================================================
+
 
 class TestAddStatPanel:
     """Tests for add_stat_panel()."""
@@ -435,6 +450,7 @@ class TestAddStatPanel:
 # ===========================================================================
 # DashboardBuilder.add_gauge_panel tests
 # ===========================================================================
+
 
 class TestAddGaugePanel:
     """Tests for add_gauge_panel()."""
@@ -520,6 +536,7 @@ class TestAddGaugePanel:
 # ===========================================================================
 # DashboardBuilder.add_timeseries_panel tests
 # ===========================================================================
+
 
 class TestAddTimeseriesPanel:
     """Tests for add_timeseries_panel()."""
@@ -615,6 +632,7 @@ class TestAddTimeseriesPanel:
 # DashboardBuilder.add_slo_compliance_panel tests
 # ===========================================================================
 
+
 class TestAddSloCompliancePanel:
     """Tests for add_slo_compliance_panel()."""
 
@@ -672,6 +690,7 @@ class TestAddSloCompliancePanel:
 # DashboardBuilder.add_error_budget_panel tests
 # ===========================================================================
 
+
 class TestAddErrorBudgetPanel:
     """Tests for add_error_budget_panel()."""
 
@@ -715,6 +734,7 @@ class TestAddErrorBudgetPanel:
 # ===========================================================================
 # DashboardBuilder.add_red_metrics_row tests
 # ===========================================================================
+
 
 class TestAddRedMetricsRow:
     """Tests for add_red_metrics_row()."""
@@ -801,6 +821,7 @@ class TestAddRedMetricsRow:
 # DashboardBuilder.add_golden_signals_row tests
 # ===========================================================================
 
+
 class TestAddGoldenSignalsRow:
     """Tests for add_golden_signals_row()."""
 
@@ -859,6 +880,7 @@ class TestAddGoldenSignalsRow:
 # DashboardBuilder.add_slo_row tests
 # ===========================================================================
 
+
 class TestAddSloRow:
     """Tests for add_slo_row()."""
 
@@ -912,6 +934,7 @@ class TestAddSloRow:
 # ===========================================================================
 # DashboardBuilder.build tests
 # ===========================================================================
+
 
 class TestBuild:
     """Tests for build()."""
@@ -1010,6 +1033,7 @@ class TestBuild:
 # DashboardBuilder.to_json tests
 # ===========================================================================
 
+
 class TestToJson:
     """Tests for to_json()."""
 
@@ -1057,6 +1081,7 @@ class TestToJson:
 # ===========================================================================
 # DashboardBuilder.save tests
 # ===========================================================================
+
 
 class TestSave:
     """Tests for save()."""
@@ -1126,6 +1151,7 @@ class TestSave:
 # ===========================================================================
 # generate_grafana_dashboard tests
 # ===========================================================================
+
 
 class TestGenerateGrafanaDashboard:
     """Tests for generate_grafana_dashboard()."""
@@ -1217,6 +1243,7 @@ class TestGenerateGrafanaDashboard:
 # generate_slo_dashboard tests
 # ===========================================================================
 
+
 class TestGenerateSLODashboard:
     """Tests for generate_slo_dashboard()."""
 
@@ -1300,6 +1327,7 @@ class TestGenerateSLODashboard:
 # generate_red_dashboard tests
 # ===========================================================================
 
+
 class TestGenerateRedDashboard:
     """Tests for generate_red_dashboard()."""
 
@@ -1377,6 +1405,7 @@ class TestGenerateRedDashboard:
 # ===========================================================================
 # Integration-style tests (multiple methods combined)
 # ===========================================================================
+
 
 class TestIntegration:
     """Integration-style tests exercising multiple DashboardBuilder methods together."""

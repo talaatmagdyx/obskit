@@ -98,6 +98,7 @@ Example - Handling Rate Limit
 from __future__ import annotations
 
 import asyncio
+import threading
 import time
 from collections import deque
 from typing import Any
@@ -156,6 +157,14 @@ class RateLimiter:
 
     Limits requests to a fixed number within a rolling time window.
     This is the most accurate rate limiting algorithm.
+
+    .. warning:: **Single-process only.**
+        State is stored in process memory (a ``deque`` of timestamps).
+        In a multi-worker deployment (e.g. Gunicorn with multiple workers,
+        or multiple container replicas) each worker maintains its own
+        independent window — the effective limit is ``requests × workers``,
+        not ``requests``.  For distributed rate limiting use a shared
+        backend such as Redis (e.g. ``redis-py-rate-limiter``) instead.
 
     Parameters
     ----------
@@ -263,36 +272,41 @@ class RateLimiter:
         # Track request timestamps in a deque for efficient sliding window
         self._request_times: deque[float] = deque()
 
-        # Lock for thread/async safety
-        self._lock = asyncio.Lock()
+        # Single threading.Lock protects all access to _request_times.
+        # Using a threading lock (not asyncio.Lock) allows sync properties
+        # (current_count, would_exceed) to be safe without requiring an
+        # event loop.  acquire() holds it only for a microsecond-level
+        # critical section so there is no meaningful contention.
+        self._lock = threading.Lock()
 
     @property
     def current_count(self) -> int:
         """Get current number of requests in the window."""
-        self._cleanup_old_requests()
-        return len(self._request_times)
+        with self._lock:
+            self._cleanup_old_requests_unlocked()
+            return len(self._request_times)
 
     @property
     def remaining(self) -> int:
         """Get remaining requests allowed in current window."""
         return max(0, self.requests - self.current_count)
 
-    def _cleanup_old_requests(self) -> None:
-        """Remove requests that are outside the current window."""
+    def _cleanup_old_requests_unlocked(self) -> None:
+        """Remove stale entries — caller MUST hold self._lock."""
         cutoff = time.time() - self.window_seconds
-
         while self._request_times and self._request_times[0] < cutoff:
             self._request_times.popleft()
+
+    # Keep old name as alias so any subclass overrides still work
+    _cleanup_old_requests = _cleanup_old_requests_unlocked
 
     def _calculate_retry_after(self) -> float:
         """Calculate seconds until a new request would be allowed."""
         if not self._request_times:  # pragma: no cover
             return 0.0
 
-        # Oldest request will "expire" at this time
         oldest = self._request_times[0]
         expiry = oldest + self.window_seconds
-
         return max(0.0, expiry - time.time())
 
     def would_exceed(self) -> bool:
@@ -311,8 +325,9 @@ class RateLimiter:
         >>> if limiter.would_exceed():
         ...     return "Try again later"
         """
-        self._cleanup_old_requests()
-        return len(self._request_times) >= self.requests
+        with self._lock:
+            self._cleanup_old_requests_unlocked()
+            return len(self._request_times) >= self.requests
 
     async def acquire(self) -> bool:
         """
@@ -330,8 +345,8 @@ class RateLimiter:
         ... else:
         ...     return "Rate limit exceeded"
         """
-        async with self._lock:
-            self._cleanup_old_requests()
+        with self._lock:
+            self._cleanup_old_requests_unlocked()
 
             if len(self._request_times) >= self.requests:
                 return False
@@ -348,8 +363,8 @@ class RateLimiter:
         RateLimitExceeded
             If rate limit is exceeded.
         """
-        async with self._lock:
-            self._cleanup_old_requests()
+        with self._lock:
+            self._cleanup_old_requests_unlocked()
 
             if len(self._request_times) >= self.requests:
                 retry_after = self._calculate_retry_after()
@@ -472,8 +487,16 @@ class TokenBucketRateLimiter:
         self._tokens = float(initial_tokens if initial_tokens is not None else bucket_size)
         self._last_refill = time.time()
 
-        # Lock for thread/async safety
-        self._lock = asyncio.Lock()
+        # Lazy asyncio.Lock to avoid "no running event loop" errors at construction time.
+        # The lock is created on first use inside an async context.
+        self.__lock: asyncio.Lock | None = None
+
+    @property
+    def _async_lock(self) -> asyncio.Lock:
+        """Lazy asyncio.Lock — created on first async use to avoid event-loop errors."""
+        if self.__lock is None:
+            self.__lock = asyncio.Lock()
+        return self.__lock
 
     @property
     def available_tokens(self) -> float:
@@ -513,7 +536,7 @@ class TokenBucketRateLimiter:
         bool
             True if acquired, False if not enough tokens.
         """
-        async with self._lock:
+        async with self._async_lock:
             self._refill()
 
             if self._tokens >= tokens:
@@ -531,7 +554,7 @@ class TokenBucketRateLimiter:
         RateLimitExceeded
             If no tokens available.
         """
-        async with self._lock:
+        async with self._async_lock:
             self._refill()
 
             if self._tokens >= 1.0:

@@ -11,24 +11,31 @@ import pytest
 from obskit.tracing._version import __version__
 from obskit.tracing.tracer import (
     OPENTELEMETRY_AVAILABLE,
+    _BAGGAGE_MAX_KEY_LEN,
+    _BAGGAGE_MAX_VALUE_LEN,
     async_trace_span,
     clear_baggage,
     configure_tracing,
+    extract_trace_context,
     get_all_baggage,
     get_baggage,
     get_current_span_id,
     get_current_trace_id,
     reset_tracing,
     set_baggage,
+    shutdown_tracing,
     trace_span,
+    tracing_lifespan,
 )
 
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
 
-def _make_valid_span_ctx(trace_id: int = 0x4BF92F3577B34DA6A3CE929D0E0E4736,
-                          span_id: int = 0x00F067AA0BA902B7) -> MagicMock:
+
+def _make_valid_span_ctx(
+    trace_id: int = 0x4BF92F3577B34DA6A3CE929D0E0E4736, span_id: int = 0x00F067AA0BA902B7
+) -> MagicMock:
     ctx = MagicMock()
     ctx.is_valid = True
     ctx.trace_id = trace_id
@@ -102,9 +109,7 @@ class TestConfigureTracingNewParams:
 
     def test_sampler_is_applied_when_rate_lt_1(self) -> None:
         """When sample_rate < 1.0, ParentBased(TraceIdRatioBased) sampler is created."""
-        with patch(
-            "obskit.tracing.tracer.TracerProvider"
-        ) as MockProvider:
+        with patch("obskit.tracing.tracer.TracerProvider") as MockProvider:
             MockProvider.return_value = MagicMock()
             # Just verify no exception — sampler branch is executed
             configure_tracing(sample_rate=0.5)
@@ -123,8 +128,8 @@ class TestConfigureTracingNewParams:
 
         settings_stub = MagicMock()
         settings_stub.service_name = "test-svc"
-        settings_stub.otlp_endpoint = None          # ← no endpoint
-        settings_stub.tracing_enabled = False       # ← OTLP branch skipped
+        settings_stub.otlp_endpoint = None  # ← no endpoint
+        settings_stub.tracing_enabled = False  # ← OTLP branch skipped
         settings_stub.version = "1.0.0"
         settings_stub.environment = "test"
 
@@ -142,6 +147,7 @@ class TestConfigureTracingNewParams:
         original_resource_create = None
         try:
             from opentelemetry.sdk.resources import Resource
+
             original_resource_create = Resource.create
         except ImportError:
             pytest.skip("opentelemetry-sdk not installed")
@@ -201,9 +207,7 @@ class TestAsyncTraceSpan:
     async def test_async_trace_span_with_component_and_operation(self) -> None:
         """async_trace_span accepts component and operation."""
         configure_tracing()
-        async with async_trace_span(
-            "svc.op", component="SvcName", operation="doThing"
-        ):
+        async with async_trace_span("svc.op", component="SvcName", operation="doThing"):
             pass  # NOSONAR
 
     @pytest.mark.asyncio
@@ -335,6 +339,7 @@ class TestCurrentTraceAndSpanId:
             pytest.skip("OTel not installed")
 
         import opentelemetry.trace as otel_trace
+
         mock_span = MagicMock()
         mock_span.get_span_context.return_value = _make_valid_span_ctx()
 
@@ -354,6 +359,7 @@ class TestCurrentTraceAndSpanId:
             pytest.skip("OTel not installed")
 
         import opentelemetry.trace as otel_trace
+
         mock_span = MagicMock()
         mock_span.get_span_context.return_value = _make_invalid_span_ctx()
 
@@ -371,3 +377,132 @@ class TestCurrentTraceAndSpanId:
         with patch.object(otel_trace, "get_current_span", side_effect=RuntimeError("boom")):
             assert get_current_trace_id() is None
             assert get_current_span_id() is None
+
+
+# ---------------------------------------------------------------------------
+# TestExtractTraceContextCoverage
+# ---------------------------------------------------------------------------
+
+
+class TestExtractTraceContextCoverage:
+    """extract_trace_context() — coverage for validation branches."""
+
+    def test_none_headers_returns_none(self) -> None:
+        """None headers returns None immediately."""
+        result = extract_trace_context(None)
+        assert result is None
+
+    def test_malformed_traceparent_returns_none(self) -> None:
+        """Malformed traceparent value causes early return of None."""
+        result = extract_trace_context({"traceparent": "not-a-valid-traceparent"})
+        assert result is None
+
+    def test_malformed_traceparent_wrong_format(self) -> None:
+        """Wrong hex length in traceparent triggers validation failure."""
+        result = extract_trace_context({"traceparent": "00-abc-123-00"})
+        assert result is None
+
+    def test_oversized_tracestate_is_dropped(self) -> None:
+        """tracestate > 512 bytes is stripped from headers (no exception)."""
+        # Valid traceparent format
+        valid_traceparent = "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+        oversized_tracestate = "k=" + "v" * 600  # > 512 bytes
+        # Should not raise — tracestate is dropped
+        extract_trace_context(
+            {
+                "traceparent": valid_traceparent,
+                "tracestate": oversized_tracestate,
+            }
+        )
+        # No exception is the assertion — result may be None or context depending on OTel install
+
+    def test_lazy_regex_compilation(self) -> None:
+        """_get_traceparent_re() compiles on first call and reuses on second."""
+        import obskit.tracing.tracer as tracer_mod
+
+        # Reset the cached regex to force re-compilation
+        original = tracer_mod._W3C_TRACEPARENT_RE
+        tracer_mod._W3C_TRACEPARENT_RE = None
+        try:
+            result = extract_trace_context({"traceparent": "not-valid"})
+            # Second call — uses cached regex
+            result2 = extract_trace_context({"traceparent": "also-not-valid"})
+            assert result is None
+            assert result2 is None
+        finally:
+            tracer_mod._W3C_TRACEPARENT_RE = original
+
+
+# ---------------------------------------------------------------------------
+# TestSetBaggageValidation
+# ---------------------------------------------------------------------------
+
+
+class TestSetBaggageValidation:
+    """set_baggage() — validation error branches."""
+
+    def test_non_ascii_key_raises(self) -> None:
+        """Key with non-ASCII character raises ValueError."""
+        with pytest.raises(ValueError, match="non-ASCII"):
+            set_baggage("tëst", "value")
+
+    def test_control_char_in_key_raises(self) -> None:
+        """Key with control character raises ValueError."""
+        with pytest.raises(ValueError, match="non-ASCII"):
+            set_baggage("key\x00", "value")
+
+    def test_non_ascii_value_raises(self) -> None:
+        """Value with non-ASCII character raises ValueError."""
+        with pytest.raises(ValueError, match="non-ASCII"):
+            set_baggage("key", "välüë")
+
+    def test_control_char_in_value_raises(self) -> None:
+        """Value with control character raises ValueError."""
+        with pytest.raises(ValueError, match="non-ASCII"):
+            set_baggage("key", "val\x01ue")
+
+    def test_key_too_long_raises(self) -> None:
+        """Key exceeding max length raises ValueError."""
+        long_key = "k" * (_BAGGAGE_MAX_KEY_LEN + 1)
+        with pytest.raises(ValueError, match="key too long"):
+            set_baggage(long_key, "value")
+
+    def test_value_too_long_raises(self) -> None:
+        """Value exceeding max length raises ValueError."""
+        long_value = "v" * (_BAGGAGE_MAX_VALUE_LEN + 1)
+        with pytest.raises(ValueError, match="too long"):
+            set_baggage("key", long_value)
+
+    def test_valid_key_and_value_succeeds(self) -> None:
+        """ASCII key and value at max boundary do not raise."""
+        token = set_baggage("valid-key", "valid-value")
+        clear_baggage(token)
+
+
+# ---------------------------------------------------------------------------
+# TestTracingLifespan
+# ---------------------------------------------------------------------------
+
+
+class TestTracingLifespan:
+    """tracing_lifespan() — try/yield/finally body."""
+
+    def test_lifespan_yields_and_shuts_down(self) -> None:
+        """tracing_lifespan() allows code inside the block and calls shutdown on exit."""
+        executed = []
+
+        with patch("obskit.tracing.tracer.shutdown_tracing") as mock_shutdown:
+            with tracing_lifespan():
+                executed.append("inside")
+
+        assert executed == ["inside"]
+        mock_shutdown.assert_called_once()
+
+    def test_lifespan_shuts_down_on_exception(self) -> None:
+        """tracing_lifespan() calls shutdown even when body raises."""
+        with patch("obskit.tracing.tracer.shutdown_tracing") as mock_shutdown:
+            with pytest.raises(RuntimeError, match="boom"):
+                with tracing_lifespan():
+                    raise RuntimeError("boom")
+
+        mock_shutdown.assert_called_once()

@@ -2,7 +2,14 @@
 
 import pytest
 
-from obskit.resilience.retry import RetryConfig, RetryError, retry, retry_sync
+from obskit.resilience.retry import (
+    RetryConfig,
+    RetryError,
+    _is_permanent_http_failure,
+    retry,
+    retry_sync,
+    should_retry,
+)
 
 
 class TestRetryDecorator:
@@ -260,3 +267,147 @@ class TestRetrySyncDecorator:
             return "test"
 
         assert my_sync_function.__name__ == "my_sync_function"
+
+
+class TestIsPermanentHttpFailure:
+    """Tests for _is_permanent_http_failure helper."""
+
+    def test_returns_false_for_generic_exception(self):
+        """Generic exceptions are not permanent HTTP failures."""
+        assert _is_permanent_http_failure(ValueError("oops")) is False
+
+    def test_returns_false_for_runtime_error(self):
+        """RuntimeError is not a permanent HTTP failure."""
+        assert _is_permanent_http_failure(RuntimeError("oops")) is False
+
+    def test_httpstatuserror_with_permanent_status(self):
+        """HTTPStatusError with 400-class status is permanent."""
+        from unittest.mock import MagicMock
+
+        class HTTPStatusError(Exception):
+            pass
+
+        exc = HTTPStatusError("request error")
+        exc.response = MagicMock()
+        exc.response.status_code = 404
+        assert _is_permanent_http_failure(exc) is True
+
+    def test_httpstatuserror_with_transient_status(self):
+        """HTTPStatusError with 503 status is not permanent."""
+        from unittest.mock import MagicMock
+
+        class HTTPStatusError(Exception):
+            pass
+
+        exc = HTTPStatusError("server error")
+        exc.response = MagicMock()
+        exc.response.status_code = 503
+        assert _is_permanent_http_failure(exc) is False
+
+    def test_httpstatuserror_with_429_not_permanent(self):
+        """HTTPStatusError with 429 (rate limit) is not permanent."""
+        from unittest.mock import MagicMock
+
+        class HTTPStatusError(Exception):
+            pass
+
+        exc = HTTPStatusError("rate limit")
+        exc.response = MagicMock()
+        exc.response.status_code = 429
+        assert _is_permanent_http_failure(exc) is False
+
+    def test_httpstatuserror_attribute_error_on_response(self):
+        """HTTPStatusError where response.status_code raises AttributeError → not permanent."""
+        from unittest.mock import MagicMock, PropertyMock
+
+        class HTTPStatusError(Exception):
+            pass
+
+        exc = HTTPStatusError("bad response")
+        response_mock = MagicMock()
+        type(response_mock).status_code = PropertyMock(side_effect=AttributeError("no attr"))
+        exc.response = response_mock
+        result = _is_permanent_http_failure(exc)
+        assert result is False
+
+    def test_httperror_with_permanent_status(self):
+        """HTTPError (requests) with permanent status returns True."""
+        from unittest.mock import MagicMock
+
+        class HTTPError(Exception):
+            pass
+
+        exc = HTTPError("request error")
+        exc.response = MagicMock()
+        exc.response.status_code = 422
+        assert _is_permanent_http_failure(exc) is True
+
+    def test_httperror_with_transient_status(self):
+        """HTTPError with 500 is not permanent."""
+        from unittest.mock import MagicMock
+
+        class HTTPError(Exception):
+            pass
+
+        exc = HTTPError("server error")
+        exc.response = MagicMock()
+        exc.response.status_code = 500
+        assert _is_permanent_http_failure(exc) is False
+
+    def test_httperror_no_response(self):
+        """HTTPError with no response attribute → not permanent."""
+
+        class HTTPError(Exception):
+            pass
+
+        exc = HTTPError("error")
+        exc.response = None
+        assert _is_permanent_http_failure(exc) is False
+
+    def test_httperror_attribute_error_on_response(self):
+        """HTTPError where response attribute raises AttributeError → not permanent."""
+        from unittest.mock import MagicMock, PropertyMock
+
+        class HTTPError(Exception):
+            pass
+
+        exc = HTTPError("bad response")
+        # Make getattr(exc, "response", None) work but status_code raise
+        resp_mock = MagicMock()
+        type(resp_mock).status_code = PropertyMock(side_effect=AttributeError("no attr"))
+        exc.response = resp_mock
+        result = _is_permanent_http_failure(exc)
+        assert result is False
+
+
+class TestShouldRetry:
+    """Tests for should_retry helper."""
+
+    def test_permanent_http_failure_returns_false(self):
+        """should_retry returns False for permanent HTTP client errors."""
+        from unittest.mock import MagicMock
+
+        class HTTPStatusError(Exception):
+            pass
+
+        exc = HTTPStatusError("403 Forbidden")
+        exc.response = MagicMock()
+        exc.response.status_code = 403
+        config = RetryConfig(retry_on=(Exception,))
+        # Even though retry_on=(Exception,), permanent HTTP errors short-circuit
+        assert should_retry(exc, config) is False
+
+    def test_transient_error_returns_true(self):
+        """should_retry returns True for transient errors in retry_on."""
+        config = RetryConfig(retry_on=(ConnectionError,))
+        assert should_retry(ConnectionError("timeout"), config) is True
+
+    def test_no_retry_on_excluded(self):
+        """should_retry returns False for excluded exceptions."""
+        config = RetryConfig(retry_on=(Exception,), no_retry_on=(ValueError,))
+        assert should_retry(ValueError("excluded"), config) is False
+
+    def test_not_in_retry_on_returns_false(self):
+        """should_retry returns False for errors not in retry_on."""
+        config = RetryConfig(retry_on=(ConnectionError,))
+        assert should_retry(ValueError("not in list"), config) is False

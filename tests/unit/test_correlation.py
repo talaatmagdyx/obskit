@@ -294,7 +294,7 @@ class TestCorrelationCoverageGaps:
 
     def test_propagate_to_headers_some_context_values_missing(self):
         """Test propagate_to_headers when only some context values are set (line 223->222).
-        
+
         Reset all context vars to None except correlation_id, so when
         propagate_to_headers loops through header_mapping, some iterations
         find key NOT in context, exercising the False branch at line 223 (223->222).
@@ -336,7 +336,7 @@ class TestCorrelationCoverageGaps:
 
     def test_propagate_to_message_with_existing_headers_key(self):
         """Test propagate_to_message when headers_key already exists (line 274->277).
-        
+
         When the message already has a 'headers' key, line 274 is False,
         so we go directly to line 277 (branch 274->277).
         """
@@ -359,7 +359,7 @@ class TestCorrelationCoverageGaps:
 
     def test_with_correlation_generates_id_when_missing(self):
         """Test with_correlation generates new ID when none exists (line 318).
-        
+
         Explicitly reset correlation_id to None before calling the decorated function,
         ensuring the generate_if_missing branch at line 318 is exercised.
         """
@@ -384,7 +384,7 @@ class TestCorrelationCoverageGaps:
     @pytest.mark.asyncio
     async def test_with_correlation_async_generates_id(self):
         """Test async with_correlation generates new ID when none exists (line 327).
-        
+
         Explicitly reset correlation_id to None before calling the decorated async
         function, ensuring the generate_if_missing branch at line 327 is exercised.
         """

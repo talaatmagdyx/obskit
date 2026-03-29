@@ -18,8 +18,10 @@ from obskit.metrics.exemplar import (
 # Helper
 # ---------------------------------------------------------------------------
 
-def _make_valid_span(trace_id: int = 0x4BF92F3577B34DA6A3CE929D0E0E4736,
-                     span_id: int = 0x00F067AA0BA902B7) -> MagicMock:
+
+def _make_valid_span(
+    trace_id: int = 0x4BF92F3577B34DA6A3CE929D0E0E4736, span_id: int = 0x00F067AA0BA902B7
+) -> MagicMock:
     span = MagicMock()
     ctx = MagicMock()
     ctx.is_valid = True
@@ -218,6 +220,8 @@ class TestIsExemplarAvailable:
             assert is_exemplar_available() is False
 
     def test_true_when_both_available(self) -> None:
-        with patch("obskit.metrics.exemplar._OTEL_AVAILABLE", True), \
-             patch("obskit.metrics.exemplar._PROM_AVAILABLE", True):
+        with (
+            patch("obskit.metrics.exemplar._OTEL_AVAILABLE", True),
+            patch("obskit.metrics.exemplar._PROM_AVAILABLE", True),
+        ):
             assert is_exemplar_available() is True

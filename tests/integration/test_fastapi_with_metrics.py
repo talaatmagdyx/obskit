@@ -137,7 +137,9 @@ class TestFastAPIMiddlewareMetricsIntegration:
 
         red.observe_request("GET /ok", duration_seconds=0.01, status="success")
         red.observe_request("GET /ok", duration_seconds=0.02, status="success")
-        red.observe_request("GET /error", duration_seconds=0.005, status="failure", error_type="HTTP500")
+        red.observe_request(
+            "GET /error", duration_seconds=0.005, status="failure", error_type="HTTP500"
+        )
 
         output = generate_latest()
         assert b"fastapi_integration_requests_total" in output

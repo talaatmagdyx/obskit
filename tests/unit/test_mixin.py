@@ -16,12 +16,14 @@ from obskit.mixin import ObservabilityMixin, create_service_mixin
 def _make_service(name="test_service"):
     """Create a subclass of ObservabilityMixin for testing."""
 
-    with patch("obskit.mixin.REDMetrics"), \
-         patch("obskit.mixin.GoldenSignals"), \
-         patch("obskit.mixin.USEMetrics"), \
-         patch("obskit.mixin.TenantREDMetrics"), \
-         patch("obskit.mixin.get_slo_tracker"), \
-         patch("obskit.mixin.get_health_checker"):
+    with (
+        patch("obskit.mixin.REDMetrics"),
+        patch("obskit.mixin.GoldenSignals"),
+        patch("obskit.mixin.USEMetrics"),
+        patch("obskit.mixin.TenantREDMetrics"),
+        patch("obskit.mixin.get_slo_tracker"),
+        patch("obskit.mixin.get_health_checker"),
+    ):
 
         class TestService(ObservabilityMixin):
             pass  # NOSONAR
@@ -38,12 +40,14 @@ def _make_service(name="test_service"):
 
 class TestObservabilityMixinInit:
     def test_service_name_stored(self):
-        with patch("obskit.mixin.REDMetrics"), \
-             patch("obskit.mixin.GoldenSignals"), \
-             patch("obskit.mixin.USEMetrics"), \
-             patch("obskit.mixin.TenantREDMetrics"), \
-             patch("obskit.mixin.get_slo_tracker"), \
-             patch("obskit.mixin.get_health_checker"):
+        with (
+            patch("obskit.mixin.REDMetrics"),
+            patch("obskit.mixin.GoldenSignals"),
+            patch("obskit.mixin.USEMetrics"),
+            patch("obskit.mixin.TenantREDMetrics"),
+            patch("obskit.mixin.get_slo_tracker"),
+            patch("obskit.mixin.get_health_checker"),
+        ):
 
             class TestSvc(ObservabilityMixin):
                 pass  # NOSONAR
@@ -53,12 +57,14 @@ class TestObservabilityMixinInit:
         assert svc._service_name == "my_service"
 
     def test_initialized_flag_set(self):
-        with patch("obskit.mixin.REDMetrics"), \
-             patch("obskit.mixin.GoldenSignals"), \
-             patch("obskit.mixin.USEMetrics"), \
-             patch("obskit.mixin.TenantREDMetrics"), \
-             patch("obskit.mixin.get_slo_tracker"), \
-             patch("obskit.mixin.get_health_checker"):
+        with (
+            patch("obskit.mixin.REDMetrics"),
+            patch("obskit.mixin.GoldenSignals"),
+            patch("obskit.mixin.USEMetrics"),
+            patch("obskit.mixin.TenantREDMetrics"),
+            patch("obskit.mixin.get_slo_tracker"),
+            patch("obskit.mixin.get_health_checker"),
+        ):
 
             class TestSvc(ObservabilityMixin):
                 pass  # NOSONAR
@@ -68,12 +74,14 @@ class TestObservabilityMixinInit:
         assert svc._initialized is True
 
     def test_logger_created(self):
-        with patch("obskit.mixin.REDMetrics"), \
-             patch("obskit.mixin.GoldenSignals"), \
-             patch("obskit.mixin.USEMetrics"), \
-             patch("obskit.mixin.TenantREDMetrics"), \
-             patch("obskit.mixin.get_slo_tracker"), \
-             patch("obskit.mixin.get_health_checker"):
+        with (
+            patch("obskit.mixin.REDMetrics"),
+            patch("obskit.mixin.GoldenSignals"),
+            patch("obskit.mixin.USEMetrics"),
+            patch("obskit.mixin.TenantREDMetrics"),
+            patch("obskit.mixin.get_slo_tracker"),
+            patch("obskit.mixin.get_health_checker"),
+        ):
 
             class TestSvc(ObservabilityMixin):
                 pass  # NOSONAR
@@ -85,12 +93,14 @@ class TestObservabilityMixinInit:
     def test_red_metrics_created(self):
         mock_red = MagicMock()
 
-        with patch("obskit.mixin.REDMetrics", return_value=mock_red) as mock_cls, \
-             patch("obskit.mixin.GoldenSignals"), \
-             patch("obskit.mixin.USEMetrics"), \
-             patch("obskit.mixin.TenantREDMetrics"), \
-             patch("obskit.mixin.get_slo_tracker"), \
-             patch("obskit.mixin.get_health_checker"):
+        with (
+            patch("obskit.mixin.REDMetrics", return_value=mock_red) as mock_cls,
+            patch("obskit.mixin.GoldenSignals"),
+            patch("obskit.mixin.USEMetrics"),
+            patch("obskit.mixin.TenantREDMetrics"),
+            patch("obskit.mixin.get_slo_tracker"),
+            patch("obskit.mixin.get_health_checker"),
+        ):
 
             class TestSvc(ObservabilityMixin):
                 pass  # NOSONAR
@@ -100,12 +110,14 @@ class TestObservabilityMixinInit:
         mock_cls.assert_called_with(name="test_svc")
 
     def test_default_service_name(self):
-        with patch("obskit.mixin.REDMetrics"), \
-             patch("obskit.mixin.GoldenSignals"), \
-             patch("obskit.mixin.USEMetrics"), \
-             patch("obskit.mixin.TenantREDMetrics"), \
-             patch("obskit.mixin.get_slo_tracker"), \
-             patch("obskit.mixin.get_health_checker"):
+        with (
+            patch("obskit.mixin.REDMetrics"),
+            patch("obskit.mixin.GoldenSignals"),
+            patch("obskit.mixin.USEMetrics"),
+            patch("obskit.mixin.TenantREDMetrics"),
+            patch("obskit.mixin.get_slo_tracker"),
+            patch("obskit.mixin.get_health_checker"),
+        ):
 
             class TestSvc(ObservabilityMixin):
                 pass  # NOSONAR
@@ -150,12 +162,14 @@ class TestObservabilityMixinProperties:
         assert svc.health_checker is not None
 
     def test_metrics_property_lazy_init(self):
-        with patch("obskit.mixin.REDMetrics") as mock_red_cls, \
-             patch("obskit.mixin.GoldenSignals"), \
-             patch("obskit.mixin.USEMetrics"), \
-             patch("obskit.mixin.TenantREDMetrics"), \
-             patch("obskit.mixin.get_slo_tracker"), \
-             patch("obskit.mixin.get_health_checker"):
+        with (
+            patch("obskit.mixin.REDMetrics") as mock_red_cls,
+            patch("obskit.mixin.GoldenSignals"),
+            patch("obskit.mixin.USEMetrics"),
+            patch("obskit.mixin.TenantREDMetrics"),
+            patch("obskit.mixin.get_slo_tracker"),
+            patch("obskit.mixin.get_health_checker"),
+        ):
 
             class TestSvc(ObservabilityMixin):
                 pass  # NOSONAR
@@ -432,25 +446,27 @@ class TestUtilityMethods:
 
 class TestCreateServiceMixin:
     def test_creates_observability_mixin_instance(self):
-        with patch("obskit.mixin.REDMetrics"), \
-             patch("obskit.mixin.GoldenSignals"), \
-             patch("obskit.mixin.USEMetrics"), \
-             patch("obskit.mixin.TenantREDMetrics"), \
-             patch("obskit.mixin.get_slo_tracker"), \
-             patch("obskit.mixin.get_health_checker"):
-
+        with (
+            patch("obskit.mixin.REDMetrics"),
+            patch("obskit.mixin.GoldenSignals"),
+            patch("obskit.mixin.USEMetrics"),
+            patch("obskit.mixin.TenantREDMetrics"),
+            patch("obskit.mixin.get_slo_tracker"),
+            patch("obskit.mixin.get_health_checker"),
+        ):
             obs = create_service_mixin("standalone_svc")
 
         assert isinstance(obs, ObservabilityMixin)
 
     def test_service_name_set_correctly(self):
-        with patch("obskit.mixin.REDMetrics"), \
-             patch("obskit.mixin.GoldenSignals"), \
-             patch("obskit.mixin.USEMetrics"), \
-             patch("obskit.mixin.TenantREDMetrics"), \
-             patch("obskit.mixin.get_slo_tracker"), \
-             patch("obskit.mixin.get_health_checker"):
-
+        with (
+            patch("obskit.mixin.REDMetrics"),
+            patch("obskit.mixin.GoldenSignals"),
+            patch("obskit.mixin.USEMetrics"),
+            patch("obskit.mixin.TenantREDMetrics"),
+            patch("obskit.mixin.get_slo_tracker"),
+            patch("obskit.mixin.get_health_checker"),
+        ):
             obs = create_service_mixin("my_standalone")
 
         assert obs._service_name == "my_standalone"
@@ -466,12 +482,14 @@ class TestObservabilityMixinCoverageGaps:
 
     def test_initialize_observability_skips_when_already_initialized(self):
         """Test that _initialize_observability returns early when _initialized=True."""
-        with patch("obskit.mixin.REDMetrics"), \
-             patch("obskit.mixin.GoldenSignals"), \
-             patch("obskit.mixin.USEMetrics"), \
-             patch("obskit.mixin.TenantREDMetrics"), \
-             patch("obskit.mixin.get_slo_tracker"), \
-             patch("obskit.mixin.get_health_checker"):
+        with (
+            patch("obskit.mixin.REDMetrics"),
+            patch("obskit.mixin.GoldenSignals"),
+            patch("obskit.mixin.USEMetrics"),
+            patch("obskit.mixin.TenantREDMetrics"),
+            patch("obskit.mixin.get_slo_tracker"),
+            patch("obskit.mixin.get_health_checker"),
+        ):
 
             class TestSvc(ObservabilityMixin):
                 pass  # NOSONAR
@@ -642,6 +660,7 @@ class TestObservabilityMixinCoverageGaps:
     def test_get_circuit_breaker_creates_new_when_not_exists(self):
         """Test circuit breaker creation inside double-check lock (lines 406-419)."""
         from obskit.mixin import _circuit_breakers
+
         svc = _make_service("unique_cb_service_xyz")
         full_name = f"{svc._service_name}.dep_xyz"
 
@@ -658,6 +677,7 @@ class TestObservabilityMixinCoverageGaps:
     def test_get_rate_limiter_creates_new_when_not_exists(self):
         """Test rate limiter creation inside double-check lock (lines 455-465)."""
         from obskit.mixin import _rate_limiters
+
         svc = _make_service("unique_rl_service_xyz")
         full_name = f"{svc._service_name}.limit_xyz"
 
@@ -680,9 +700,7 @@ class TestObservabilityMixinCoverageGaps:
         svc._tenant_metrics = mock_tenant
 
         with pytest.raises(RuntimeError):
-            with svc.track_operation(
-                "op", tenant_id="tenant-123", enable_tracing=False
-            ):
+            with svc.track_operation("op", tenant_id="tenant-123", enable_tracing=False):
                 raise RuntimeError("failure")
 
         # Error metrics were recorded with failure status
@@ -709,6 +727,7 @@ class TestMixinMoreCoverageGaps:
         """Test circuit breaker double-check lock when CB already exists (line 406->419)."""
         from obskit.mixin import _circuit_breaker_lock, _circuit_breakers
         from obskit.resilience import CircuitBreaker
+
         svc = _make_service("double_check_cb_svc")
         full_name = f"{svc._service_name}.dep_exists"
 
@@ -731,13 +750,14 @@ class TestMixinMoreCoverageGaps:
         """Test rate limiter double-check lock when RL already exists (line 455->465)."""
         from obskit.mixin import _rate_limiter_lock, _rate_limiters
         from obskit.resilience import TokenBucketRateLimiter
+
         svc = _make_service("double_check_rl_svc")
         full_name = f"{svc._service_name}.limit_exists"
 
         # Pre-create the RL in the dict
         _rate_limiters[full_name] = TokenBucketRateLimiter(
             bucket_size=100,
-            refill_rate=100/60.0,
+            refill_rate=100 / 60.0,
         )
         try:
             result = svc.get_rate_limiter("limit_exists")
@@ -750,7 +770,9 @@ class TestMixinMoreCoverageGaps:
         svc = _make_service()
         # Override the slo_tracker property to return None/falsy
         # Need to patch the property to return None
-        with patch.object(type(svc), 'slo_tracker', new_callable=lambda: property(lambda self: None)):
+        with patch.object(
+            type(svc), "slo_tracker", new_callable=lambda: property(lambda self: None)
+        ):
             result = svc.get_slo_status("my_slo")
         assert result is None
 
@@ -760,13 +782,14 @@ class TestMixinDoubleCheckLock:
 
     def test_get_circuit_breaker_inner_check_already_created(self):
         """Test inner lock check when CB already created concurrently (line 406->419).
-        
+
         Patches the lock object to insert the CB when the lock is acquired,
         simulating a concurrent thread creating it before the inner check runs.
         """
         import obskit.mixin as mixin_mod
         from obskit.mixin import _circuit_breakers
         from obskit.resilience import CircuitBreaker
+
         svc = _make_service("mock_lock_cb_svc")
         full_name = f"{svc._service_name}.mock_lock_dep"
         _circuit_breakers.pop(full_name, None)
@@ -779,6 +802,7 @@ class TestMixinDoubleCheckLock:
                     name=full_name, failure_threshold=5, recovery_timeout=30.0
                 )
                 return self_ctx
+
             def __exit__(self_ctx, *args):
                 return False
 
@@ -798,6 +822,7 @@ class TestMixinDoubleCheckLock:
         import obskit.mixin as mixin_mod
         from obskit.mixin import _rate_limiters
         from obskit.resilience import TokenBucketRateLimiter
+
         svc = _make_service("mock_lock_rl_svc")
         full_name = f"{svc._service_name}.mock_lock_limit"
         _rate_limiters.pop(full_name, None)
@@ -805,9 +830,10 @@ class TestMixinDoubleCheckLock:
         class SimulateConcurrentCreation:
             def __enter__(self_ctx):
                 _rate_limiters[full_name] = TokenBucketRateLimiter(
-                    bucket_size=100, refill_rate=100/60.0
+                    bucket_size=100, refill_rate=100 / 60.0
                 )
                 return self_ctx
+
             def __exit__(self_ctx, *args):
                 return False
 

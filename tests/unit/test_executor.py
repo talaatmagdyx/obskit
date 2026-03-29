@@ -384,12 +384,16 @@ class TestWrapExecutor:
 
 class TestCreateTrackedExecutor:
     def test_creates_thread_executor(self):
-        tracked = create_tracked_executor("create_thread_test", max_workers=2, executor_type="thread")
+        tracked = create_tracked_executor(
+            "create_thread_test", max_workers=2, executor_type="thread"
+        )
         assert isinstance(tracked, TrackedExecutor)
         tracked.shutdown(wait=True)
 
     def test_creates_process_executor(self):
-        tracked = create_tracked_executor("create_proc_test", max_workers=1, executor_type="process")
+        tracked = create_tracked_executor(
+            "create_proc_test", max_workers=1, executor_type="process"
+        )
         assert isinstance(tracked, TrackedExecutor)
         tracked.shutdown(wait=True)
 

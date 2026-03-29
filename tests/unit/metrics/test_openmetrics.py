@@ -38,7 +38,9 @@ from obskit.metrics.openmetrics import (
 
 class TestConstants:
     def test_content_type(self):
-        assert OPENMETRICS_CONTENT_TYPE == "application/openmetrics-text; version=1.0.0; charset=utf-8"
+        assert (
+            OPENMETRICS_CONTENT_TYPE == "application/openmetrics-text; version=1.0.0; charset=utf-8"
+        )
 
     def test_prometheus_available(self):
         assert PROMETHEUS_AVAILABLE is True
@@ -227,6 +229,7 @@ class TestGenerateOpenMetrics:
     def test_contains_histogram_bucket_sample(self):
         """Line 130: histogram _bucket samples hit the elif branch."""
         from prometheus_client import Histogram as PCHistogram
+
         registry = CollectorRegistry()
         h = PCHistogram(
             "test_histogram_bucket_om",

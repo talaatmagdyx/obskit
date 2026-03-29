@@ -18,11 +18,14 @@ class TestGetTracerLazy:
         tracker_module._tracer = None
         try:
             import builtins
+
             original_import = builtins.__import__
+
             def bad_import(name, *args, **kwargs):
                 if name == "obskit.tracing":
                     raise RuntimeError("tracing unavailable")
                 return original_import(name, *args, **kwargs)
+
             with patch("builtins.__import__", side_effect=bad_import):
                 result = _get_tracer()
                 assert result is None
@@ -80,11 +83,14 @@ class TestGetSloTrackerLazy:
         tracker_module._slo_tracker = None
         try:
             import builtins
+
             original_import = builtins.__import__
+
             def bad_import(name, *args, **kwargs):
                 if name == "obskit.slo":
                     raise RuntimeError("slo unavailable")
                 return original_import(name, *args, **kwargs)
+
             with patch("builtins.__import__", side_effect=bad_import):
                 result = _get_slo_tracker()
                 assert result is None

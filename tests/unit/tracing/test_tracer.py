@@ -349,7 +349,6 @@ class TestIsTracingAvailable:
         assert result == OPENTELEMETRY_AVAILABLE
 
 
-
 class TestGetTracerInnerBranch:
     """Tests covering the double-checked locking inner branch in get_tracer."""
 
@@ -379,6 +378,7 @@ class TestGetTracerInnerBranch:
 
         class RaceConditionLock:
             """Simulates another thread setting _tracer while we wait for lock."""
+
             def __enter__(self):
                 # Simulate another thread having set _tracer while we waited
                 tracer_module._tracer = fake_tracer

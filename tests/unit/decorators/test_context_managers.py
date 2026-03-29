@@ -419,6 +419,7 @@ class TestObserveTrackMetricsFalseErrorPath:
         from unittest.mock import patch
 
         from obskit.decorators.context_managers import observe
+
         with patch("obskit.decorators.context_managers.get_red_metrics") as mock_red:
             with pytest.raises(ValueError):
                 async with observe(operation="async_no_metric_fail", track_metrics=False):
@@ -431,6 +432,7 @@ class TestObserveTrackMetricsFalseErrorPath:
         from unittest.mock import patch
 
         from obskit.decorators.context_managers import observe
+
         with patch("obskit.decorators.context_managers.log_error") as mock_log_error:
             with pytest.raises(RuntimeError):
                 async with observe(operation="async_no_metric_log", track_metrics=False):
@@ -450,6 +452,7 @@ class TestObserveSyncTrackMetricsFalseErrorPath:
         from unittest.mock import patch
 
         from obskit.decorators.context_managers import observe_sync
+
         with patch("obskit.decorators.context_managers.get_red_metrics") as mock_red:
             with pytest.raises(ValueError):
                 with observe_sync(operation="sync_no_metric_fail", track_metrics=False):
@@ -461,6 +464,7 @@ class TestObserveSyncTrackMetricsFalseErrorPath:
         from unittest.mock import patch
 
         from obskit.decorators.context_managers import observe_sync
+
         with patch("obskit.decorators.context_managers.log_error") as mock_log_error:
             with pytest.raises(RuntimeError):
                 with observe_sync(operation="sync_no_metric_log", track_metrics=False):

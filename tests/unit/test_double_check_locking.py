@@ -1,4 +1,5 @@
 """Tests to cover double-check locking inner branches."""
+
 from __future__ import annotations
 
 
@@ -35,6 +36,7 @@ class TestDoubleCheckLockingBranches:
 
         # Create and pre-populate with the sampler
         from obskit.adaptive_sampling import AdaptiveSampler
+
         existing_sampler = AdaptiveSampler(name=unique_name)
 
         # Create a custom dict that lies on the first outer check
@@ -61,6 +63,7 @@ class TestDoubleCheckLockingBranches:
         module._trails.pop(unique_name, None)
 
         from obskit.audit import AuditTrail
+
         existing_trail = AuditTrail(unique_name)
 
         fake_dict = _FakeDict()
@@ -84,6 +87,7 @@ class TestDoubleCheckLockingBranches:
         module._trackers.pop(unique_name, None)
 
         from obskit.executor import ExecutorTracker
+
         existing_tracker = ExecutorTracker(unique_name)
 
         fake_dict = _FakeDict()

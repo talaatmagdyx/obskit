@@ -402,6 +402,7 @@ class TestMockMetricsPatch:
 class TestMockTracerPatch:
     def test_mock_tracer_get_spans_no_name(self):
         from obskit.testing.mocks import MockTracer, RecordedSpan
+
         t = MockTracer()
         span = RecordedSpan(name="test_span")
         t.spans.append(span)
@@ -410,6 +411,7 @@ class TestMockTracerPatch:
 
     def test_mock_tracer_patch_context(self):
         from obskit.testing.mocks import MockTracer
+
         t = MockTracer()
         with t.patch() as patched_t:
             assert patched_t is t
@@ -418,6 +420,7 @@ class TestMockTracerPatch:
 class TestMockSLOTrackerPatch:
     def test_mock_slo_tracker_patch_context(self):
         from obskit.testing.mocks import MockSLOTracker
+
         s = MockSLOTracker()
         with s.patch() as patched_s:
             assert patched_s is s
@@ -426,17 +429,20 @@ class TestMockSLOTrackerPatch:
 class TestMockCircuitBreakerProperties:
     def test_state_property(self):
         from obskit.testing.mocks import MockCircuitBreaker
+
         cb = MockCircuitBreaker("test")
         state = cb.state
         assert state is not None
 
     def test_failure_count_property(self):
         from obskit.testing.mocks import MockCircuitBreaker
+
         cb = MockCircuitBreaker("test")
         assert cb.failure_count == 0
 
     def test_success_count_property(self):
         from obskit.testing.mocks import MockCircuitBreaker
+
         cb = MockCircuitBreaker("test")
         assert cb.success_count == 0
 
@@ -447,11 +453,13 @@ class TestMockCircuitBreakerProperties:
 
         from obskit.core.errors import CircuitOpenError
         from obskit.testing.mocks import MockCircuitBreaker
+
         cb = MockCircuitBreaker("test")
         cb.set_state("open")
         # Patch the obskit namespace to include CircuitOpenError
-        with patch.dict("sys.modules", {"obskit": type("obskit", (), {"CircuitOpenError": CircuitOpenError})}):
+        with patch.dict(
+            "sys.modules", {"obskit": type("obskit", (), {"CircuitOpenError": CircuitOpenError})}
+        ):
             with pytest.raises(CircuitOpenError):
                 with cb:
                     pass  # NOSONAR
-

@@ -396,6 +396,7 @@ class TestBatchContextCoverageGaps:
     def test_get_logger_function(self):
         """Test the lazy _get_logger() function (lines 85-87)."""
         from obskit.core.batch_context import _get_logger
+
         logger = _get_logger()
         assert logger is not None
 

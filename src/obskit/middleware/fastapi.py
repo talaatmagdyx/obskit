@@ -42,9 +42,15 @@ Example - With Custom Configuration
 
 from __future__ import annotations
 
+import re
 import time
-from collections.abc import Awaitable, Callable
 from typing import Any
+
+# W3C traceparent: version(2)-traceId(32)-parentId(16)-flags(2)
+# Accepts uppercase hex (AWS X-Ray, GCP Cloud Trace emit uppercase)
+_W3C_TRACEPARENT_RE = re.compile(r"^[0-9a-fA-F]{2}-[0-9a-fA-F]{32}-[0-9a-fA-F]{16}-[0-9a-fA-F]{2}$")
+# Safe correlation ID: alphanumeric + hyphens, underscores, and dots, max 128 chars
+_CORRELATION_ID_RE = re.compile(r"^[a-zA-Z0-9\-_\.]{1,128}$")
 
 from obskit.core.context import async_correlation_context, get_correlation_id
 from obskit.logging import get_logger
@@ -54,28 +60,26 @@ from obskit.tracing.tracer import extract_trace_context, inject_trace_context, t
 logger = get_logger("obskit.middleware.fastapi")
 
 try:
-    from fastapi import Request, Response
-    from starlette.middleware.base import BaseHTTPMiddleware
-    from starlette.types import ASGIApp
+    from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
     FASTAPI_AVAILABLE = True
 except ImportError:  # pragma: no cover
     FASTAPI_AVAILABLE = False
 
-    class BaseHTTPMiddleware:  # type: ignore[no-redef]
-        """Stub class when FastAPI is not available."""
-
-        def __init__(self, app: Any) -> None:
-            pass  # NOSONAR
-
     ASGIApp = Any  # type: ignore[misc]
-    Request = Any  # type: ignore[misc, assignment]
-    Response = Any  # type: ignore[misc, assignment]
+    Scope = Any  # type: ignore[misc,assignment]
+    Receive = Any  # type: ignore[misc]
+    Send = Any  # type: ignore[misc]
+    Message = Any  # type: ignore[misc,assignment]
 
 
-class ObskitMiddleware(BaseHTTPMiddleware):
+class ObskitMiddleware:
     """
-    FastAPI middleware that automatically adds observability to all requests.
+    Raw ASGI middleware that automatically adds observability to all requests.
+
+    Uses raw ASGI (not BaseHTTPMiddleware) so the ``send`` callable can be
+    intercepted — this allows measuring *total* response duration including
+    streaming body, not just time-to-first-byte.
 
     This middleware provides:
     - Correlation ID propagation (from headers or auto-generated)
@@ -91,7 +95,7 @@ class ObskitMiddleware(BaseHTTPMiddleware):
 
     exclude_paths : list[str], optional
         Path patterns to exclude from observability.
-        Default: ["/health", "/ready", "/live", "/metrics"]
+        Default: [\"/health\", \"/ready\", \"/live\", \"/metrics\"]
 
     track_metrics : bool, optional
         Enable metrics collection. Default: True.
@@ -129,8 +133,7 @@ class ObskitMiddleware(BaseHTTPMiddleware):
         if not FASTAPI_AVAILABLE:  # pragma: no cover
             raise ImportError("FastAPI is not installed. Install with: pip install fastapi")
 
-        super().__init__(app)
-
+        self.app = app
         self.exclude_paths = exclude_paths or ["/health", "/ready", "/live", "/metrics"]
         self.track_metrics = track_metrics
         self.track_logging = track_logging
@@ -143,151 +146,170 @@ class ObskitMiddleware(BaseHTTPMiddleware):
             self.red_metrics = None
 
     def _should_exclude(self, path: str) -> bool:
-        """Check if path should be excluded from observability."""
-        return any(path.startswith(excluded) for excluded in self.exclude_paths)
+        """Check if path should be excluded from observability.
 
-    async def dispatch(
-        self,
-        request: Request,
-        call_next: Callable[[Request], Awaitable[Response]],
-    ) -> Response:
+        Matches exact path or any sub-path (with trailing slash) so that
+        ``/health`` also excludes ``/health/`` and ``/health/detail``.
         """
-        Process request with observability.
+        for excluded in self.exclude_paths:
+            if path == excluded or path.startswith(excluded.rstrip("/") + "/"):
+                return True
+        return False
 
-        This method:
-        1. Extracts/generates correlation ID
-        2. Extracts trace context
-        3. Logs request start
-        4. Records metrics
-        5. Handles errors
-        6. Logs response
-        """
-        # Skip observability for excluded paths
-        if self._should_exclude(request.url.path):
-            return await call_next(request)
+    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+        """ASGI entry point — handles http and websocket scopes."""
+        if scope["type"] not in ("http", "websocket"):
+            await self.app(scope, receive, send)
+            return
 
-        # Extract correlation ID from header or generate new one
-        correlation_id = request.headers.get("X-Correlation-ID")
+        path: str = scope.get("path", "/")
 
-        # Extract trace context from headers
-        trace_headers = dict(request.headers)
+        if self._should_exclude(path):
+            await self.app(scope, receive, send)
+            return
 
-        # Start timing
+        # ── Extract headers ──────────────────────────────────────────────────
+        raw_headers: list[tuple[bytes, bytes]] = scope.get("headers", [])
+        headers: dict[str, str] = {
+            k.decode("latin-1", errors="replace"): v.decode("latin-1", errors="replace")
+            for k, v in raw_headers
+        }
+
+        # Extract and validate correlation ID
+        raw_cid = headers.get("x-correlation-id")
+        if raw_cid is not None and not _CORRELATION_ID_RE.match(raw_cid):
+            raw_cid = None  # Discard invalid ID; a new one will be generated
+
+        # ── Operation name ───────────────────────────────────────────────────
+        # Prefer the route *template* (e.g. "/orders/{id}") over the raw path
+        # (e.g. "/orders/123") to avoid unbounded Prometheus cardinality from
+        # dynamic path segments.  The route is set by FastAPI's router after
+        # matching, so it may not be available at middleware entry; fall back to
+        # the raw path only as a last resort.
+        route = scope.get("route")
+        if route and hasattr(route, "path"):  # pragma: no cover
+            operation = route.path.replace("/", "_").strip("_") or "unknown"
+        else:
+            operation = path.replace("/", "_").strip("_") or "unknown"
+
+        method: str = scope.get("method", "UNKNOWN") if scope["type"] == "http" else "WS"
+
+        # ── Timing ──────────────────────────────────────────────────────────
         start_time = time.perf_counter()
 
-        # Get operation name from route
-        operation = request.url.path.replace("/", "_").strip("_") or "unknown"
-        if hasattr(request, "route") and request.route:  # pragma: no cover
-            operation = request.route.path.replace("/", "_").strip("_") or operation
+        # ── Wrapped send to capture status_code + measure full duration ──────
+        status_code_holder: list[int] = [0]
 
-        # Setup observability context
-        async with async_correlation_context(correlation_id):
-            # Extract and use trace context if available
-            if self.track_tracing:
-                trace_ctx = extract_trace_context(trace_headers)
-                if trace_ctx:
-                    # Use trace context for this request
-                    with trace_context(trace_headers):
-                        return await self._process_request(
-                            request, call_next, start_time, operation
+        async def observing_send(message: Message) -> None:
+            if message["type"] == "http.response.start":
+                status_code_holder[0] = message.get("status", 0)
+
+                # Inject outgoing trace context + correlation ID headers
+                correlation_id = get_correlation_id()
+                extra_headers: list[tuple[bytes, bytes]] = []
+
+                if correlation_id:
+                    extra_headers.append((b"x-correlation-id", correlation_id.encode("latin-1")))
+
+                if self.track_tracing:
+                    trace_out = inject_trace_context({})
+                    for key, value in trace_out.items():
+                        extra_headers.append(
+                            (key.lower().encode("latin-1"), value.encode("latin-1"))
                         )
 
-            # Process without trace context
-            return await self._process_request(request, call_next, start_time, operation)
+                if extra_headers:
+                    existing: list[tuple[bytes, bytes]] = list(message.get("headers", []))
+                    existing_keys = {k.lower() for k, _ in existing}
+                    for k, v in extra_headers:
+                        if k not in existing_keys:
+                            existing.append((k, v))
+                    message = {**message, "headers": existing}
 
-    async def _process_request(
-        self,
-        request: Request,
-        call_next: Callable[[Request], Awaitable[Response]],
-        start_time: float,
-        operation: str,
-    ) -> Response:
-        """Process request with observability."""
-        correlation_id = get_correlation_id()
+            elif message["type"] == "http.response.body":
+                if not message.get("more_body", False):
+                    # Last chunk — record full duration
+                    duration_seconds = time.perf_counter() - start_time
+                    duration_ms = duration_seconds * 1000
+                    sc = status_code_holder[0]
 
-        # Log request start
-        if self.track_logging:  # pragma: no branch
-            logger.info(
-                "request_started",
-                method=request.method,
-                path=request.url.path,
-                operation=operation,
-                correlation_id=correlation_id,
-                client_ip=request.client.host if request.client else None,
-            )
+                    if self.track_metrics and self.red_metrics:
+                        self.red_metrics.observe_request(
+                            operation=operation,
+                            duration_seconds=duration_seconds,
+                            status="success" if sc < 400 else "failure",
+                            error_type=None if sc < 400 else f"HTTP{sc}",
+                        )
 
-        try:
-            # Process request
-            response = await call_next(request)
+                    if self.track_logging:
+                        logger.info(
+                            "request_completed",
+                            method=method,
+                            path=path,
+                            operation=operation,
+                            status_code=sc,
+                            duration_ms=duration_ms,
+                            correlation_id=get_correlation_id(),
+                        )
 
-            # Calculate duration
-            duration_seconds = time.perf_counter() - start_time
-            duration_ms = duration_seconds * 1000
+            await send(message)
 
-            # Record metrics
-            if self.track_metrics and self.red_metrics:
-                self.red_metrics.observe_request(
-                    operation=operation,
-                    duration_seconds=duration_seconds,
-                    status="success" if response.status_code < 400 else "failure",
-                    error_type=None
-                    if response.status_code < 400
-                    else f"HTTP{response.status_code}",
-                )
+        # ── Run inside observability context ─────────────────────────────────
+        async with async_correlation_context(raw_cid):
+            correlation_id = get_correlation_id()
 
-            # Add correlation ID to response headers
-            response.headers["X-Correlation-ID"] = correlation_id or ""
-
-            # Inject trace context into response if tracing enabled
-            if self.track_tracing:
-                response_headers = dict(response.headers)
-                inject_trace_context(response_headers)
-                # Update response headers (FastAPI/Starlette limitation)
-                for key, value in response_headers.items():
-                    if key not in response.headers:
-                        response.headers[key] = value
-
-            # Log response
-            if self.track_logging:  # pragma: no branch
-                logger.info(
-                    "request_completed",
-                    method=request.method,
-                    path=request.url.path,
-                    operation=operation,
-                    status_code=response.status_code,
-                    duration_ms=duration_ms,
-                    correlation_id=correlation_id,
-                )
-
-            return response
-
-        except Exception as e:
-            # Calculate duration
-            duration_seconds = time.perf_counter() - start_time
-            duration_ms = duration_seconds * 1000
-
-            # Record error metrics
-            if self.track_metrics and self.red_metrics:
-                self.red_metrics.observe_request(
-                    operation=operation,
-                    duration_seconds=duration_seconds,
-                    status="failure",
-                    error_type=type(e).__name__,
-                )
-
-            # Log error
             if self.track_logging:
-                logger.error(
-                    "request_failed",
-                    method=request.method,
-                    path=request.url.path,
+                logger.info(
+                    "request_started",
+                    method=method,
+                    path=path,
                     operation=operation,
-                    error=str(e),
-                    error_type=type(e).__name__,
-                    duration_ms=duration_ms,
                     correlation_id=correlation_id,
-                    exc_info=True,
+                    client_ip=self._get_client_ip(scope),
                 )
 
-            # Re-raise exception
-            raise
+            try:
+                if self.track_tracing:
+                    trace_ctx = extract_trace_context(headers)
+                    if trace_ctx is not None:
+                        with trace_context(headers):
+                            await self.app(scope, receive, observing_send)
+                        return
+
+                await self.app(scope, receive, observing_send)
+
+            except Exception as e:
+                duration_seconds = time.perf_counter() - start_time
+                duration_ms = duration_seconds * 1000
+
+                if self.track_metrics and self.red_metrics:
+                    self.red_metrics.observe_request(
+                        operation=operation,
+                        duration_seconds=duration_seconds,
+                        status="failure",
+                        error_type=type(e).__name__,
+                    )
+
+                if self.track_logging:
+                    logger.error(
+                        "request_failed",
+                        method=method,
+                        path=path,
+                        operation=operation,
+                        error=str(e),
+                        error_type=type(e).__name__,
+                        duration_ms=duration_ms,
+                        correlation_id=get_correlation_id(),
+                        exc_info=True,
+                    )
+
+                raise
+
+    @staticmethod
+    def _get_client_ip(scope: Scope) -> str | None:
+        """Extract client IP from ASGI scope."""
+        client = scope.get("client")
+        if client and isinstance(client, (list, tuple)) and len(client) >= 1:
+            ip = client[0]
+            return str(ip) if ip is not None else None
+        return None

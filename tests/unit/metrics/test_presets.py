@@ -136,10 +136,13 @@ class TestPresetBuckets:
             DEFAULT_BUCKETS,
             FAST_SERVICE_BUCKETS,
         )
-        assert all([
-            FAST_SERVICE_BUCKETS,
-            API_SERVICE_BUCKETS,
-            DATABASE_SERVICE_BUCKETS,
-            BATCH_SERVICE_BUCKETS,
-            DEFAULT_BUCKETS,
-        ])
+
+        assert all(
+            [
+                FAST_SERVICE_BUCKETS,
+                API_SERVICE_BUCKETS,
+                DATABASE_SERVICE_BUCKETS,
+                BATCH_SERVICE_BUCKETS,
+                DEFAULT_BUCKETS,
+            ]
+        )

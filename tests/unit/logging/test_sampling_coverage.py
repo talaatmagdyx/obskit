@@ -1,4 +1,5 @@
 """Additional coverage tests for logging/sampling.py."""
+
 from __future__ import annotations
 
 import time
@@ -29,7 +30,7 @@ class TestSampledLoggerCoverage:
     def test_should_log_sampled_out(self):
         """Line 201: sampled_out when random > sample_rate."""
         config = SamplingConfig(
-            info_rate=0.0,    # 0% -> always sample_out
+            info_rate=0.0,  # 0% -> always sample_out
             always_log_first_n=0,
             dedupe_window_seconds=0.0,
         )
@@ -53,6 +54,7 @@ class TestSampledLoggerCoverage:
         logger._recent_logs.pop(key, None)
 
         import random
+
         with patch.object(random, "random", return_value=0.999):  # > 0.0 sample_rate
             should_log, reason = logger._should_log("info", event)
 
@@ -88,6 +90,7 @@ class TestSampledLoggerCoverage:
         logger._occurrence_counts[key] = 9999  # past first_n
 
         import random
+
         with patch.object(random, "random", return_value=0.999):
             logger._log("info", event)
 
@@ -108,6 +111,7 @@ class TestSampledLoggerCoverage:
         logger._cleanup_recent = mock_cleanup
 
         import random
+
         # Force cleanup to trigger by making random return < 0.01
         with patch.object(random, "random", side_effect=[0.5, 0.001]):
             # First call to random (for sampling decision): 0.5 -> sampled
@@ -168,11 +172,11 @@ class TestSamplingBranchCoverage:
         from obskit.logging.sampling import SampledLogger, SamplingConfig
 
         config = SamplingConfig()
-        logger = SampledLogger('key-test', config=config)
+        logger = SampledLogger("key-test", config=config)
 
         # Kwargs starting with _ should be skipped
-        key1 = logger._get_dedupe_key('info', 'event', _internal='skip_me', normal='include')
-        key2 = logger._get_dedupe_key('info', 'event', normal='include')
+        key1 = logger._get_dedupe_key("info", "event", _internal="skip_me", normal="include")
+        key2 = logger._get_dedupe_key("info", "event", normal="include")
         # Both should be the same since _ kwargs are ignored
         assert key1 == key2
 
@@ -181,11 +185,11 @@ class TestSamplingBranchCoverage:
         from obskit.logging.sampling import SampledLogger, SamplingConfig
 
         config = SamplingConfig()
-        logger = SampledLogger('key-test2', config=config)
+        logger = SampledLogger("key-test2", config=config)
 
         # Non-primitive values (dict, list) are skipped
-        key1 = logger._get_dedupe_key('info', 'event', complex_val={'a': 1})
-        key2 = logger._get_dedupe_key('info', 'event')
+        key1 = logger._get_dedupe_key("info", "event", complex_val={"a": 1})
+        key2 = logger._get_dedupe_key("info", "event")
         # Both should be the same since complex values are ignored
         assert key1 == key2
 
@@ -200,25 +204,23 @@ class TestSamplingBranchCoverage:
             dedupe_window_seconds=0.001,  # very short window
             always_log_first_n=0,
         )
-        logger = SampledLogger('dedupe-expired', config=config)
+        logger = SampledLogger("dedupe-expired", config=config)
 
-        event = 'expiring_event'
-        key = logger._get_dedupe_key('info', event)
+        event = "expiring_event"
+        key = logger._get_dedupe_key("info", event)
 
         # Manually set a very old entry in recent_logs
         logger._occurrence_counts[key] = 9999  # past first_n
         logger._recent_logs[key] = time.time() - 1.0  # 1 second ago > 0.001s window
 
         # Should NOT be deduplicated (entry expired) and should use sample rate
-        _, reason = logger._should_log('info', event)
+        _, reason = logger._should_log("info", event)
         # With info_rate=1.0, should be sampled_in
-        assert reason in ('sampled_in', 'sampled_out')  # not 'deduplicated'
+        assert reason in ("sampled_in", "sampled_out")  # not 'deduplicated'
 
     def test_cleanup_actually_triggered(self):
-        """Line 237: _cleanup_recent is triggered when random returns < 0.01."""
-        import random
+        """_cleanup_recent is triggered every 1000 calls via _log_count counter."""
         import time
-        from unittest.mock import patch
 
         from obskit.logging.sampling import SampledLogger, SamplingConfig
 
@@ -227,27 +229,27 @@ class TestSamplingBranchCoverage:
             dedupe_window_seconds=1.0,
             always_log_first_n=0,
         )
-        logger = SampledLogger('cleanup-trigger', config=config)
+        logger = SampledLogger("cleanup-trigger", config=config)
 
         # Add an old entry to recent_logs
-        logger._recent_logs['old_key'] = time.time() - 10.0
+        logger._recent_logs["old_key"] = time.time() - 10.0
 
         cleanup_called = []
         original_cleanup = logger._cleanup_recent
+
         def tracking_cleanup():
             cleanup_called.append(True)
             original_cleanup()
+
         logger._cleanup_recent = tracking_cleanup
 
-        # Force the cleanup branch by patching random
-        # We need: first random call (for sample rate) returns 0.0 (< 1.0 -> sample)
-        # Second random call (for cleanup trigger) returns 0.005 (< 0.01 -> trigger cleanup)
-        with patch.object(random, 'random', side_effect=[0.0, 0.005]):
-            logger._log('info', 'event_to_log')
+        # Set _log_count to 999 so the next call triggers cleanup (1000 % 1000 == 0)
+        logger._log_count = 999
+        logger._log("info", "event_to_log")
 
         assert len(cleanup_called) == 1
         # Old key should be removed
-        assert 'old_key' not in logger._recent_logs
+        assert "old_key" not in logger._recent_logs
 
     def test_adaptive_logger_rate_adjustment_with_zero_lps(self):
         """Line 350->359: when current_lps == 0, skip rate adjustment but still reset window."""
@@ -256,7 +258,7 @@ class TestSamplingBranchCoverage:
         from obskit.logging.sampling import AdaptiveSampledLogger
 
         logger = AdaptiveSampledLogger(
-            'adaptive-zero-lps',
+            "adaptive-zero-lps",
             target_logs_per_second=100,
             adjustment_interval=0.0,  # Always trigger adjustment
         )

@@ -167,6 +167,7 @@ class TestAdaptiveSamplerCoverage:
     def test_rate_limit_exhausted_triggers_drop(self):
         """Test that exhausting rate limit tokens causes DROP decision (lines 221-222)."""
         import time
+
         sampler = AdaptiveSampler(base_rate=1.0)
 
         # Exhaust all tokens
@@ -180,6 +181,7 @@ class TestAdaptiveSamplerCoverage:
     def test_check_rate_limit_token_refill(self):
         """Test token refill when more than 1 second has elapsed (lines 285-289)."""
         import time
+
         sampler = AdaptiveSampler(base_rate=1.0)
 
         # Force token depletion and set old refill time
@@ -193,6 +195,7 @@ class TestAdaptiveSamplerCoverage:
     def test_check_rate_limit_no_tokens_returns_false(self):
         """Test that empty token bucket returns False (line 296)."""
         import time
+
         sampler = AdaptiveSampler(base_rate=1.0)
 
         # Deplete tokens, no time elapsed
@@ -205,6 +208,7 @@ class TestAdaptiveSamplerCoverage:
     def test_maybe_adapt_high_error_rate(self):
         """Test _maybe_adapt runs adaptation logic (lines 306-339)."""
         from datetime import datetime, timedelta, timezone
+
         sampler = AdaptiveSampler(base_rate=0.5, adapt_interval_seconds=0.0)
 
         # Set conditions to trigger adaptation with high error rate (>10%)
@@ -222,6 +226,7 @@ class TestAdaptiveSamplerCoverage:
     def test_maybe_adapt_load_factor_high_reduces_rate(self):
         """Test high load_factor triggers rate reduction (lines 321-323)."""
         from datetime import datetime, timedelta
+
         sampler = AdaptiveSampler(base_rate=1.0, adapt_interval_seconds=0.0)
         sampler._current_rate = 1.0
 
@@ -239,6 +244,7 @@ class TestAdaptiveSamplerCoverage:
     def test_maybe_adapt_low_load_many_requests_increases_rate(self):
         """Test low load_factor with many requests increases rate (lines 324-326)."""
         from datetime import datetime, timedelta
+
         sampler = AdaptiveSampler(base_rate=0.01, adapt_interval_seconds=0.0)
         sampler._current_rate = 0.01
 
@@ -256,6 +262,7 @@ class TestAdaptiveSamplerCoverage:
     def test_maybe_adapt_zero_request_count_skips_body(self):
         """Test _maybe_adapt with zero requests skips inner body."""
         from datetime import datetime, timedelta
+
         sampler = AdaptiveSampler(base_rate=0.5, adapt_interval_seconds=0.0)
 
         # Zero requests

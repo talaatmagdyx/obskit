@@ -1,4 +1,5 @@
 """Additional coverage tests for obskit-resilience."""
+
 from __future__ import annotations
 
 import asyncio
@@ -300,6 +301,7 @@ class TestFailoverCoverage:
                 return super().__contains__(key)
 
         from obskit.failover import FailoverCoordinator
+
         existing = FailoverCoordinator(unique_name)
 
         fake_dict = _FakeDict()
@@ -326,6 +328,7 @@ class TestLockingCoverage:
         mock_redis.get.return_value = None
 
         from obskit.locking import LeaderElection
+
         election = LeaderElection(
             election_name="test-campaign-exception",
             redis_client=mock_redis,
@@ -370,7 +373,9 @@ class TestCircuitBreakerSyncOpenStateBranches:
         cb = CircuitBreaker("test_open_failure", failure_threshold=100)
         cb._state = CircuitState.OPEN  # force OPEN state
         cb._record_failure_sync(Exception("test"))  # neither HALF_OPEN nor CLOSED branch
-        assert cb._state == CircuitState.OPEN  # unchanged (failure_count incremented but no state change)
+        assert (
+            cb._state == CircuitState.OPEN
+        )  # unchanged (failure_count incremented but no state change)
 
 
 class TestCircuitDashboardDoubleLock:

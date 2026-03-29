@@ -116,9 +116,7 @@ class TestThreadLocalAggregator:
         agg.record_request("op_final", duration_s=0.01, success=True)
         agg.stop()
 
-        total = sum(
-            r.get(("op_final", "success"), 0) for r in received
-        )
+        total = sum(r.get(("op_final", "success"), 0) for r in received)
         assert total >= 1
 
     def test_no_flush_callback_is_noop(self):

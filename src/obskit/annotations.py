@@ -127,7 +127,7 @@ class GrafanaAnnotator:
             return annotation.to_grafana_format()
 
         try:
-            import requests  # type: ignore[import-untyped]
+            import requests  # type: ignore[import-untyped,unused-ignore]
 
             headers = {
                 "Content-Type": "application/json",
