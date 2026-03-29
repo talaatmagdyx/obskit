@@ -516,7 +516,29 @@ class REDMetrics:
         # Guard against accidental high-cardinality operation labels.
         # Labels containing UUIDs, numeric IDs, or long strings create unbounded
         # metric series that will eventually OOM Prometheus.
-        if len(operation) > 128:
+        #
+        # Two-tier protection:
+        #   1. Reject labels with path separators or special characters that are
+        #      almost always dynamic values (user IDs, UUIDs, request paths).
+        #   2. Truncate labels that exceed 128 chars with a stable hash suffix so
+        #      two different oversized names never collapse to the same series.
+        import re as _re
+
+        _VALID_OPERATION_RE = _re.compile(r"^[a-zA-Z0-9_]+$")
+        if not _VALID_OPERATION_RE.match(operation):
+            # Operation contains characters that strongly suggest a dynamic value
+            # (slashes, dots, hyphens, brackets, digits-only, etc.).  Normalise to
+            # a safe fallback rather than silently creating unbounded label values.
+            _logger.warning(
+                "REDMetrics.observe_request: operation label %r contains characters "
+                "that indicate a dynamic/high-cardinality value (e.g. path segments, "
+                "UUIDs, numeric IDs). High-cardinality labels cause Prometheus memory "
+                "exhaustion. Use a fixed, alphanumeric operation name. "
+                "Label normalised to 'invalid_operation'.",
+                operation,
+            )
+            operation = "invalid_operation"
+        elif len(operation) > 128:
             import hashlib as _hashlib
 
             _logger.warning(

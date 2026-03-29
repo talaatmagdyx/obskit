@@ -625,3 +625,21 @@ class TestObskitMiddleware:
         # All 3 messages should have been forwarded
         assert len(sent_messages) == 3
         assert sent_messages[1]["type"] == "custom.message.type"
+
+    @patch("obskit.middleware.fastapi.get_red_metrics")
+    def test_middleware_404_unmatched_route_normalised(self, mock_get_red):
+        """404 responses with no matched route use 'unmatched_route' label (line 241)."""
+        mock_red = MagicMock()
+        mock_get_red.return_value = mock_red
+
+        app = FastAPI()
+        app.add_middleware(ObskitMiddleware, track_tracing=False, track_logging=False)
+
+        client = TestClient(app, raise_server_exceptions=False)
+        # Request a path that has no registered route → FastAPI returns 404
+        response = client.get("/this/path/does/not/exist/at/all")
+
+        assert response.status_code == 404
+        mock_red.observe_request.assert_called_once()
+        call_kwargs = mock_red.observe_request.call_args.kwargs
+        assert call_kwargs["operation"] == "unmatched_route"

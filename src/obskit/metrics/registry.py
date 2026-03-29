@@ -338,11 +338,17 @@ def stop_http_server() -> None:
                             error_type=type(_shutdown_exc).__name__,
                         )
 
-                # The prometheus_client server thread is a daemon thread
-                # We need to access the internal server to stop it
-                # Unfortunately, prometheus_client doesn't expose a clean stop method
-                # So we mark it as stopped and let it be cleaned up naturally
+                # Join the thread so the process does not hang during graceful
+                # shutdown (e.g. Kubernetes SIGTERM with terminationGracePeriodSeconds).
+                # The thread is daemon=True so it will not block indefinitely, but
+                # joining with a timeout gives it a chance to flush pending scrapes.
                 logger.info("metrics_server_stopping")
+                _http_server_thread.join(timeout=5.0)
+                if _http_server_thread.is_alive():
+                    logger.warning(
+                        "metrics_server_thread_did_not_stop",
+                        hint="Thread is daemon; process will exit cleanly regardless.",
+                    )
                 _http_server_started = False
                 _http_server_thread = None
                 _http_server = None

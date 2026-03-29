@@ -233,9 +233,16 @@ class ObskitMiddleware:
                     duration_ms = duration_seconds * 1000
                     sc = status_code_holder[0]
 
+                    # Normalise unmatched routes (404s with dynamic paths) to a
+                    # single label so attackers / bots probing random URLs cannot
+                    # cause unbounded Prometheus cardinality.
+                    effective_operation = operation
+                    if sc == 404 and not scope.get("route"):
+                        effective_operation = "unmatched_route"
+
                     if self.track_metrics and self.red_metrics:
                         self.red_metrics.observe_request(
-                            operation=operation,
+                            operation=effective_operation,
                             duration_seconds=duration_seconds,
                             status="success" if sc < 400 else "failure",
                             error_type=None if sc < 400 else f"HTTP{sc}",
@@ -246,7 +253,7 @@ class ObskitMiddleware:
                             "request_completed",
                             method=method,
                             path=path,
-                            operation=operation,
+                            operation=effective_operation,
                             status_code=sc,
                             duration_ms=duration_ms,
                             correlation_id=get_correlation_id(),

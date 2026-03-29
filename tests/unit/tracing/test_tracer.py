@@ -398,3 +398,47 @@ class TestGetTracerInnerBranch:
         finally:
             tracer_module._tracer_lock = original_lock
             reset_tracing()
+
+
+class TestGetSpanDropCount:
+    """Tests for get_span_drop_count() (lines 811-814)."""
+
+    def test_returns_zero_when_no_processor(self):
+        """Returns 0 when _batch_span_processor is None (line 811-812)."""
+        import obskit.tracing.tracer as tracer_module
+        from obskit.tracing.tracer import get_span_drop_count
+
+        original = tracer_module._batch_span_processor
+        tracer_module._batch_span_processor = None
+        try:
+            assert get_span_drop_count() == 0
+        finally:
+            tracer_module._batch_span_processor = original
+
+    def test_returns_dropped_spans_count(self):
+        """Returns _dropped_spans attribute from processor (lines 813-814)."""
+        import obskit.tracing.tracer as tracer_module
+        from unittest.mock import MagicMock
+        from obskit.tracing.tracer import get_span_drop_count
+
+        original = tracer_module._batch_span_processor
+        mock_processor = MagicMock()
+        mock_processor._dropped_spans = 42
+        tracer_module._batch_span_processor = mock_processor
+        try:
+            assert get_span_drop_count() == 42
+        finally:
+            tracer_module._batch_span_processor = original
+
+    def test_returns_zero_when_attribute_missing(self):
+        """Returns 0 via getattr default when _dropped_spans not present."""
+        import obskit.tracing.tracer as tracer_module
+        from obskit.tracing.tracer import get_span_drop_count
+
+        original = tracer_module._batch_span_processor
+        # Object without _dropped_spans attribute
+        tracer_module._batch_span_processor = object()
+        try:
+            assert get_span_drop_count() == 0
+        finally:
+            tracer_module._batch_span_processor = original

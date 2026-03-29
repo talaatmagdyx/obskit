@@ -359,3 +359,27 @@ class TestObskitInitGetattr:
 
         with pytest.raises(AttributeError, match="has no attribute"):
             _ = obskit.this_does_not_exist_anywhere
+
+
+class TestObskitSettingsSecretMasking:
+    """Tests for model_dump() secret masking and __str__ (lines 673-682)."""
+
+    def test_model_dump_redacts_metrics_auth_token(self):
+        """model_dump() replaces metrics_auth_token with [REDACTED] (lines 673-677)."""
+        settings = ObskitSettings(metrics_auth_token="super-secret-token")
+        data = settings.model_dump()
+        assert data["metrics_auth_token"] == "[REDACTED]"
+
+    def test_model_dump_leaves_empty_token_unchanged(self):
+        """model_dump() does not redact falsy (empty string) token values."""
+        settings = ObskitSettings(metrics_auth_token="")
+        data = settings.model_dump()
+        assert data["metrics_auth_token"] == ""
+
+    def test_str_redacts_secrets(self):
+        """__str__() produces a string with secrets redacted (lines 681-682)."""
+        settings = ObskitSettings(metrics_auth_token="my-token")
+        result = str(settings)
+        assert "my-token" not in result
+        assert "[REDACTED]" in result
+        assert result.startswith("ObskitSettings(")

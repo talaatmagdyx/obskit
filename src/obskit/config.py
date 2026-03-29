@@ -111,7 +111,7 @@ from __future__ import annotations
 import threading
 import warnings
 from enum import StrEnum
-from typing import Literal
+from typing import Any, Literal
 
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -658,6 +658,28 @@ class ObskitSettings(BaseSettings):
             "Only applies if metrics_rate_limit_enabled=True."
         ),
     )
+
+    # Names of fields whose values must be masked in any serialised output.
+    # Extend this tuple when adding new secret fields to ObskitSettings.
+    _SECRET_FIELDS: tuple[str, ...] = ("metrics_auth_token",)
+
+    def model_dump(self, **kwargs: Any) -> dict[str, Any]:
+        """Return settings as a dict, with secret fields replaced by ``[REDACTED]``.
+
+        This prevents credentials leaking when the settings object is passed to
+        ``logger.info("config_loaded", settings=settings.model_dump())`` or
+        similar patterns.
+        """
+        data: dict[str, Any] = super().model_dump(**kwargs)
+        for field in self._SECRET_FIELDS:
+            if data.get(field):
+                data[field] = "[REDACTED]"
+        return data
+
+    def __str__(self) -> str:
+        """String representation with secrets redacted."""
+        safe = self.model_dump()
+        return f"ObskitSettings({safe})"
 
 
 # =============================================================================

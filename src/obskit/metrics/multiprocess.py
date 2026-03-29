@@ -169,3 +169,19 @@ def child_exit(server: Any, worker: Any) -> None:  # pragma: no cover
     """
     if PROMETHEUS_AVAILABLE and is_multiprocess_mode():
         prometheus_client.multiprocess.mark_process_dead(worker.pid)  # type: ignore[no-untyped-call]
+
+        # Also delete the worker's metric files so the multiprocess directory
+        # does not accumulate stale files over repeated gunicorn reloads
+        # (SIGHUP).  prometheus_client names files like
+        # ``<metric_type>_<pid>.db`` so we match on the pid suffix.
+        mp_dir = os.environ.get("PROMETHEUS_MULTIPROC_DIR") or os.environ.get(
+            "prometheus_multiproc_dir", ""
+        )
+        if mp_dir and os.path.isdir(mp_dir):
+            pid_suffix = f"_{worker.pid}.db"
+            for filename in os.listdir(mp_dir):
+                if filename.endswith(pid_suffix):
+                    try:
+                        os.unlink(os.path.join(mp_dir, filename))
+                    except OSError:
+                        pass  # Non-critical; file may already be removed

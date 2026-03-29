@@ -48,6 +48,8 @@ T = TypeVar("T")
 _tracer: Tracer | None = None
 _configured = False
 _tracer_lock = threading.Lock()
+# Reference to the BatchSpanProcessor so callers can inspect dropped-span count.
+_batch_span_processor: object = None
 
 
 def configure_tracing(
@@ -177,6 +179,8 @@ def configure_tracing(
                     export_timeout_millis=int(export_timeout * 1000),
                 )
                 provider.add_span_processor(processor)
+                # Store processor reference so get_span_drop_count() can inspect it.
+                _batch_span_processor = processor
             except ImportError:  # pragma: no cover
                 pass  # NOSONAR
 
@@ -562,14 +566,19 @@ def set_baggage(key: str, value: str) -> Any:
             "Values must be ASCII printable (no control characters)."
         )
 
-    if len(key) > _BAGGAGE_MAX_KEY_LEN:
+    # Validate byte length (not char length) because keys/values are transmitted
+    # as HTTP header bytes.  All valid baggage keys are ASCII so char == byte,
+    # but values may contain percent-encoded UTF-8 sequences that inflate size.
+    key_bytes = len(key.encode("ascii"))  # already validated as ASCII above
+    if key_bytes > _BAGGAGE_MAX_KEY_LEN:
         raise ValueError(
-            f"baggage key too long ({len(key)} chars, max {_BAGGAGE_MAX_KEY_LEN}). "
+            f"baggage key too long ({key_bytes} bytes, max {_BAGGAGE_MAX_KEY_LEN}). "
             "Oversized baggage causes memory exhaustion in downstream services."
         )
-    if len(value) > _BAGGAGE_MAX_VALUE_LEN:
+    value_bytes = len(value.encode("ascii"))  # already validated as ASCII above
+    if value_bytes > _BAGGAGE_MAX_VALUE_LEN:
         raise ValueError(
-            f"baggage value for key {key!r} too long ({len(value)} chars, "
+            f"baggage value for key {key!r} too long ({value_bytes} bytes, "
             f"max {_BAGGAGE_MAX_VALUE_LEN})."
         )
 
@@ -774,6 +783,35 @@ def tracing_lifespan() -> Generator[None, None, None]:
         yield
     finally:
         shutdown_tracing()
+
+
+def get_span_drop_count() -> int:
+    """Return the cumulative number of spans dropped by the BatchSpanProcessor.
+
+    When the export queue is full (OTLP endpoint slow or unreachable) the
+    processor silently drops new spans.  Poll this periodically and alert
+    when the value is non-zero so operators can tune
+    ``OBSKIT_TRACE_EXPORT_QUEUE_SIZE`` or reduce ``OBSKIT_TRACE_SAMPLE_RATE``.
+
+    Returns
+    -------
+    int
+        Number of spans dropped since process start.  Returns 0 when tracing
+        is disabled or the processor does not expose drop counts.
+
+    Example::
+
+        from obskit.tracing.tracer import get_span_drop_count
+
+        dropped = get_span_drop_count()
+        if dropped > 0:
+            logger.warning("spans_dropped", count=dropped,
+                           hint="Increase OBSKIT_TRACE_EXPORT_QUEUE_SIZE")
+    """
+    if _batch_span_processor is None:
+        return 0
+    # OpenTelemetry BatchSpanProcessor exposes _dropped_spans (private but stable).
+    return int(getattr(_batch_span_processor, "_dropped_spans", 0))
 
 
 def setup_signal_handlers() -> None:  # pragma: no cover

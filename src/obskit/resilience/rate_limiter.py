@@ -293,7 +293,7 @@ class RateLimiter:
 
     def _cleanup_old_requests_unlocked(self) -> None:
         """Remove stale entries — caller MUST hold self._lock."""
-        cutoff = time.time() - self.window_seconds
+        cutoff = time.monotonic() - self.window_seconds
         while self._request_times and self._request_times[0] < cutoff:
             self._request_times.popleft()
 
@@ -307,7 +307,7 @@ class RateLimiter:
 
         oldest = self._request_times[0]
         expiry = oldest + self.window_seconds
-        return max(0.0, expiry - time.time())
+        return max(0.0, expiry - time.monotonic())
 
     def would_exceed(self) -> bool:
         """
@@ -351,7 +351,7 @@ class RateLimiter:
             if len(self._request_times) >= self.requests:
                 return False
 
-            self._request_times.append(time.time())
+            self._request_times.append(time.monotonic())
             return True
 
     async def __aenter__(self) -> RateLimiter:
@@ -382,7 +382,7 @@ class RateLimiter:
                     retry_after=retry_after,
                 )
 
-            self._request_times.append(time.time())
+            self._request_times.append(time.monotonic())
             return self
 
     async def __aexit__(
@@ -485,7 +485,7 @@ class TokenBucketRateLimiter:
         self.refill_rate = refill_rate
 
         self._tokens = float(initial_tokens if initial_tokens is not None else bucket_size)
-        self._last_refill = time.time()
+        self._last_refill = time.monotonic()
 
         # Lazy asyncio.Lock to avoid "no running event loop" errors at construction time.
         # The lock is created on first use inside an async context.
@@ -505,7 +505,7 @@ class TokenBucketRateLimiter:
 
     def _refill(self) -> None:
         """Add tokens based on elapsed time."""
-        now = time.time()
+        now = time.monotonic()
         elapsed = now - self._last_refill
 
         # Add tokens based on elapsed time

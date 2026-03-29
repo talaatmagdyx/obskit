@@ -480,7 +480,7 @@ class CircuitBreaker:
             if self._state == CircuitState.OPEN:
                 # Check if recovery timeout has elapsed
                 if self._last_failure_time is not None:  # pragma: no branch
-                    elapsed = time.time() - self._last_failure_time
+                    elapsed = time.monotonic() - self._last_failure_time
                     if elapsed >= self._recovery_timeout:
                         # Transition to half-open
                         self._state = CircuitState.HALF_OPEN
@@ -503,7 +503,7 @@ class CircuitBreaker:
         if self._last_failure_time is None:
             return 0.0
 
-        elapsed = time.time() - self._last_failure_time
+        elapsed = time.monotonic() - self._last_failure_time
         return max(0.0, self._recovery_timeout - elapsed)
 
     async def _record_success(self) -> None:  # NOSONAR
@@ -540,7 +540,7 @@ class CircuitBreaker:
                 return
 
             self._failure_count += 1
-            self._last_failure_time = time.time()
+            self._last_failure_time = time.monotonic()
 
             if self._state == CircuitState.HALF_OPEN:
                 # Single failure in half-open reopens the circuit
@@ -706,7 +706,7 @@ class CircuitBreaker:
             if self._state == CircuitState.OPEN:
                 # Check if recovery timeout has elapsed
                 if self._last_failure_time is not None:
-                    elapsed = time.time() - self._last_failure_time
+                    elapsed = time.monotonic() - self._last_failure_time
                     if elapsed >= self._recovery_timeout:
                         # Transition to half-open
                         self._state = CircuitState.HALF_OPEN
@@ -765,7 +765,7 @@ class CircuitBreaker:
                 return
 
             self._failure_count += 1
-            self._last_failure_time = time.time()
+            self._last_failure_time = time.monotonic()
             error_str, error_type = self._error_details(error)
 
             if self._state == CircuitState.HALF_OPEN:
