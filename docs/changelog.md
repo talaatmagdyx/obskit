@@ -12,6 +12,26 @@ No unreleased changes at this time.
 
 ---
 
+## [3.3.0] — 2026-03-29
+
+### Added
+
+- **`tracing.tracer.get_span_drop_count()`** — returns the cumulative number of spans dropped by the `BatchSpanProcessor`; enables alerting when span data is silently lost under high load (queue full).
+
+### Fixed
+
+- **`resilience.circuit_breaker`** — replaced `time.time()` with `time.monotonic()` for all elapsed-time comparisons; prevents circuit breaker getting permanently stuck open when NTP adjusts the system clock backward.
+- **`resilience.rate_limiter`** — replaced `time.time()` with `time.monotonic()` in sliding-window and token-bucket implementations; eliminates false allow/deny decisions under NTP clock skew.
+- **`metrics.registry`** — added `thread.join(timeout=5.0)` after `server.shutdown()` in `stop_http_server()`; prevents process hang under Kubernetes `terminationGracePeriodSeconds` when the metrics server thread doesn't exit promptly.
+- **`metrics.red`** — fixed dead-code bug in operation label validation: changed character-check regex from `{1,128}` to `+` so the hash-truncation branch for labels >128 chars is actually reachable; two-tier protection now correctly separates character validation from length enforcement.
+- **`config.ObskitSettings`** — overrode `model_dump()` to replace `metrics_auth_token` with `[REDACTED]`; prevents credential leakage when settings objects are serialised into log records or error reports.
+- **`tracing.tracer`** — fixed W3C baggage validation to use byte length (`len(value.encode("ascii"))`) instead of character length; correctly rejects multi-byte characters that would exceed the 4096-byte HTTP header limit.
+- **`metrics.multiprocess.child_exit`** — added worker `.db` file deletion loop after `mark_process_dead()`; prevents unbounded file accumulation in `PROMETHEUS_MULTIPROC_DIR` across repeated gunicorn `SIGHUP` reloads.
+- **`middleware.fastapi`** — 404 responses with no matched route now use `unmatched_route` as the operation label; prevents Prometheus cardinality explosion from bots/attackers probing random paths.
+- **docs** — fixed `mkdocs build --strict` failure: `pymdownx.highlight anchor_linenums: true` passed `filename=None` to pygments `HtmlFormatter` (pygments ≥ 2.18 calls `html.escape()` on it); changed to `anchor_linenums: false`.
+
+---
+
 ## [3.2.0] — 2026-03-29
 
 ### Added

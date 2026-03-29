@@ -1,6 +1,6 @@
 [project]
 name = "obskit"
-version = "3.2.0"
+version = "3.3.0"
 description = "Production-ready observability toolkit for Python microservices"
 readme = "README.md"
 license = "MIT"

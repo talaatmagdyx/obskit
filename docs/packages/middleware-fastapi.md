@@ -163,8 +163,8 @@ app.include_router(create_diagnose_router(), prefix="")
 ```json
 {
   "packages": [
-    {"name": "obskit", "installed": true, "version": "3.2.0", "integrations": [...]},
-    {"name": "obskit", "installed": true, "version": "3.2.0", "integrations": [...]}
+    {"name": "obskit", "installed": true, "version": "3.3.0", "integrations": [...]},
+    {"name": "obskit", "installed": true, "version": "3.3.0", "integrations": [...]}
   ],
   "python": "3.12.1",
   "executable": "/usr/local/bin/python3"

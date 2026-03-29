@@ -5,6 +5,31 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.3.0](https://github.com/talaatmagdyx/obskit/compare/v3.2.0...v3.3.0) (2026-03-29)
+
+### 🚀 Features
+
+* **tracing/tracer:** add `get_span_drop_count()` to expose cumulative spans dropped by `BatchSpanProcessor` — enables alerting on span data loss under high load
+
+### 🐛 Bug Fixes
+
+* **resilience/circuit_breaker:** replace `time.time()` with `time.monotonic()` — prevents circuit breaker getting permanently stuck when NTP adjusts clock backward
+* **resilience/rate_limiter:** replace `time.time()` with `time.monotonic()` in sliding window and token bucket — eliminates false rate-limit allow/deny under NTP clock skew
+* **metrics/registry:** join metrics HTTP server thread with `timeout=5.0` on shutdown — prevents process hang under Kubernetes `terminationGracePeriodSeconds`
+* **metrics/red:** two-tier operation label cardinality guard — invalid characters → `invalid_operation`; valid but >128 chars → stable hash-suffixed truncation; fixes dead code in regex that prevented hash-truncation branch from being reached
+* **config:** override `model_dump()` in `ObskitSettings` to redact `metrics_auth_token` — prevents secret leakage when settings are serialised into log records
+* **tracing/tracer:** fix W3C baggage validation to use byte length (`len(value.encode("ascii"))`) not char length — correctly rejects multi-byte characters that exceed the 4096-byte HTTP header limit
+* **metrics/multiprocess:** delete worker `.db` files in `child_exit` hook after `mark_process_dead()` — prevents unbounded file accumulation across repeated gunicorn `SIGHUP` reloads
+* **middleware/fastapi:** normalise 404 responses with no matched route to `unmatched_route` operation label — prevents Prometheus cardinality explosion from bot/attacker probing of random paths
+* **docs:** fix `mkdocs build --strict` failure caused by `pymdownx.highlight anchor_linenums: true` passing `filename=None` to pygments `HtmlFormatter` (pygments ≥ 2.18 calls `html.escape()` on it)
+
+### 🧪 Tests
+
+* add `TestGetSpanDropCount` — covers `get_span_drop_count()` with and without a processor
+* add `TestObskitSettingsSecretMasking` — covers `model_dump()` redaction and `__str__()` repr
+* add `test_middleware_404_unmatched_route_normalised` — covers 404 cardinality normalisation path
+* all 4082 tests pass, 100% branch coverage maintained
+
 ## [3.2.0](https://github.com/talaatmagdyx/obskit/compare/v3.1.0...v3.2.0) (2026-03-29)
 
 

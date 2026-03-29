@@ -112,7 +112,7 @@ CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
 ### Example `requirements.txt`
 
 ```text
-"obskit[prometheus,otlp,fastapi]==3.2.0"
+"obskit[prometheus,otlp,fastapi]==3.3.0"
 fastapi==0.115.0
 uvicorn[standard]==0.30.0
 ```
@@ -167,11 +167,11 @@ python -m obskit.core.diagnose
 Expected output (all extras installed, OTLP reachable):
 
 ```
-obskit v3.2.0 — Diagnostic Report
+obskit v3.3.0 — Diagnostic Report
 ══════════════════════════════════════════════════════════════
   Component          Status
   ─────────────────────────────────────────────────────────
-  obskit             3.2.0     OK
+  obskit             3.3.0     OK
   prometheus         OK
   otlp               OK
   fastapi            OK
@@ -280,7 +280,7 @@ obskit reads its configuration exclusively from environment variables (no config
 # .env (local development)
 OBSKIT_SERVICE_NAME=order-service
 OBSKIT_ENVIRONMENT=development
-OBSKIT_VERSION=3.2.0
+OBSKIT_VERSION=3.3.0
 
 OBSKIT_OTLP_ENDPOINT=http://localhost:4317
 OBSKIT_TRACE_SAMPLE_RATE=1.0
@@ -295,7 +295,7 @@ OBSKIT_METRICS_PORT=9090
 # .env.production
 OBSKIT_SERVICE_NAME=order-service
 OBSKIT_ENVIRONMENT=production
-OBSKIT_VERSION=3.2.0
+OBSKIT_VERSION=3.3.0
 
 OBSKIT_OTLP_ENDPOINT=http://otel-collector.monitoring.svc.cluster.local:4317
 OBSKIT_OTLP_INSECURE=false
