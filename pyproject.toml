@@ -127,10 +127,6 @@ dev = [
     "mkdocs>=1.6.0,<2.0.0",
     "mkdocs-material>=9.5.0,<10.0.0",
     "mkdocstrings[python]>=0.25.0,<1.0.0",
-    # pymdownx 10.x introduced a bug where code blocks without a title pass
-    # filename=None to pygments HtmlFormatter, which crashes on html.escape(None)
-    # in pygments>=2.18. Pin to 9.x which uses `if title: options['filename']=title`.
-    "pymdownx>=9.9.0,<10.0.0",
     "mike>=2.0.0,<3.0.0",
     # Conventional commits / release tooling
     "commitizen>=3.0.0,<5.0.0",
