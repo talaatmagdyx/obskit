@@ -43,7 +43,7 @@ jobs:
             || true
 
       - name: Upload audit report
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         if: always()
         with:
           name: pip-audit-report
@@ -89,7 +89,7 @@ jobs:
                     -o bandit-report.json || true
 
       - name: Upload bandit report
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         if: always()
         with:
           name: bandit-report
@@ -135,7 +135,7 @@ jobs:
           uv run pip-licenses --fail-on="GPL;AGPL;LGPL" --allow-only="MIT;Apache;BSD;ISC;PSF;MPL;Unlicense;WTFPL;CC0" || echo "Warning: Check license report"
 
       - name: Upload license report
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         if: always()
         with:
           name: license-report
