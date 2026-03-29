@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [3.2.0](https://github.com/talaatmagdyx/obskit/compare/v3.1.0...v3.2.0) (2026-03-29)
 
+
+### 🚀 Features
+
+* release v3.2.0 — 100% coverage, redaction module, multiprocess metrics, tracing fixes ([4e011df](https://github.com/talaatmagdyx/obskit/commit/4e011df231bc981ce696435efd89f2aff91cc073))
+
+
+### 🐛 Bug Fixes
+
+* **ci:** ignore unfixable pygments CVE-2026-4539 in pip-audit ([eb74be8](https://github.com/talaatmagdyx/obskit/commit/eb74be82cc250b2ebf514c5eb63b18dcb17c1181))
+
+
+### 📚 Documentation
+
+* update documentation for v3.2.0 ([9258e97](https://github.com/talaatmagdyx/obskit/commit/9258e97af3127e0b064f308b5ce8d6a23e17210f))
+
+## [3.2.0](https://github.com/talaatmagdyx/obskit/compare/v3.1.0...v3.2.0) (2026-03-29)
+
 ### 🐛 Bug Fixes
 
 * **resilience/retry:** mark unreachable `except AttributeError` branches in `_is_permanent_http_failure` as `# pragma: no cover` — `getattr(obj, attr, default)` (3-arg form) never raises `AttributeError`, so these defensive guards were dead code surfaced only by coverage
