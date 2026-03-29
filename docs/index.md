@@ -9,6 +9,7 @@ obskit is a single package with optional extras that brings structured logging, 
 | Feature | Extra | Install |
 |---------|-------|---------|
 | Structured logging + trace correlation | _(core, always included)_ | `pip install obskit` |
+| Sensitive field redaction (structlog processor) | _(core, always included)_ | `pip install obskit` |
 | Health check framework | _(core, always included)_ | `pip install obskit` |
 | Circuit breaker / load shedding | _(core, always included)_ | `pip install obskit` |
 | SLO tracking + alerting | _(core, always included)_ | `pip install obskit` |
@@ -54,5 +55,5 @@ log.info("order_placed", order_id="123", user_id="u-456")
 - **Single package** — one `pip install obskit`, add extras only for what you use
 - **Zero import changes** — `from obskit.logging import get_logger` works regardless of which extras are installed
 - **Graceful degradation** — optional integrations (OTel, Prometheus) no-op when their extra is not installed
-- **100% test coverage** on all components
+- **100% test coverage** on all components (4,075 tests, enforced in CI)
 - **PEP 561 typed** — full mypy support out of the box

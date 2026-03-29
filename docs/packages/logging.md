@@ -394,6 +394,69 @@ stats = get_sampling_stats()
 
 ---
 
+## Sensitive field redaction
+
+`obskit.logging.redaction` provides a structlog processor that replaces the values of sensitive log fields with a placeholder before they are rendered or shipped to a log aggregator. It performs **case-insensitive substring matching** on field names — a field named `access_token` is redacted even if only `token` is listed.
+
+### Zero-config usage
+
+```python
+import structlog
+from obskit.logging.redaction import redact_sensitive_fields
+
+structlog.configure(
+    processors=[
+        redact_sensitive_fields,               # default 11-field set
+        structlog.processors.JSONRenderer(),
+    ]
+)
+```
+
+The singleton covers the default sensitive fields: `password`, `passwd`, `secret`, `token`, `api_key`, `apikey`, `auth`, `credential`, `private_key`, `access_key`, `bearer`.
+
+### Custom fields and placeholder
+
+```python
+from obskit.logging.redaction import make_redaction_processor
+
+processor = make_redaction_processor(
+    fields={"password", "token", "ssn", "credit_card"},
+    placeholder="***",
+)
+
+# Verify behaviour:
+result = processor(None, "info", {"event": "login", "password": "s3cr3t", "user": "alice"})
+# {"event": "login", "password": "***", "user": "alice"}
+```
+
+### Nested dict support
+
+The processor recurses into nested dicts (up to 10 levels deep) and handles circular references safely:
+
+```python
+result = processor(None, "info", {
+    "event": "api_call",
+    "headers": {
+        "Authorization": "Bearer tok123",   # "auth" substring → redacted
+        "Content-Type": "application/json",
+    },
+})
+# headers.Authorization → "***"
+# headers.Content-Type  → preserved
+```
+
+### DEFAULT_SENSITIVE_FIELDS
+
+```python
+from obskit.logging.redaction import DEFAULT_SENSITIVE_FIELDS
+
+# Extend the defaults
+my_fields = DEFAULT_SENSITIVE_FIELDS | {"ssn", "credit_card"}
+processor = make_redaction_processor(fields=my_fields)
+```
+
+---
+
 ## JSON processor pipeline
 
 Full structlog pipeline that mirrors the default obskit configuration:

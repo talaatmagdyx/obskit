@@ -28,7 +28,36 @@ Personal Identifiable Information (PII) must never appear in logs, metric labels
 
 ## Configuring PII Redaction
 
-### Basic setup
+### Using `obskit.logging.redaction` (recommended)
+
+The `redaction` module provides a structlog processor with zero configuration required:
+
+```python
+import structlog
+from obskit.logging.redaction import redact_sensitive_fields
+
+structlog.configure(
+    processors=[
+        redact_sensitive_fields,    # default 11-field set, case-insensitive substring match
+        structlog.processors.JSONRenderer(),
+    ]
+)
+```
+
+For custom fields:
+
+```python
+from obskit.logging.redaction import make_redaction_processor, DEFAULT_SENSITIVE_FIELDS
+
+processor = make_redaction_processor(
+    fields=DEFAULT_SENSITIVE_FIELDS | {"ssn", "credit_card", "dob"},
+    placeholder="[REDACTED]",
+)
+```
+
+The processor recurses into nested dicts (10 levels deep), detects circular references, and never mutates the original event dict.
+
+### Using `configure_logging` (high-level API)
 
 ```python
 from obskit.logging import configure_logging

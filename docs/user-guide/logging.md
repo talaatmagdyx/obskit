@@ -404,9 +404,41 @@ Sampling is applied **per log level** and is deterministic within a trace — if
 
 ---
 
-## PII Field Filtering
+## Sensitive Field Redaction
 
-Configure which fields should be redacted before log lines are written:
+obskit ships a built-in structlog processor (`obskit.logging.redaction`) that automatically redacts sensitive fields before any log line is written or exported.
+
+### Zero-config (recommended)
+
+```python
+import structlog
+from obskit.logging.redaction import redact_sensitive_fields
+
+structlog.configure(
+    processors=[
+        redact_sensitive_fields,          # covers the default 11-field set
+        structlog.processors.JSONRenderer(),
+    ]
+)
+```
+
+The default set covers: `password`, `passwd`, `secret`, `token`, `api_key`, `apikey`, `auth`, `credential`, `private_key`, `access_key`, `bearer`.
+Matching is **case-insensitive substring** — `Authorization`, `access_token`, and `bearer_token` are all caught.
+
+### Custom fields
+
+```python
+from obskit.logging.redaction import make_redaction_processor, DEFAULT_SENSITIVE_FIELDS
+
+processor = make_redaction_processor(
+    fields=DEFAULT_SENSITIVE_FIELDS | {"ssn", "credit_card", "dob"},
+    placeholder="[REDACTED]",
+)
+```
+
+### configure_logging PII fields
+
+For the high-level API, pass `pii_fields` directly:
 
 ```python
 from obskit.logging import configure_logging
@@ -421,7 +453,7 @@ configure_logging(
 )
 ```
 
-See the [PII guide](pii.md) for full configuration and compliance details.
+See the [PII guide](pii.md) for full compliance and audit-logging details.
 
 ---
 

@@ -12,6 +12,43 @@ No unreleased changes at this time.
 
 ---
 
+## [3.2.0] — 2026-03-29
+
+### Added
+
+- **`obskit.logging.redaction`** — new module providing structured-log sensitive-field redaction as a structlog processor.
+  - `make_redaction_processor(fields, placeholder)` — factory that returns a processor redacting any log field whose name contains a sensitive substring (case-insensitive). Supports recursive dict traversal up to 10 levels deep, circular-reference detection, and custom field sets / placeholders.
+  - `redact_sensitive_fields` — zero-config singleton with the default 11-field set (`password`, `passwd`, `secret`, `token`, `api_key`, `apikey`, `auth`, `credential`, `private_key`, `access_key`, `bearer`).
+  - `DEFAULT_SENSITIVE_FIELDS` — the frozenset of default patterns; importable for extension.
+
+- **`obskit.metrics.multiprocess`** — new module with Prometheus multiprocess-mode helpers for Gunicorn/uWSGI deployments.
+  - `is_multiprocess_mode()` — returns `True` when `PROMETHEUS_MULTIPROC_DIR` or `prometheus_multiproc_dir` env vars are set and non-empty.
+  - `setup_multiprocess_registry()` — returns a `CollectorRegistry` configured for multiprocess scraping; creates the directory if needed, raises `RuntimeError` on permission errors.
+  - `make_multiprocess_app(registry)` — wraps the registry in a WSGI app suitable for mounting at `/metrics`.
+
+### Fixed
+
+- **`resilience/retry`** — unreachable `except AttributeError` branches in `_is_permanent_http_failure` marked `# pragma: no cover` (3-arg `getattr` never raises `AttributeError`).
+- **`tracing/tracer`** — `set_baggage()` now correctly raises `ValueError` for non-ASCII characters, control characters, and keys/values exceeding `_BAGGAGE_MAX_KEY_LEN` / `_BAGGAGE_MAX_VALUE_LEN`.
+- **`tracing/tracer`** — `extract_trace_context()` safely truncates oversized `tracestate` headers (>512 bytes); lazy regex reset correctly re-compiles `_W3C_TRACEPARENT_RE` when the global is set to `None`.
+- **`tracing/auto`** — `get_failed_instrumentors()` returns a snapshot copy; instrumentors that previously failed can be retried when explicitly re-requested.
+- **`middleware/fastapi`** — corrected Starlette type-ignore comments: `Scope` and `Message` require `[misc,assignment]`; `ASGIApp`, `Receive`, `Send` need only `[misc]`.
+- **`logging/redaction`** — fixed mypy `no-any-return` type-ignore annotation on `_redact_value` return.
+- **`metrics/red`, `config`, `logging/logger`, `metrics/registry`** — all inner double-check locking branches marked `# pragma: no cover`.
+
+### Tests
+
+- **100% test coverage** — 4,075 tests, 0 missed statements, 0 missed branches.
+- New: `tests/unit/logging/test_redaction.py` — full coverage of the redaction module.
+- New: `tests/unit/metrics/test_multiprocess.py` — full coverage of multiprocess helpers.
+- Extended: retry, tracing/auto, tracing/tracer, middleware/fastapi, health/router, metrics/red, metrics/auth, resilience/rate_limiter, config tests.
+
+### CI
+
+- All workflows pass: `ruff check`, `ruff format --check`, `mypy` (140 source files, no issues), `pytest --cov-fail-under=100`.
+
+---
+
 ## [2.0.0] — 2025 Q1
 
 This is the **monorepo release** of obskit.  The single `obskit` wheel has been

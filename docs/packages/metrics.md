@@ -317,6 +317,70 @@ scrape_configs:
 
 ---
 
+## Multiprocess mode (Gunicorn / uWSGI)
+
+When running multiple worker processes (Gunicorn, uWSGI) each process has its own Prometheus registry. Without coordination, scraping `/metrics` from any single worker returns only that worker's counters. `obskit.metrics.multiprocess` handles the setup automatically.
+
+```python
+from obskit.metrics.multiprocess import (
+    is_multiprocess_mode,
+    setup_multiprocess_registry,
+    make_multiprocess_app,
+)
+```
+
+### Detection
+
+```python
+# Returns True when PROMETHEUS_MULTIPROC_DIR or prometheus_multiproc_dir is set
+if is_multiprocess_mode():
+    print("Running in multiprocess mode")
+```
+
+### Registry setup
+
+```python
+registry = setup_multiprocess_registry()
+# - Returns the default REGISTRY in single-process mode
+# - In multiprocess mode: creates the multiproc dir if it doesn't exist,
+#   raises RuntimeError if the dir is not writable,
+#   returns a CollectorRegistry with MultiProcessCollector attached
+```
+
+### WSGI metrics app
+
+```python
+# Serve /metrics from a dedicated WSGI endpoint
+metrics_app = make_multiprocess_app(registry)
+```
+
+### Gunicorn integration
+
+```python
+# gunicorn_config.py
+import os
+from obskit.metrics.multiprocess import setup_multiprocess_registry
+
+def child_exit(server, worker):
+    """Called by Gunicorn when a worker exits — clean up multiproc files."""
+    from prometheus_client import multiprocess
+    multiprocess.mark_process_dead(worker.pid)
+
+os.environ.setdefault("PROMETHEUS_MULTIPROC_DIR", "/tmp/prometheus_multiproc")
+```
+
+### Environment variables
+
+| Variable | Description |
+|---|---|
+| `PROMETHEUS_MULTIPROC_DIR` | Directory where each worker writes its metrics files |
+| `prometheus_multiproc_dir` | Lowercase alias (both are checked) |
+
+!!! warning "Directory must be writable"
+    The multiproc directory must exist and be writable by all worker processes. If `setup_multiprocess_registry()` cannot create or write to the directory it raises `RuntimeError` with a descriptive message.
+
+---
+
 ## Full example
 
 ```python

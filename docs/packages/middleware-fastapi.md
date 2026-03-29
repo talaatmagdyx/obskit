@@ -62,7 +62,7 @@ app.add_middleware(
 
 | Parameter | Type | Default | Description |
 |---|---|---|---|
-| `exclude_paths` | `list[str]` | `["/health", "/ready", "/live", "/metrics"]` | Path prefixes excluded from observability overhead |
+| `exclude_paths` | `list[str]` | `["/health", "/ready", "/live", "/metrics"]` | Path prefixes excluded from observability overhead. Sub-paths are also excluded (e.g. `/health` also skips `/health/detail`) |
 | `track_metrics` | `bool` | `True` | Collect RED metrics for every request |
 | `track_logging` | `bool` | `True` | Emit structured log entries per request |
 | `track_tracing` | `bool` | `True` | Create an OTel span per request |
@@ -163,8 +163,8 @@ app.include_router(create_diagnose_router(), prefix="")
 ```json
 {
   "packages": [
-    {"name": "obskit", "installed": true, "version": "2.0.0", "integrations": [...]},
-    {"name": "obskit", "installed": true, "version": "2.0.0", "integrations": [...]}
+    {"name": "obskit", "installed": true, "version": "3.2.0", "integrations": [...]},
+    {"name": "obskit", "installed": true, "version": "3.2.0", "integrations": [...]}
   ],
   "python": "3.12.1",
   "executable": "/usr/local/bin/python3"
@@ -173,6 +173,22 @@ app.include_router(create_diagnose_router(), prefix="")
 
 !!! warning "Security note"
     The `/diagnose` endpoint exposes internal version and package information. Restrict access to internal networks or add authentication before exposing it externally.
+
+---
+
+## Correlation ID validation
+
+The middleware validates the incoming `X-Correlation-ID` header before accepting it. Only values matching `[a-zA-Z0-9\-_\.]{1,128}` are accepted. Invalid values (containing spaces, special characters, or exceeding 128 characters) are silently discarded and a fresh UUID is generated.
+
+```
+# Valid — accepted as-is
+X-Correlation-ID: f47ac10b-58cc-4372-a567-0e02b2c3d479
+
+# Invalid — discarded, new ID generated
+X-Correlation-ID: invalid id with spaces!!!
+```
+
+The validated correlation ID is echoed back in the response `X-Correlation-ID` header so callers can use it for end-to-end tracing.
 
 ---
 
