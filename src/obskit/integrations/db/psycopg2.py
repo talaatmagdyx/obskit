@@ -3,6 +3,7 @@ psycopg2 OpenTelemetry instrumentation for obskit.
 
 Requires: pip install obskit[psycopg2]  or  obskit[integrations]
 """
+
 from __future__ import annotations
 
 from typing import Any

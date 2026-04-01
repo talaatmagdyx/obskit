@@ -5,6 +5,7 @@ Supports both sync psycopg.Connection and async psycopg.AsyncConnection.
 
 Requires: pip install obskit[psycopg3]  or  obskit[integrations]
 """
+
 from __future__ import annotations
 
 from typing import Any

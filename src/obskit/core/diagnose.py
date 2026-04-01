@@ -187,9 +187,7 @@ def _check_tracing() -> PackageInfo:
         # Probe TCP reachability of the configured endpoint
         if endpoint not in {"(not configured)", "(unavailable)"}:
             reachable, detail = _check_otlp_reachable(endpoint)
-            integrations.append(
-                IntegrationInfo("otlp-reachable", reachable, detail)
-            )
+            integrations.append(IntegrationInfo("otlp-reachable", reachable, detail))
     return PackageInfo(
         name="obskit-tracing", installed=ver is not None, version=ver, integrations=integrations
     )

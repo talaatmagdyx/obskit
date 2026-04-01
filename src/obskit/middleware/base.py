@@ -35,6 +35,7 @@ def set_tenant_id(tenant_id: str | None) -> None:
     """Set the current tenant ID in context."""
     _tenant_id.set(tenant_id)
 
+
 logger = get_logger("obskit.middleware")
 
 # Standard headers for context propagation
