@@ -554,7 +554,7 @@ class REDMetrics:
             )
             # Hash the full name so two different long operations never collapse into
             # the same series (plain prefix truncation would merge them silently).
-            _suffix = _hashlib.md5(operation.encode(), usedforsecurity=False).hexdigest()[:8]
+            _suffix = _hashlib.sha256(operation.encode(), usedforsecurity=False).hexdigest()[:8]  # NOSONAR
             operation = operation[:119] + "_" + _suffix  # 119 + 1 + 8 = 128 chars
 
         # Always record errors to ensure error visibility
@@ -569,7 +569,7 @@ class REDMetrics:
 
         # Apply sampling for duration observations only
         # nosec B311 - random is used for metric sampling, not security
-        if self._sample_rate < 1.0 and random.random() > self._sample_rate:  # nosec B311
+        if self._sample_rate < 1.0 and random.random() > self._sample_rate:  # nosec B311  # NOSONAR
             return  # Skip duration observations; counters already recorded above
 
         # Record duration in histogram if enabled

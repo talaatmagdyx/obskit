@@ -126,7 +126,7 @@ def sample_log(
     # Apply sampling for other log levels
     # nosec B311 - random is used for log sampling, not security
     if (
-        sample_rate < 1.0 and random.random() > sample_rate  # nosec B311
+        sample_rate < 1.0 and random.random() > sample_rate  # nosec B311  # NOSONAR
     ):
         raise structlog.DropEvent()
 

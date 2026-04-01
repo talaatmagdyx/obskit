@@ -251,7 +251,7 @@ class SLOTracker:
             if len(values) > _MAX_SORT:
                 import random as _rnd  # noqa: PLC0415
 
-                values = _rnd.sample(values, _MAX_SORT)
+                values = _rnd.sample(values, _MAX_SORT)  # NOSONAR
             values.sort()
             if target.percentile:
                 # Nearest-rank percentile (0-indexed).

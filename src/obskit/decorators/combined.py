@@ -234,7 +234,7 @@ def with_observability(
             # =================================================================
             # Step 0: Sampling gate — skip pipeline for non-sampled calls
             # =================================================================
-            if sample_rate < 1.0 and random.random() >= sample_rate:
+            if sample_rate < 1.0 and random.random() >= sample_rate:  # NOSONAR
                 return await func(*args, **kwargs)
 
             # =================================================================
@@ -456,7 +456,7 @@ def with_observability_sync(
         @wraps(func)
         def wrapper(*args: P.args, **kwargs: P.kwargs) -> T:
             # Sampling gate — skip pipeline for non-sampled calls
-            if sample_rate < 1.0 and random.random() >= sample_rate:
+            if sample_rate < 1.0 and random.random() >= sample_rate:  # NOSONAR
                 return func(*args, **kwargs)
 
             # High-throughput path

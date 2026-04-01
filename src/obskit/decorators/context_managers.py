@@ -112,7 +112,7 @@ async def observe(
     # ------------------------------------------------------------------
     # Step 0: Sampling gate
     # ------------------------------------------------------------------
-    if sample_rate < 1.0 and random.random() >= sample_rate:
+    if sample_rate < 1.0 and random.random() >= sample_rate:  # NOSONAR
         yield
         return
 
@@ -259,7 +259,7 @@ def observe_sync(
     # ------------------------------------------------------------------
     # Step 0: Sampling gate
     # ------------------------------------------------------------------
-    if sample_rate < 1.0 and random.random() >= sample_rate:
+    if sample_rate < 1.0 and random.random() >= sample_rate:  # NOSONAR
         yield
         return
 

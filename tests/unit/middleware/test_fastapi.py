@@ -809,7 +809,7 @@ class TestObskitMiddleware:
                 fake_send,
             )
 
-        asyncio.get_event_loop().run_until_complete(run())
+        asyncio.run(run())
         # end_request should be called with status 101 for WebSocket
         mock_red.observe_request.assert_called_once()
         call_kwargs = mock_red.observe_request.call_args.kwargs
@@ -851,6 +851,6 @@ class TestObskitMiddleware:
                 fake_send,
             )
 
-        asyncio.get_event_loop().run_until_complete(run())
+        asyncio.run(run())
         # status_code==0 and not websocket → neither branch fires → no metrics
         mock_red.observe_request.assert_not_called()

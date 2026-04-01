@@ -155,7 +155,7 @@ class SampledLogger:
                     key_parts.append(f"{k}={v}")
 
         key_string = "|".join(key_parts)
-        return hashlib.md5(key_string.encode(), usedforsecurity=False).hexdigest()[:16]
+        return hashlib.sha256(key_string.encode(), usedforsecurity=False).hexdigest()[:16]  # NOSONAR
 
     def _should_log(
         self,
@@ -205,7 +205,7 @@ class SampledLogger:
             if last_logged is not None and now - last_logged < self.config.dedupe_window_seconds:
                 return False, "deduplicated"
 
-            if random.random() > sample_rate:
+            if random.random() > sample_rate:  # NOSONAR
                 return False, "sampled_out"
 
             self._recent_logs[dedupe_key] = now
