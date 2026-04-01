@@ -1,6 +1,6 @@
 # Architecture Overview
 
-This document describes the internal architecture of obskit v3.0.0 — the
+This document describes the internal architecture of obskit v1.0.0 — the
 single-package layout, optional extras design, dependency graph, and key data flows.
 
 ---
@@ -19,22 +19,19 @@ obskit/                          # Git repository root
 │       ├── errors/              # Structured exception hierarchy
 │       ├── interfaces/          # Abstract base classes (protocols)
 │       ├── core/                # Context propagation, diagnose, deprecation
-│       ├── logging/             # Structured logging, adapters, OTLP export
-│       ├── metrics/             # RED/Golden/USE, exemplars, cardinality guard
+│       ├── logging/             # Structured logging, OTLP export
+│       ├── metrics/             # RED metrics, exemplars, cardinality guard
 │       ├── tracing/             # OpenTelemetry setup, trace_span, auto-instrumentation
-│       ├── health/              # Health check framework, HTTP server
-│       ├── resilience/          # Circuit breaker, retry, rate limiter
-│       ├── slo/                 # SLO/SLA tracking, alerting, error budgets
-│       ├── alerts/              # Alert rules and deduplication
+│       ├── health/              # Health check framework (obskit[health])
+│       ├── slo/                 # SLO/SLA tracking, error budgets (obskit[slo])
 │       ├── decorators/          # @with_observability, @trace cross-cutting decorators
-│       ├── db/                  # SQLAlchemy instrumentation, query analyzer
-│       ├── queue/               # Kafka/RabbitMQ tracing, consumer-lag, DLQ
-│       ├── dashboards/          # Grafana dashboard generators
-│       ├── middleware/          # Framework middlewares (fastapi, flask, django, grpc)
-│       └── testing/             # Test helpers, mocks, ObskitTestCase
+│       ├── middleware/          # Framework middlewares (fastapi, flask, django)
+│       └── integrations/        # Optional integrations
+│           ├── db/              # sqlalchemy, psycopg2, psycopg3 (obskit[db])
+│           ├── queue/           # kafka, rabbitmq (obskit[kafka/rabbitmq])
+│           └── grpc.py          # gRPC interceptors (obskit[grpc])
 ├── tests/
 │   └── unit/                    # All unit tests (flat structure)
-├── benchmarks/                  # pytest-benchmark + macro_runner
 ├── docs/                        # MkDocs source (this site)
 ├── mkdocs.yml
 └── pyproject.toml               # Package metadata + tool config
@@ -49,31 +46,39 @@ gated behind **extras** — users only install what they need:
 
 ```mermaid
 graph TD
-    core["obskit (core)\nstructlog · PyYAML · pydantic-settings\nlogging · health · resilience · slo · decorators"]
+    core["obskit (core)\nstructlog · PyYAML · pydantic-settings\nlogging · decorators"]
 
     prom["obskit[prometheus]\nprometheus-client"]
     otlp["obskit[otlp]\nopentelemetry-api/sdk/exporter"]
-    loguru["obskit[loguru]\nloguru"]
     fastapi["obskit[fastapi]\nfastapi · starlette"]
     flask["obskit[flask]\nflask · werkzeug"]
     django["obskit[django]\ndjango"]
+    health["obskit[health]\nhealth checker + router"]
+    healthhttp["obskit[health-http]\n+ HTTP reachability"]
+    slo["obskit[slo]\nSLO tracker"]
+    sloprom["obskit[slo-prometheus]\n+ burn-rate metrics"]
     sqlalchemy["obskit[sqlalchemy]\nsqlalchemy 2.0"]
+    psycopg2["obskit[psycopg2]\npsycopg2"]
+    psycopg3["obskit[psycopg3]\npsycopg3"]
     kafka["obskit[kafka]\nkafka-python"]
     rabbitmq["obskit[rabbitmq]\npika"]
-    redis["obskit[redis]\nredis"]
-    httpx["obskit[httpx]\nhttpx"]
+    grpc["obskit[grpc]\ngrpcio"]
 
     core --> prom
     core --> otlp
-    core --> loguru
     core --> fastapi
     core --> flask
     core --> django
+    core --> health
+    health --> healthhttp
+    core --> slo
+    slo --> sloprom
     core --> sqlalchemy
+    core --> psycopg2
+    core --> psycopg3
     core --> kafka
     core --> rabbitmq
-    core --> redis
-    core --> httpx
+    core --> grpc
 ```
 
 **Key properties:**
@@ -95,23 +100,22 @@ graph TD
     metrics[obskit.metrics]
     tracing[obskit.tracing]
     health[obskit.health]
-    resilience[obskit.resilience]
     slo[obskit.slo]
     decorators[obskit.decorators]
-    db[obskit.db]
-    queue[obskit.queue]
-    dashboards[obskit.dashboards]
+    db[obskit.integrations.db]
+    queue[obskit.integrations.queue]
+    grpc[obskit.integrations.grpc]
     mw[obskit.middleware]
 
     logging --> config & core
     metrics --> config & core
     tracing --> config & core
     health --> config & core & metrics
-    resilience --> config & core & logging & metrics
     slo --> config & core & logging & metrics
-    decorators --> logging & metrics & resilience & slo
+    decorators --> logging & metrics & slo
     db --> tracing & metrics
     queue --> tracing & metrics
+    grpc --> logging & metrics & tracing
     mw --> logging & metrics & tracing
 ```
 
@@ -152,7 +156,6 @@ This pattern is used throughout:
 | Exemplars | `is_exemplar_available()` | Observations without exemplar dict |
 | OTLP log export | `obskit.logging.otlp` | Logs written to stdout only |
 | structlog backend | `OBSKIT_LOGGING_BACKEND=auto` | Falls back to stdlib `logging` |
-| Loguru adapter | `is_loguru_available()` | No-op |
 
 ---
 

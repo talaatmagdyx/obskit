@@ -1,6 +1,6 @@
 # Quick Start
 
-Get obskit v2.0.0 wired up in a fresh service in **under five minutes**. Each step is independent — copy the ones that apply to your service.
+Get obskit wired up in a fresh service in **under five minutes**. Each step is independent — copy the ones that apply to your service.
 
 ---
 
@@ -12,9 +12,64 @@ pip install "obskit[prometheus,otlp,fastapi]"
 ```
 
 !!! tip "Just want one thing?"
-    obskit uses optional extras. `pip install obskit` is all you need for structured logging, health checks, and resilience. Add extras only for what you need.
+    obskit uses optional extras. `pip install obskit` is all you need for structured logging. Add extras only for what you need.
 
 ---
+
+## Recommended: One-Call Setup (v1.0.0+)
+
+Starting with v1.0.0, you can bootstrap logging, tracing, and metrics in a single call using `configure_observability()`. This is the recommended approach for new services.
+
+```python
+from obskit import configure_observability, instrument_fastapi
+from fastapi import FastAPI
+
+# One call sets up logging, tracing, and metrics
+obs = configure_observability(
+    service_name="order-service",
+    environment="production",
+    version="1.0.0",
+    otlp_endpoint="http://tempo:4317",
+    trace_sample_rate=0.1,
+)
+
+app = FastAPI(title="Order Service")
+
+# One call adds correlation ID, request logging, and RED metrics middleware
+instrument_fastapi(app)
+
+@app.get("/")
+async def root():
+    obs.logger.info("root_called")
+    return {"hello": "world"}
+```
+
+The returned `Observability` object gives you access to all configured components:
+
+| Attribute | Description |
+|-----------|-------------|
+| `obs.logger` | Structured logger (structlog) with trace correlation |
+| `obs.tracer` | Configured OpenTelemetry tracer |
+| `obs.metrics` | RED metrics recorder |
+| `obs.config` | Frozen `ObservabilityConfig` dataclass |
+| `obs.shutdown()` | Graceful shutdown of all components |
+
+You can also retrieve the singleton later from anywhere in your code:
+
+```python
+from obskit import get_observability
+
+obs = get_observability()  # returns the same instance
+```
+
+!!! note "The old API still works"
+    The individual-module approach shown below (`get_logger()`, `setup_tracing()`, `REDMetrics`, `ObskitMiddleware`, etc.) continues to work without any deprecation warnings. Both APIs are fully supported.
+
+---
+
+## Individual Module Approach
+
+The sections below show how to set up each observability component individually. This gives you fine-grained control and works with all obskit versions.
 
 ## Step 1 — Structured Logging with Trace Correlation
 
@@ -326,11 +381,11 @@ After wiring everything up, run the built-in diagnostic to confirm the full stac
 === "Expected output"
 
     ```
-    obskit v3.0.0 — Diagnostic Report
+    obskit v1.0.0 — Diagnostic Report
     ══════════════════════════════════════════════════════════════
       Component          Status
       ─────────────────────────────────────────────────────────
-      obskit             3.0.0     OK
+      obskit             1.0.0     OK
       prometheus         OK
       otlp               OK
       fastapi            OK
@@ -355,43 +410,76 @@ After wiring everything up, run the built-in diagnostic to confirm the full stac
 
 ## Complete Minimal Example
 
-Here is the smallest possible FastAPI service with the full observability stack wired in:
+Here is the smallest possible FastAPI service with the full observability stack wired in.
 
-```python
-# main.py
-import os
-os.environ.setdefault("OBSKIT_SERVICE_NAME", "demo")
-os.environ.setdefault("OBSKIT_LOG_FORMAT", "console")
+=== "v1.0.0+ (recommended)"
 
-# 1. Tracing MUST be set up before FastAPI is imported
-from obskit.tracing import setup_tracing
-setup_tracing(debug=True)
+    ```python
+    # main.py
+    from obskit import configure_observability, instrument_fastapi
+    from fastapi import FastAPI
+    from obskit.health import HealthChecker
 
-from fastapi import FastAPI
-from obskit.logging import get_logger
-from obskit.metrics.red import REDMetrics
-from obskit.health import HealthChecker
-from obskit.middleware.fastapi import ObskitMiddleware
+    obs = configure_observability(
+        service_name="demo",
+        environment="development",
+        debug=True,
+    )
 
-log = get_logger(__name__)
-red = REDMetrics(service="demo")
-checker = HealthChecker()
-
-app = FastAPI(title="Demo")
-app.add_middleware(ObskitMiddleware)
+    checker = HealthChecker()
+    app = FastAPI(title="Demo")
+    instrument_fastapi(app)
 
 
-@app.get("/")
-async def root():
-    log.info("root_called")
-    return {"hello": "world"}
+    @app.get("/")
+    async def root():
+        obs.logger.info("root_called")
+        return {"hello": "world"}
 
 
-@app.get("/health")
-async def health():
-    result = await checker.check_health()
-    return result.to_dict()
-```
+    @app.get("/health")
+    async def health():
+        result = await checker.check_health()
+        return result.to_dict()
+    ```
+
+=== "Individual modules"
+
+    ```python
+    # main.py
+    import os
+    os.environ.setdefault("OBSKIT_SERVICE_NAME", "demo")
+    os.environ.setdefault("OBSKIT_LOG_FORMAT", "console")
+
+    # 1. Tracing MUST be set up before FastAPI is imported
+    from obskit.tracing import setup_tracing
+    setup_tracing(debug=True)
+
+    from fastapi import FastAPI
+    from obskit.logging import get_logger
+    from obskit.metrics.red import REDMetrics
+    from obskit.health import HealthChecker
+    from obskit.middleware.fastapi import ObskitMiddleware
+
+    log = get_logger(__name__)
+    red = REDMetrics(service="demo")
+    checker = HealthChecker()
+
+    app = FastAPI(title="Demo")
+    app.add_middleware(ObskitMiddleware)
+
+
+    @app.get("/")
+    async def root():
+        log.info("root_called")
+        return {"hello": "world"}
+
+
+    @app.get("/health")
+    async def health():
+        result = await checker.check_health()
+        return result.to_dict()
+    ```
 
 ```bash
 uvicorn main:app --reload
@@ -409,7 +497,6 @@ uvicorn main:app --reload
 
     Build a complete Order Service with Docker Compose, Grafana, Tempo, and Prometheus.
 
-- :material-swap-horizontal: **[Migration from v1](migration.md)**
 
     Upgrading an existing service? Read the breaking-changes summary and import mapping.
 

@@ -10,7 +10,7 @@ from obskit.decorators.combined import (
     with_observability,
     with_observability_sync,
 )
-from obskit.decorators.ht_runtime import get_ht_pipeline, reset_ht_pipeline
+from obskit.decorators._ht_pipeline import get_ht_pipeline, reset_ht_pipeline
 
 
 class TestWithObservability:
@@ -295,19 +295,18 @@ class TestHighThroughputMode:
 
     @pytest.mark.asyncio
     async def test_async_buffers_success_metric(self):
-        """A successful HT call buffers a 'success' count in the aggregator."""
+        """A successful HT call enqueues a log record in the ring buffer."""
 
         @with_observability(operation="ht_success_op", high_throughput=True)
         async def fn():
             return 42
 
         await fn()
-        counts = get_ht_pipeline()._agg.get_pending_counts()
-        assert counts.get(("ht_success_op", "success"), 0) == 1
+        assert get_ht_pipeline()._ring.qsize >= 1
 
     @pytest.mark.asyncio
     async def test_async_buffers_failure_metric(self):
-        """A failing HT call buffers a 'failure' count in the aggregator."""
+        """A failing HT call enqueues a log record in the ring buffer."""
 
         @with_observability(operation="ht_fail_op", high_throughput=True)
         async def fn():
@@ -316,8 +315,7 @@ class TestHighThroughputMode:
         with pytest.raises(RuntimeError):
             await fn()
 
-        counts = get_ht_pipeline()._agg.get_pending_counts()
-        assert counts.get(("ht_fail_op", "failure"), 0) == 1
+        assert get_ht_pipeline()._ring.qsize >= 1
 
     @pytest.mark.asyncio
     async def test_async_enqueues_log_record(self):
@@ -341,10 +339,9 @@ class TestHighThroughputMode:
 
             # random() >= sample_rate → skip pipeline; function still executes
             assert await fn() == "not_instrumented"
-            # Pipeline never started → _agg is None, so no metrics buffered
+            # Pipeline never started → _ring is None, so no log buffered
             pipeline = get_ht_pipeline()
-            counts = pipeline._agg.get_pending_counts() if pipeline._agg is not None else {}
-            assert counts.get(("ht_sampled", "success"), 0) == 0
+            assert pipeline._ring is None
 
     @pytest.mark.asyncio
     async def test_async_preserves_function_name(self):
@@ -380,18 +377,17 @@ class TestHighThroughputMode:
             fn()
 
     def test_sync_buffers_success_metric(self):
-        """Sync HT success call is counted as 'success'."""
+        """Sync HT success call enqueues a log record in the ring buffer."""
 
         @with_observability_sync(operation="sync_ht_op", high_throughput=True)
         def fn():
             return 1
 
         fn()
-        counts = get_ht_pipeline()._agg.get_pending_counts()
-        assert counts.get(("sync_ht_op", "success"), 0) == 1
+        assert get_ht_pipeline()._ring.qsize >= 1
 
     def test_sync_buffers_failure_metric(self):
-        """Sync HT failure call is counted as 'failure'."""
+        """Sync HT failure call enqueues a log record in the ring buffer."""
 
         @with_observability_sync(operation="sync_ht_fail", high_throughput=True)
         def fn():
@@ -400,8 +396,7 @@ class TestHighThroughputMode:
         with pytest.raises(ValueError):
             fn()
 
-        counts = get_ht_pipeline()._agg.get_pending_counts()
-        assert counts.get(("sync_ht_fail", "failure"), 0) == 1
+        assert get_ht_pipeline()._ring.qsize >= 1
 
     def test_sync_sample_rate_gate_respected(self):
         """sample_rate gate fires before the sync high_throughput path."""
@@ -414,9 +409,39 @@ class TestHighThroughputMode:
                 return "skipped"
 
             assert fn() == "skipped"
+            # Pipeline never started → _ring is None, so no log buffered
             pipeline = get_ht_pipeline()
-            counts = pipeline._agg.get_pending_counts() if pipeline._agg is not None else {}
-            assert counts.get(("sync_ht_sampled", "success"), 0) == 0
+            assert pipeline._ring is None
+
+
+class TestHTPipelineMetricGuard:
+    """Covers the except-pass guard in _HTPipeline.record() (lines 77-78)."""
+
+    def setup_method(self):
+        reset_ht_pipeline()
+
+    def teardown_method(self):
+        reset_ht_pipeline()
+
+    @pytest.mark.asyncio
+    async def test_metric_exception_is_swallowed_and_log_still_enqueued(self):
+        """If get_red_metrics().observe_request() raises, the exception is swallowed
+        and the log record is still enqueued (covers the except Exception: pass path)."""
+        from unittest.mock import MagicMock, patch
+
+        broken_red = MagicMock()
+        broken_red.observe_request.side_effect = RuntimeError("metrics broken")
+
+        with patch("obskit.metrics.red.get_red_metrics", return_value=broken_red):
+
+            @with_observability(operation="ht_guard_op", high_throughput=True)
+            async def fn():
+                return 42
+
+            result = await fn()
+
+        assert result == 42
+        assert get_ht_pipeline()._ring.qsize >= 1
 
 
 class TestTrackMetricsFalseErrorPath:
@@ -533,30 +558,12 @@ class TestTrackMetricsOnlyErrorPath:
 
 
 class TestAsyncNullContext:
-    """Tests for _AsyncNullContext class (lines 791, 795)."""
-
-    @pytest.mark.asyncio
-    async def test_aenter_returns_none(self):
-        """_AsyncNullContext.__aenter__ executes (line 791)."""
-        from obskit.decorators.combined import _AsyncNullContext
-
-        ctx = _AsyncNullContext()
-        result = await ctx.__aenter__()
-        assert result is None
-
-    @pytest.mark.asyncio
-    async def test_aexit_returns_none(self):
-        """_AsyncNullContext.__aexit__ executes (line 795)."""
-        from obskit.decorators.combined import _AsyncNullContext
-
-        ctx = _AsyncNullContext()
-        result = await ctx.__aexit__(None, None, None)
-        assert result is None
+    """Tests for _async_null_context no-op context manager."""
 
     @pytest.mark.asyncio
     async def test_used_as_async_context_manager(self):
-        """_AsyncNullContext can be used as async context manager."""
-        from obskit.decorators.combined import _AsyncNullContext
+        """_async_null_context can be used as async context manager without raising."""
+        from obskit.decorators.combined import _async_null_context
 
-        async with _AsyncNullContext():
+        async with _async_null_context():
             pass  # must not raise

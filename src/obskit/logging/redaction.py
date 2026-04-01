@@ -33,6 +33,7 @@ Default sensitive field patterns
 
 from __future__ import annotations
 
+import re
 from typing import Any
 
 from structlog.types import EventDict, WrappedLogger
@@ -85,10 +86,19 @@ def make_redaction_processor(
     >>> result["password"]
     '[REDACTED]'
     """
-    _fields: frozenset[str] = (
+    _fields_norm: frozenset[str] = (
         frozenset(f.lower() for f in fields) if fields is not None else DEFAULT_SENSITIVE_FIELDS
     )
     _placeholder = placeholder
+    # Pre-compile a single case-insensitive regex from all sensitive keywords.
+    # One C-level re.search() replaces O(keywords) Python generator steps per field.
+    # Sort longest first so longer patterns (e.g. "private_key") match before their
+    # substrings (e.g. "key") — though with IGNORECASE substring matching this only
+    # matters if keywords overlap, which they don't in DEFAULT_SENSITIVE_FIELDS.
+    _sensitive_re = re.compile(
+        "|".join(re.escape(f) for f in sorted(_fields_norm, key=len, reverse=True)),
+        re.IGNORECASE,
+    )
 
     def _redact_value(obj: Any, depth: int = 0, _seen: frozenset[int] | None = None) -> Any:
         """Recursively redact sensitive keys inside dicts (max 10 levels deep).
@@ -106,8 +116,7 @@ def make_redaction_processor(
         seen = seen | {obj_id}
         result = {}
         for key, val in obj.items():
-            key_lower = key.lower()
-            if any(sensitive in key_lower for sensitive in _fields):
+            if _sensitive_re.search(key):
                 result[key] = _placeholder
             elif isinstance(val, dict):
                 result[key] = _redact_value(val, depth + 1, seen)
@@ -120,7 +129,13 @@ def make_redaction_processor(
         method_name: str,
         event_dict: EventDict,
     ) -> EventDict:
-        return _redact_value(event_dict)  # type: ignore[no-any-return]
+        try:
+            return _redact_value(event_dict)  # type: ignore[no-any-return]
+        except Exception:  # pragma: no cover
+            # Never let a redaction failure suppress a log event.
+            # Return the event_dict unmodified — PII *may* be logged, but
+            # that is preferable to silently dropping the log record.
+            return event_dict
 
     _redact_processor.__name__ = "redact_sensitive_fields"
     _redact_processor.__qualname__ = "redact_sensitive_fields"

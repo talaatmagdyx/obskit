@@ -200,23 +200,10 @@ def log_if_sampled(event: str, **kwargs):
         logger.info(event, **kwargs)
 ```
 
-### After — AdaptiveSampler
+### After — obskit sampling
 
-```python
-from obskit.adaptive_sampling import AdaptiveSampler
-from obskit.logging import get_logger
-
-logger = get_logger(__name__)
-sampler = AdaptiveSampler(base_rate=0.01)  # 1% baseline
-
-# Automatically increases sample rate when error rate rises
-def handle_request(endpoint: str) -> None:
-    if sampler.should_sample():
-        logger.info("request_handled", endpoint=endpoint)
-```
-
-The `AdaptiveSampler` increases the sample rate toward 1.0 when the error rate rises
-above a configurable threshold, ensuring you always have full data during incidents.
+Use `obskit.logging.sampling` for structured log-level sampling built into
+the obskit pipeline.
 
 ---
 
@@ -236,23 +223,6 @@ from obskit.logging import get_logger
 # Logs are written to stdout AND exported via OTLP automatically
 logger = get_logger(__name__)
 logger.info("order_created", order_id="ord-123")
-```
-
----
-
-## Loguru Users
-
-If you are using Loguru instead of structlog, obskit provides a compatibility
-adapter:
-
-```python
-from obskit.logging.adapters.loguru_adapter import LoguruAdapter
-
-adapter = LoguruAdapter()
-adapter.install()  # Redirects Loguru output through obskit's pipeline
-
-from loguru import logger
-logger.info("This goes through obskit now")
 ```
 
 ---

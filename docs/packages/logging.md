@@ -14,9 +14,6 @@ pip install obskit
 # structlog backend (default, always included)
 pip install obskit
 
-# loguru backend
-pip install "obskit[loguru]"
-
 # OTLP log export
 pip install "obskit[otlp]"
 ```
@@ -303,25 +300,6 @@ structlog.configure(
     ]
 )
 ```
-
----
-
-## Dynamic log levels
-
-The log level is read from `ObskitSettings.log_level` at startup. To change it at runtime without restarting the process:
-
-```python
-from obskit.config import configure
-
-# Temporarily increase verbosity in production
-configure(log_level="DEBUG")
-
-# Back to normal
-configure(log_level="INFO")
-```
-
-!!! warning "Thread safety"
-    `configure()` replaces the global settings atomically but does not re-run `configure_logging()`. Call `configure_logging()` from `obskit.logging.logger` explicitly after changing the level if you need the structlog pipeline to immediately reflect the new threshold.
 
 ---
 

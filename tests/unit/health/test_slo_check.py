@@ -14,6 +14,7 @@ from obskit.health.slo_check import (
     SLOReadinessCheck,
     add_slo_readiness_check,
     get_slo_health_status,
+    get_slo_tracker,
 )
 from obskit.slo.tracker import SLOTracker, reset_slo_tracker
 from obskit.slo.types import SLOType
@@ -458,3 +459,12 @@ class TestGetSloHealthStatus:
             result = get_slo_health_status(slo_names=None)
         # Should attempt to check "auto_slo"
         assert result is not None
+
+
+class TestGetSloTrackerAccessor:
+    def test_returns_global_tracker(self):
+        """get_slo_tracker() returns the global SLOTracker (no mocking)."""
+        from obskit.slo.tracker import SLOTracker
+
+        result = get_slo_tracker()
+        assert isinstance(result, SLOTracker)

@@ -78,7 +78,6 @@ from pathlib import Path
 from typing import Any
 
 from obskit.config import ObskitSettings, configure
-from obskit.core.errors import ConfigFileNotFoundError, ConfigValidationError
 
 
 def configure_from_file(
@@ -105,9 +104,9 @@ def configure_from_file(
 
     Raises
     ------
-    ConfigFileNotFoundError
+    FileNotFoundError
         If the configuration file does not exist.
-    ConfigValidationError
+    ValueError
         If the configuration file is invalid.
 
     Example
@@ -126,10 +125,7 @@ def configure_from_file(
     path = Path(file_path)
 
     if not path.exists():
-        raise ConfigFileNotFoundError(
-            f"Configuration file not found: {file_path}",
-            details={"file_path": str(file_path)},
-        )
+        raise FileNotFoundError(f"Configuration file not found: {file_path}")
 
     # Determine format from extension
     suffix = path.suffix.lower()
@@ -142,17 +138,15 @@ def configure_from_file(
         elif suffix == ".json":
             config_dict = _load_json(path)
         else:
-            raise ConfigValidationError(
+            raise ValueError(
                 f"Unsupported configuration file format: {suffix}. "
                 "Supported formats: .yaml, .yml, .toml, .json",
-                details={"file_path": str(file_path), "extension": suffix},
             )
     except Exception as e:
-        if isinstance(e, (ConfigFileNotFoundError, ConfigValidationError)):
+        if isinstance(e, (FileNotFoundError, ValueError)):
             raise
-        raise ConfigValidationError(
+        raise ValueError(
             f"Failed to parse configuration file: {e}",
-            details={"file_path": str(file_path), "error": str(e)},
         ) from e
 
     # Flatten nested config (e.g., logging.level -> log_level)
@@ -178,9 +172,8 @@ def _load_yaml(path: Path) -> dict[str, Any]:
     try:
         import yaml
     except ImportError as e:
-        raise ConfigValidationError(
+        raise ValueError(
             "PyYAML is required to load YAML configuration files. Install with: pip install pyyaml",
-            details={"file_path": str(path)},
         ) from e
 
     with open(path, encoding="utf-8") as f:
@@ -196,10 +189,9 @@ def _load_toml(path: Path) -> dict[str, Any]:
         try:
             import tomli as tomllib  # type: ignore[no-redef]
         except ImportError as e:  # pragma: no cover
-            raise ConfigValidationError(
+            raise ValueError(
                 "tomli is required to load TOML configuration files on Python < 3.11. "
                 "Install with: pip install tomli",
-                details={"file_path": str(path)},
             ) from e
 
     with open(path, "rb") as f:
@@ -261,8 +253,6 @@ def _flatten_config(config: dict[str, Any]) -> dict[str, Any]:
             result["log_include_timestamp"] = logging_config["include_timestamp"]
         if "sample_rate" in logging_config:
             result["log_sample_rate"] = logging_config["sample_rate"]
-        if "backend" in logging_config:
-            result["logging_backend"] = logging_config["backend"]
 
     # Metrics section
     if "metrics" in config:
@@ -273,16 +263,6 @@ def _flatten_config(config: dict[str, Any]) -> dict[str, Any]:
             result["metrics_port"] = metrics_config["port"]
         if "path" in metrics_config:
             result["metrics_path"] = metrics_config["path"]
-        if "method" in metrics_config:
-            result["metrics_method"] = metrics_config["method"]
-        if "auth_enabled" in metrics_config:
-            result["metrics_auth_enabled"] = metrics_config["auth_enabled"]
-        if "auth_token" in metrics_config:
-            result["metrics_auth_token"] = metrics_config["auth_token"]
-        if "rate_limit_enabled" in metrics_config:
-            result["metrics_rate_limit_enabled"] = metrics_config["rate_limit_enabled"]
-        if "rate_limit_requests" in metrics_config:
-            result["metrics_rate_limit_requests"] = metrics_config["rate_limit_requests"]
         if "sample_rate" in metrics_config:
             result["metrics_sample_rate"] = metrics_config["sample_rate"]
         if "use_histogram" in metrics_config:
@@ -335,22 +315,6 @@ def _flatten_config(config: dict[str, Any]) -> dict[str, Any]:
             result["retry_max_delay"] = retry_config["max_delay"]
         if "exponential_base" in retry_config:
             result["retry_exponential_base"] = retry_config["exponential_base"]
-
-    # Rate limiting section
-    if "rate_limit" in config:
-        rl_config = config["rate_limit"]
-        if "requests" in rl_config:
-            result["rate_limit_requests"] = rl_config["requests"]
-        if "window_seconds" in rl_config:
-            result["rate_limit_window_seconds"] = rl_config["window_seconds"]
-
-    # Self-monitoring section
-    if "self_monitoring" in config:
-        sm_config = config["self_monitoring"]
-        if "enabled" in sm_config:
-            result["enable_self_metrics"] = sm_config["enabled"]
-        if "async_queue_size" in sm_config:
-            result["async_metric_queue_size"] = sm_config["async_queue_size"]
 
     return result
 

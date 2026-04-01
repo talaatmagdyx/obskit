@@ -29,6 +29,14 @@ Example - Basic Usage
 
 from __future__ import annotations
 
+try:
+    import prometheus_client  # noqa: F401
+except ImportError as e:
+    raise ImportError(
+        "SLO Prometheus metrics require prometheus-client. "
+        "Install: pip install obskit[slo-prometheus]  or  obskit[slo-all]"
+    ) from e
+
 from obskit.logging import get_logger
 from obskit.slo.tracker import SLOTracker
 

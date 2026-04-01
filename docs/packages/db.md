@@ -1,20 +1,27 @@
 # obskit-db
 
-Database observability — query tracking, slow-query detection, and SQLAlchemy auto-instrumentation.
+Database observability — query tracking, slow-query detection, and OTel auto-instrumentation for SQLAlchemy, psycopg2, and psycopg3.
+
+## Installation
 
 ```bash
-pip install "obskit[sqlalchemy]"
+pip install "obskit[sqlalchemy]"   # SQLAlchemy OTel auto-instrumentation
+pip install "obskit[psycopg2]"     # psycopg2 OTel auto-instrumentation (sync)
+pip install "obskit[psycopg3]"     # psycopg3 OTel auto-instrumentation (sync + async)
+pip install "obskit[db]"           # all three DB drivers
 ```
 
 ---
 
 ## Overview
 
-`obskit.db` gives every database query RED metrics, distributed traces, SLO tracking, and slow-query logging with a single line of code.
+`obskit.integrations.db` gives every database query RED metrics, distributed traces, SLO tracking, and slow-query logging.
 
 | Component | What it does |
 |-----------|-------------|
 | **`instrument_sqlalchemy`** | Zero-code: attaches event listeners to a SQLAlchemy engine |
+| **`instrument_psycopg2`** | Auto-instruments psycopg2 connections |
+| **`instrument_psycopg3`** | Auto-instruments psycopg3 connections (sync + async) |
 | **`DatabaseTracker`** | Fine-grained per-operation tracking with tenant context |
 | **`track_query`** | Convenience function — no class needed |
 
@@ -26,7 +33,7 @@ pip install "obskit[sqlalchemy]"
 
     ```python
     from sqlalchemy import create_engine
-    from obskit.db import instrument_sqlalchemy
+    from obskit.integrations.db.sqlalchemy import instrument_sqlalchemy
 
     engine = create_engine("postgresql://user:pass@localhost/mydb")
     instrument_sqlalchemy(engine, database_name="postgres")
@@ -36,10 +43,28 @@ pip install "obskit[sqlalchemy]"
         conn.execute(text("SELECT * FROM orders"))
     ```
 
+=== "psycopg2"
+
+    ```python
+    from obskit.integrations.db.psycopg2 import instrument_psycopg2
+
+    instrument_psycopg2()
+    # All psycopg2 connections now emit OTel spans automatically
+    ```
+
+=== "psycopg3"
+
+    ```python
+    from obskit.integrations.db.psycopg3 import instrument_psycopg3
+
+    instrument_psycopg3()
+    # All psycopg3 connections now emit OTel spans automatically
+    ```
+
 === "DatabaseTracker (per-operation)"
 
     ```python
-    from obskit.db import DatabaseTracker
+    from obskit.integrations.db.tracker import DatabaseTracker
 
     db = DatabaseTracker("postgres", default_slow_threshold_ms=500.0)
 
@@ -51,7 +76,7 @@ pip install "obskit[sqlalchemy]"
 === "Convenience function"
 
     ```python
-    from obskit.db import track_query
+    from obskit.integrations.db.tracker import track_query
 
     with track_query("create_order", database_name="postgres",
                      tenant_id="acme", slow_query_threshold_ms=200.0):
@@ -66,15 +91,17 @@ pip install "obskit[sqlalchemy]"
 Attaches SQLAlchemy event listeners to track **every** query automatically.
 
 ```python
+from obskit.integrations.db.sqlalchemy import instrument_sqlalchemy
+
 instrument_sqlalchemy(engine, database_name="database")
 ```
 
 **What it tracks:**
 
-- ✅ Query execution time (via Golden Signals saturation metric)
-- ✅ Slow queries — logs warning when duration > 1 second
-- ✅ Query errors — logs every `handle_error` event
-- ✅ Connection pool saturation on each new connection
+- Query execution time
+- Slow queries — logs warning when duration > 1 second
+- Query errors — logs every `handle_error` event
+- Connection pool saturation on each new connection
 
 **Parameters:**
 
@@ -91,12 +118,40 @@ instrument_sqlalchemy(write_engine, database_name="postgres_write")
 
 ---
 
+## `instrument_psycopg2`
+
+Auto-instruments all psycopg2 connections to emit OTel spans.
+
+```python
+from obskit.integrations.db.psycopg2 import instrument_psycopg2
+
+instrument_psycopg2()
+```
+
+Requires `pip install "obskit[psycopg2]"`.
+
+---
+
+## `instrument_psycopg3`
+
+Auto-instruments all psycopg3 connections to emit OTel spans. Supports both synchronous and async usage.
+
+```python
+from obskit.integrations.db.psycopg3 import instrument_psycopg3
+
+instrument_psycopg3()
+```
+
+Requires `pip install "obskit[psycopg3]"`.
+
+---
+
 ## `DatabaseTracker`
 
 Fine-grained tracking with tenant context, SLO integration, and per-operation thresholds.
 
 ```python
-from obskit.db import DatabaseTracker
+from obskit.integrations.db.tracker import DatabaseTracker
 
 db = DatabaseTracker(
     database_name="postgres",
@@ -154,7 +209,7 @@ except Exception as e:
 Stateless wrapper — creates a temporary `DatabaseTracker` internally.
 
 ```python
-from obskit.db import track_query
+from obskit.integrations.db.tracker import track_query
 
 with track_query(
     operation="create_order",
@@ -199,13 +254,12 @@ Slow queries emit an additional warning:
 
 ### Prometheus Metrics
 
-`DatabaseTracker` records via **Golden Signals** (shared across all instrumented databases):
+`DatabaseTracker` records RED metrics (shared across all instrumented databases):
 
 | Metric | Source |
 |--------|--------|
-| `golden_signal_latency_seconds` | `track_query` duration |
-| `golden_signal_errors_total` | Failed queries |
-| `golden_signal_saturation` | Connection pool utilization |
+| `request_duration_seconds` | `track_query` duration |
+| `errors_total` | Failed queries |
 
 ### Distributed Traces
 
@@ -222,7 +276,7 @@ Each `track_query` call creates an OTLP span with:
 
 ```python
 # src/repositories/base.py
-from obskit.db import DatabaseTracker
+from obskit.integrations.db.tracker import DatabaseTracker
 
 _db = DatabaseTracker("postgres", default_slow_threshold_ms=500.0)
 
@@ -242,6 +296,4 @@ class OrderRepository:
 
 ## See Also
 
-- [`obskit.query_analyzer`](utilities.md#query-plan-analyzer) — analyze query execution plans
 - [SLO Tracking](slo.md) — wire `slo_name` to an SLO target
-- [Resilience](resilience.md) — circuit breaker for database connections

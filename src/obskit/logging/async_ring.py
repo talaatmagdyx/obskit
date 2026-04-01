@@ -27,10 +27,13 @@ Usage::
 
 from __future__ import annotations
 
+import logging as _std_logging
 import queue
 import threading
 from collections.abc import Callable
 from typing import Any
+
+_ring_logger = _std_logging.getLogger(__name__)
 
 
 class AsyncLogRing:
@@ -68,6 +71,7 @@ class AsyncLogRing:
         self._drain_thread: threading.Thread | None = None
         self._emit_fn: Callable[[dict[str, Any]], None] | None = None
         self._dropped: int = 0  # monotonic drop counter (for metrics)
+        self._drop_lock = threading.Lock()  # protects _dropped R-M-W
 
     # ------------------------------------------------------------------
     # Lifecycle
@@ -128,7 +132,20 @@ class AsyncLogRing:
             self._q.put_nowait(record)
             return True
         except queue.Full:
-            self._dropped += 1
+            # Protect the R-M-W so concurrent enqueue() calls from multiple
+            # threads don't both read the same counter value and both trigger
+            # the 1 000-drop warning simultaneously.
+            with self._drop_lock:
+                self._dropped += 1
+                dropped_snapshot = self._dropped
+            # Emit a warning every 1 000 drops so operators have visibility
+            # into back-pressure without flooding the log on every drop.
+            if dropped_snapshot % 1000 == 0:
+                _ring_logger.warning(
+                    "obskit.async_ring: %d log records dropped (buffer full, maxsize=%d)",
+                    dropped_snapshot,
+                    self._q.maxsize,
+                )
             return False
 
     @property
@@ -148,15 +165,27 @@ class AsyncLogRing:
     def _drain_loop(self) -> None:
         """Background thread: drain records until stop is signalled."""
         while not self._stop_event.is_set():
-            self._drain_once()
-            # Brief sleep to avoid spinning when queue is empty
-            if self._q.empty():
+            drained = self._drain_once()
+            if drained < self._drain_batch:
+                # Queue is draining or empty — back off to avoid spinning.
                 self._stop_event.wait(timeout=0.001)
+            else:
+                # Queue is still saturated — yield the GIL briefly without
+                # a long sleep so we keep up with sustained high load without
+                # monopolising a full CPU core.
+                self._stop_event.wait(timeout=0.0001)
 
-    def _drain_once(self, drain_all: bool = False) -> None:
-        """Emit up to ``_drain_batch`` records from the queue."""
+    def _drain_once(self, drain_all: bool = False) -> int:
+        """Emit up to ``_drain_batch`` records from the queue.
+
+        Returns
+        -------
+        int
+            Number of records emitted (used by ``_drain_loop`` to decide
+            whether to sleep — a full batch means the queue is still busy).
+        """
         if self._emit_fn is None:
-            return
+            return 0
         limit = self._q.maxsize if drain_all else self._drain_batch
         emitted = 0
         while emitted < limit:
@@ -166,7 +195,14 @@ class AsyncLogRing:
                 break
             try:
                 self._emit_fn(record)
-            except Exception:  # noqa: BLE001
-                # Never let an emit error kill the drain thread
-                pass  # NOSONAR
+            except Exception as _exc:  # noqa: BLE001
+                # Never let an emit error kill the drain thread.
+                # Log to stderr so operators can see records are being lost.
+                import sys  # noqa: PLC0415
+
+                print(
+                    f"obskit.async_ring: emit error (record dropped): {_exc!r}",
+                    file=sys.stderr,
+                )
             emitted += 1
+        return emitted

@@ -5,7 +5,13 @@ Kubernetes-ready health checking with liveness and readiness probes, optional tr
 ## Installation
 
 ```bash
-pip install obskit
+pip install "obskit[health]"
+```
+
+For HTTP reachability checks, also install the `health-http` extra:
+
+```bash
+pip install "obskit[health-http]"
 ```
 
 ---
@@ -270,30 +276,6 @@ configure(health_check_timeout=10.0)   # increase per-check timeout
 
 ---
 
-## HTTP health server
-
-A standalone HTTP server built on `http.server` — zero external dependencies.
-
-```python
-from obskit.health.server import start_health_server, stop_health_server
-
-# Start on port 8888 (default: 8080)
-start_health_server(port=8888)
-
-# Endpoints automatically served:
-# GET /health       → combined health check JSON
-# GET /health/live  → liveness probe
-# GET /health/ready → readiness probe
-# GET /healthz      → liveness alias
-# GET /readyz       → readiness alias
-# GET /livez        → liveness alias
-
-# Graceful stop
-stop_health_server()
-```
-
-The server runs on a background daemon thread and does not block the main event loop.
-
 ---
 
 ## Kubernetes probe configuration
@@ -304,21 +286,19 @@ spec:
   containers:
     - name: order-service
       ports:
-        - containerPort: 8080
+        - containerPort: 8000
           name: app
-        - containerPort: 8888
-          name: health
       livenessProbe:
         httpGet:
           path: /health/live
-          port: health
+          port: app
         initialDelaySeconds: 10
         periodSeconds: 15
         failureThreshold: 3
       readinessProbe:
         httpGet:
           path: /health/ready
-          port: health
+          port: app
         initialDelaySeconds: 5
         periodSeconds: 10
         failureThreshold: 3
@@ -493,7 +473,7 @@ app.include_router(build_health_router(checks=checks))
 
 ---
 
-## Full example — standalone server (non-FastAPI)
+## Full example — FastAPI with HealthChecker
 
 ```python
 from contextlib import asynccontextmanager
@@ -501,7 +481,7 @@ import redis.asyncio as aioredis
 from fastapi import FastAPI
 from obskit.health import get_health_checker
 from obskit.health.checks import create_http_check
-from obskit.health.server import start_health_server, stop_health_server
+from fastapi.responses import JSONResponse
 
 checker = get_health_checker()
 
@@ -514,11 +494,7 @@ async def lifespan(app: FastAPI):
         "upstream",
         create_http_check("http://upstream/health"),
     )
-
-    # Start standalone health server for Kubernetes probes
-    start_health_server(port=8888)
     yield
-    stop_health_server()
 
 app = FastAPI(lifespan=lifespan)
 
@@ -526,6 +502,5 @@ app = FastAPI(lifespan=lifespan)
 async def health():
     result = await checker.check_health()
     status_code = 200 if result.healthy else 503
-    from fastapi.responses import JSONResponse
     return JSONResponse(result.to_dict(), status_code=status_code)
 ```

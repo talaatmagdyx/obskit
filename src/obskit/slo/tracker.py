@@ -4,8 +4,10 @@ from __future__ import annotations
 
 import asyncio
 import functools
+import math
 import threading
 import time
+from collections import deque
 from collections.abc import Callable
 from datetime import UTC, datetime, timedelta
 from typing import Any, ParamSpec, TypeVar, cast
@@ -33,10 +35,21 @@ class SLOTracker:
         >>> status = tracker.get_status("api_availability")
     """
 
+    # Hard cap on measurements per SLO regardless of window size or RPS.
+    # Prevents unbounded memory at pathological configurations (e.g. 24 h window
+    # at 10 K RPS = 864 M items without this guard).  At this cap the oldest
+    # measurements are automatically evicted by the deque, so accuracy degrades
+    # gracefully rather than OOM-killing the process.
+    _MAX_MEASUREMENTS: int = 1_000_000
+
     def __init__(self) -> None:
         """Initialize SLO tracker."""
         self._targets: dict[str, SLOTarget] = {}
-        self._measurements: dict[str, list[SLOMeasurement]] = {}
+        self._measurements: dict[str, deque[SLOMeasurement]] = {}
+        # Incremental counters for O(1) AVAILABILITY and ERROR_RATE reads.
+        # Updated under _lock on every record_measurement (append +1, eviction -1).
+        self._success_counts: dict[str, int] = {}
+        self._total_counts: dict[str, int] = {}
         # Protects all mutations to _targets and _measurements under concurrent access.
         self._lock = threading.Lock()
 
@@ -65,7 +78,9 @@ class SLOTracker:
         )
         with self._lock:
             self._targets[name] = target
-            self._measurements[name] = []
+            self._measurements[name] = deque(maxlen=self._MAX_MEASUREMENTS)
+            self._success_counts[name] = 0
+            self._total_counts[name] = 0
 
         logger.info(
             "slo_registered",
@@ -93,20 +108,56 @@ class SLOTracker:
                 logger.warning("slo_not_registered", slo_name=name)
                 return
 
+            target = self._targets[name]
+            _is_counter = target.slo_type in (SLOType.AVAILABILITY, SLOType.ERROR_RATE)
+
             measurement = SLOMeasurement(
                 timestamp=datetime.now(UTC),
                 value=value,
                 success=success,
             )
-            self._measurements[name].append(measurement)
+            buf = self._measurements[name]
 
-            # Evict measurements outside the window on every write so the list
-            # stays bounded rather than growing indefinitely.
-            target = self._targets[name]
+            # When the deque is at maxlen, appending implicitly evicts buf[0].
+            # Decrement counters here to keep them consistent.
+            if _is_counter and len(buf) == self._MAX_MEASUREMENTS:  # pragma: no cover
+                _auto_evicted = buf[0]
+                self._total_counts[name] -= 1
+                if _auto_evicted.success:
+                    self._success_counts[name] -= 1
+
+            buf.append(measurement)
+
+            if _is_counter:
+                self._total_counts[name] += 1
+                if success:
+                    self._success_counts[name] += 1
+
+            # Warn at 80 % capacity so operators can tune window_seconds or
+            # reduce RPS before silent eviction degrades SLO accuracy.
+            # Log every 10 000 measurements to avoid flooding.
+            buf_len = len(buf)
+            _warn_threshold = int(self._MAX_MEASUREMENTS * 0.8)
+            if buf_len >= _warn_threshold and buf_len % 10_000 == 0:  # pragma: no cover
+                logger.warning(  # pragma: no cover
+                    "slo_measurement_buffer_near_capacity",
+                    slo_name=name,
+                    current_size=buf_len,
+                    max_size=self._MAX_MEASUREMENTS,
+                    utilization_pct=round(buf_len / self._MAX_MEASUREMENTS * 100, 1),
+                )
+
+            # Evict expired entries from the front of the deque.  Measurements
+            # are appended in chronological order, so stale entries always sit
+            # at the head.  popleft() is O(1) and we only iterate expired items,
+            # making the overall cost O(k) per insert rather than O(n).
             cutoff = datetime.now(UTC) - timedelta(seconds=target.window_seconds)
-            self._measurements[name] = [
-                m for m in self._measurements[name] if m.timestamp >= cutoff
-            ]
+            while buf and buf[0].timestamp < cutoff:
+                evicted = buf.popleft()
+                if _is_counter:
+                    self._total_counts[name] -= 1
+                    if evicted.success:
+                        self._success_counts[name] -= 1
 
     def get_status(self, name: str) -> SLOStatus | None:
         """Get current SLO status.
@@ -121,32 +172,48 @@ class SLOTracker:
             if name not in self._targets:
                 return None
             target = self._targets[name]
-            # Snapshot the list so calculations below don't race with appends.
-            measurements = list(self._measurements.get(name, []))
+            _is_counter = target.slo_type in (SLOType.AVAILABILITY, SLOType.ERROR_RATE)
+            if _is_counter:
+                # O(1) fast path — snapshot counters without copying the deque.
+                _total = self._total_counts[name]
+                _success = self._success_counts[name]
+            else:
+                # Snapshot the deque *reference* only — O(1) under lock.
+                # The list copy happens outside the lock so writers are not blocked
+                # during an O(n) allocation.
+                buf = self._measurements[name]
 
         window_end = datetime.now(UTC)
         window_start = window_end - timedelta(seconds=target.window_seconds)
 
-        if not measurements:
-            return SLOStatus(
-                slo_type=target.slo_type,
-                target=target,
-                current_value=1.0 if target.slo_type == SLOType.AVAILABILITY else 0.0,
-                compliance=True,
-                error_budget_remaining=1.0,
-                error_budget_burn_rate=0.0,
-                window_start=window_start,
-                window_end=window_end,
-                measurement_count=0,
-            )
+        if _is_counter:
+            # AVAILABILITY / ERROR_RATE: O(1) read from pre-maintained counters.
+            measurement_count = _total
+            if _total == 0:
+                current_value = 1.0 if target.slo_type == SLOType.AVAILABILITY else 0.0
+            elif target.slo_type == SLOType.AVAILABILITY:
+                current_value = _success / _total
+            else:  # ERROR_RATE
+                current_value = (_total - _success) / _total
+        else:
+            # LATENCY / THROUGHPUT: still need the full measurement list.
+            measurements = list(buf)
+            measurement_count = len(measurements)
+            if not measurements:
+                return SLOStatus(
+                    slo_type=target.slo_type,
+                    target=target,
+                    current_value=0.0,
+                    compliance=True,
+                    error_budget_remaining=1.0,
+                    error_budget_burn_rate=0.0,
+                    window_start=window_start,
+                    window_end=window_end,
+                    measurement_count=0,
+                )
+            current_value = self._calculate_value(target, measurements)
 
-        # Calculate current value
-        current_value = self._calculate_value(target, measurements)
-
-        # Check compliance
         compliance = self._check_compliance(target, current_value)
-
-        # Calculate error budget
         budget_remaining, burn_rate = self._calculate_error_budget(target, current_value)
 
         return SLOStatus(
@@ -158,33 +225,40 @@ class SLOTracker:
             error_budget_burn_rate=burn_rate,
             window_start=window_start,
             window_end=window_end,
-            measurement_count=len(measurements),
+            measurement_count=measurement_count,
         )
 
     def _calculate_value(
         self,
         target: SLOTarget,
-        measurements: list[SLOMeasurement],
+        measurements: list[SLOMeasurement] | deque[SLOMeasurement],
     ) -> float:
-        """Calculate current SLO value."""
+        """Calculate current SLO value for LATENCY and THROUGHPUT types.
+
+        AVAILABILITY and ERROR_RATE are handled via O(1) incremental counters
+        in get_status and never reach this method.
+        """
         if not measurements:  # pragma: no cover
             return 0.0
 
-        if target.slo_type == SLOType.AVAILABILITY:
-            success_count = sum(1 for m in measurements if m.success)
-            return success_count / len(measurements)
-
-        if target.slo_type == SLOType.ERROR_RATE:
-            error_count = sum(1 for m in measurements if not m.success)
-            return error_count / len(measurements)
-
         if target.slo_type == SLOType.LATENCY:
-            values = sorted([m.value for m in measurements])
+            values = [m.value for m in measurements]
+            # Bound sort cost for very large windows.  At 1 M measurements a
+            # full sort takes ~160 ms and allocates ~8 MB.  Reservoir-sampling
+            # 10 K values introduces ≤1 % percentile error for smooth
+            # distributions — acceptable for operational SLO reads.
+            _MAX_SORT = 10_000
+            if len(values) > _MAX_SORT:
+                import random as _rnd  # noqa: PLC0415
+
+                values = _rnd.sample(values, _MAX_SORT)
+            values.sort()
             if target.percentile:
-                # Nearest-rank percentile. Clamp to [0, n-1] so P100 maps to
-                # the last element rather than going one past the end.
-                raw_index = int(len(values) * target.percentile / 100)
-                index = min(raw_index, len(values) - 1)
+                # Nearest-rank percentile (0-indexed).
+                # ceil(n * P / 100) gives the 1-indexed rank; subtract 1 for
+                # 0-indexed access and clamp to [0, n-1].
+                raw_index = math.ceil(len(values) * target.percentile / 100) - 1
+                index = max(0, min(raw_index, len(values) - 1))
                 return values[index]
             return sum(values) / len(values)  # pragma: no cover
 
@@ -229,9 +303,11 @@ class SLOTracker:
         Returns:
             Dictionary mapping SLO names to their status.
         """
-        return {
-            name: status for name in self._targets if (status := self.get_status(name)) is not None
-        }
+        # Snapshot keys under lock to avoid RuntimeError if register_slo()
+        # is called concurrently (dict size change during iteration).
+        with self._lock:
+            names = list(self._targets)
+        return {name: status for name in names if (status := self.get_status(name)) is not None}
 
     def to_dict(self) -> dict[str, Any]:
         """Export all SLO status as dictionary."""
@@ -240,13 +316,16 @@ class SLOTracker:
 
 # Global SLO tracker
 _slo_tracker: SLOTracker | None = None
+_slo_tracker_lock = threading.Lock()
 
 
 def get_slo_tracker() -> SLOTracker:
     """Get global SLO tracker instance."""
     global _slo_tracker
     if _slo_tracker is None:
-        _slo_tracker = SLOTracker()
+        with _slo_tracker_lock:
+            if _slo_tracker is None:  # pragma: no branch
+                _slo_tracker = SLOTracker()
     return _slo_tracker
 
 
@@ -269,7 +348,8 @@ def track_slo(
 def reset_slo_tracker() -> None:
     """Reset global SLO tracker (for testing)."""
     global _slo_tracker
-    _slo_tracker = None
+    with _slo_tracker_lock:
+        _slo_tracker = None
 
 
 def with_slo_tracking(
@@ -313,21 +393,25 @@ def with_slo_tracking(
     def decorator(func: Callable[P, T]) -> Callable[P, T]:
         latency_name = latency_slo_name or f"{slo_name}_latency"
 
-        @functools.wraps(func)
-        async def async_wrapper(*args: P.args, **kwargs: P.kwargs) -> T:
-            start_time = time.perf_counter()
-            success = False
-            try:
-                result = await func(*args, **kwargs)  # type: ignore[misc]
-                success = True
-                return cast(T, result)
-            finally:
-                duration_seconds = time.perf_counter() - start_time
-                # Record availability/error SLO
-                track_slo(slo_name, value=1.0, success=success)
-                # Record latency SLO if enabled
-                if track_latency:
-                    track_slo(latency_name, value=duration_seconds, success=success)
+        if asyncio.iscoroutinefunction(func):
+
+            @functools.wraps(func)
+            async def async_wrapper(*args: P.args, **kwargs: P.kwargs) -> T:
+                start_time = time.perf_counter()
+                success = False
+                try:
+                    result = await func(*args, **kwargs)
+                    success = True
+                    return cast(T, result)
+                finally:
+                    duration_seconds = time.perf_counter() - start_time
+                    # Record availability/error SLO
+                    track_slo(slo_name, value=1.0, success=success)
+                    # Record latency SLO if enabled
+                    if track_latency:
+                        track_slo(latency_name, value=duration_seconds, success=success)
+
+            return async_wrapper  # type: ignore[return-value]
 
         @functools.wraps(func)
         def sync_wrapper(*args: P.args, **kwargs: P.kwargs) -> T:
@@ -345,8 +429,6 @@ def with_slo_tracking(
                 if track_latency:
                     track_slo(latency_name, value=duration_seconds, success=success)
 
-        if asyncio.iscoroutinefunction(func):
-            return async_wrapper  # type: ignore[return-value]
         return sync_wrapper
 
     return decorator

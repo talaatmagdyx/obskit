@@ -28,13 +28,6 @@ try:
 except ImportError:  # pragma: no cover
     pass  # NOSONAR
 
-try:
-    from obskit.logging.adapters.loguru_adapter import LoguruAdapter
-
-    _backends["loguru"] = LoguruAdapter
-except ImportError:  # pragma: no cover
-    pass  # NOSONAR
-
 
 def get_available_backends() -> list[str]:  # pragma: no cover
     """
@@ -49,7 +42,7 @@ def get_available_backends() -> list[str]:  # pragma: no cover
 
 
 def configure_logging_backend(  # pragma: no cover
-    backend: Literal["structlog", "loguru", "auto"] = "structlog",
+    backend: Literal["structlog", "auto"] = "structlog",
     service_name: str = "unknown",
     environment: str = "development",
     version: str = "0.0.0",
@@ -63,11 +56,10 @@ def configure_logging_backend(  # pragma: no cover
 
     Parameters
     ----------
-    backend : {"structlog", "loguru", "auto"}
+    backend : {"structlog", "auto"}
         Which logging backend to use.
         - "structlog": Use structlog (default, recommended)
-        - "loguru": Use loguru
-        - "auto": Auto-detect, prefer structlog if both installed
+        - "auto": Auto-detect (uses structlog)
     service_name : str
         Name of the service.
     environment : str
@@ -106,15 +98,12 @@ def configure_logging_backend(  # pragma: no cover
     with _factory_lock:
         # Determine which backend to use
         if backend == "auto":
-            # Prefer structlog, fall back to loguru
             if "structlog" in _backends and _backends["structlog"].is_available():
                 backend_class = _backends["structlog"]
-            elif "loguru" in _backends and _backends["loguru"].is_available():
-                backend_class = _backends["loguru"]
             else:
                 raise ImportError(
-                    "No logging backend available. Install structlog or loguru: "
-                    "pip install structlog or pip install loguru"
+                    "No logging backend available. Install structlog: "
+                    "pip install structlog"
                 )
         else:
             if backend not in _backends:

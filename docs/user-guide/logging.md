@@ -2,6 +2,18 @@
 
 obskit provides structured, JSON-first logging built on [structlog](https://www.structlog.org/). Every log line is a Python dict that becomes a JSON object — fully queryable in Loki, Elasticsearch, or any log aggregator. Trace IDs are injected automatically when an OpenTelemetry span is active.
 
+!!! tip "Unified setup (v1.0.0+)"
+    For most applications, use `configure_observability()` to set up logging, tracing, and metrics in one call:
+
+    ```python
+    from obskit import configure_observability
+
+    obs = configure_observability(service_name="my-service", log_level="INFO", log_format="json")
+    log = obs.logger
+    ```
+
+    The per-module APIs documented below remain fully supported for advanced use cases.
+
 ---
 
 ## Quick Start
@@ -342,43 +354,6 @@ service:
       receivers: [otlp]
       exporters: [loki]
 ```
-
----
-
-## Dynamic Log Level Changes
-
-Changing the log level at runtime without restarting the process:
-
-```python
-from obskit.logging.dynamic import set_log_level
-
-# Temporarily enable debug logging for a specific logger
-set_log_level("obskit.metrics", level="DEBUG")
-
-# Or globally:
-set_log_level(level="DEBUG")
-
-# Reset to configured default:
-set_log_level(level=None)
-```
-
-This is useful during incident investigation — you can lower the log level temporarily to gather more context without redeploying.
-
-### Via HTTP endpoint (optional)
-
-```python
-from fastapi import FastAPI
-from obskit.logging.dynamic import DynamicLogLevelRouter
-
-app = FastAPI()
-app.include_router(DynamicLogLevelRouter(), prefix="/admin")
-
-# PUT /admin/log-level  {"level": "DEBUG", "logger": "obskit.metrics"}
-# GET /admin/log-level  → {"level": "INFO", "logger": "root"}
-```
-
-!!! danger "Protect the log level endpoint"
-    The dynamic log level endpoint must be protected by authentication. Debug-level logging can expose sensitive data and degrade performance. Restrict access to internal networks or admin users only.
 
 ---
 

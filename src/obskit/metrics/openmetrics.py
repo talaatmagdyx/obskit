@@ -267,9 +267,16 @@ class OpenMetricsRegistry:
         """
         key = f"{metric_name}{_format_labels(labels)}"
         exemplar = OpenMetricsExemplar(exemplar_labels, value)
+
+        # Guard against unbounded key growth (e.g. high-cardinality label combos).
+        # Once the key limit is reached, new keys are silently ignored.
+        _MAX_EXEMPLAR_KEYS = 10_000
+        if key not in self._exemplars and len(self._exemplars) >= _MAX_EXEMPLAR_KEYS:
+            return
+
         self._exemplars[key].append(exemplar)
 
-        # Keep only last 100 exemplars per metric
+        # Keep only last 100 exemplars per metric key
         if len(self._exemplars[key]) > 100:
             self._exemplars[key] = self._exemplars[key][-100:]
 

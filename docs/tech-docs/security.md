@@ -29,7 +29,9 @@ logger.info(
 
 ### Automatic PII Filtering with structlog Processors
 
-Add a processor to your structlog pipeline that scrubs known sensitive field names before any renderer sees the event:
+**obskit's default `get_logger()` already includes automatic PII redaction.** The `make_redaction_processor()` is wired into the default structlog pipeline — `password`, `token`, `secret`, `api_key`, `authorization`, `card_number`, `cvv`, `ssn`, and 15+ other field names are replaced with `"***REDACTED***"` before any log output is written.
+
+If you are configuring structlog manually (outside of obskit), add the processor explicitly:
 
 ```python
 import re

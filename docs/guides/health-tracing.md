@@ -30,8 +30,8 @@ With health check tracing:
 
 | Package | Minimum version | Role |
 |---------|-----------------|------|
-| `obskit` | 3.0.0 | `HealthChecker`, `HealthResult`, built-in checks |
-| `obskit[otlp]` | 3.0.0 | OTel span context injection |
+| `obskit` | 1.0.0 | `HealthChecker`, `HealthResult`, built-in checks |
+| `obskit[otlp]` | 1.0.0 | OTel span context injection |
 | `opentelemetry-sdk` | 1.20.0 | Active span context |
 
 ---
@@ -118,15 +118,17 @@ the `trace_id` is always included in the response:
 
 ```python
 from fastapi import FastAPI
+from obskit import configure_observability, instrument_fastapi
 from obskit.health import HealthChecker, create_http_check
-from obskit.middleware.fastapi import ObservabilityMiddleware
-from obskit.tracing import setup_tracing
 from opentelemetry import trace
 
-setup_tracing(service_name="order-service", exporter_endpoint="http://localhost:4317")
+configure_observability(
+    service_name="order-service",
+    otlp_endpoint="http://localhost:4317",
+)
 
 app = FastAPI()
-app.add_middleware(ObservabilityMiddleware, service_name="order-service")
+instrument_fastapi(app)
 
 tracer = trace.get_tracer("order_service")
 checker = HealthChecker(service_name="order-service", version="2.0.0")
@@ -140,7 +142,7 @@ checker.add_check(
 
 @app.get("/health")
 async def health():
-    # The ObservabilityMiddleware already started a span for this HTTP request,
+    # The ObskitMiddleware already started a span for this HTTP request,
     # so HealthResult.to_dict() will include trace_id automatically.
     result = await checker.check_health()
     status_code = 200 if result.healthy else 503
@@ -379,7 +381,7 @@ result = asyncio.run(checker.check_health())
 
 2. **Is a span active during the health check?**
 
-   The `ObservabilityMiddleware` creates a span for every incoming HTTP request,
+   The `ObskitMiddleware` creates a span for every incoming HTTP request,
    including `GET /health`.  If you are not using the middleware, wrap the
    `check_health()` call in a manual span:
 
@@ -413,7 +415,7 @@ can retrieve with `kubectl exec`.
 |------|--------|
 | Install | `pip install "obskit[otlp]"` |
 | Initialise | Call `setup_tracing()` at startup |
-| Middleware | Add `ObservabilityMiddleware` to wrap requests in spans |
+| Middleware | Add `ObskitMiddleware` to wrap requests in spans |
 | Endpoint | Return `result.to_dict()` from your `/health` route |
 | Verify | `trace_id` appears in the JSON response body |
 | Grafana | Follow `trace_id` link to Tempo for degraded checks |

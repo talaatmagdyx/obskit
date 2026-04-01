@@ -1,6 +1,6 @@
 # Metrics
 
-Prometheus-native metrics for obskit services. Implements the RED method, the Four Golden Signals, the USE method, trace exemplars, multi-tenant labelling, cardinality protection, and OTLP/Pushgateway export.
+Prometheus-native metrics for obskit services. Implements the RED method, trace exemplars, cardinality protection, and OTLP export.
 
 ## Installation
 
@@ -75,67 +75,6 @@ red = get_red_metrics()
 
 ---
 
-## Four Golden Signals — GoldenSignals
-
-Extends RED with **Saturation** — the fourth golden signal introduced by the Google SRE book.
-
-```python
-from obskit.metrics.golden import GoldenSignals
-
-signals = GoldenSignals("api_gateway")
-
-# Rate / Errors / Duration — same as REDMetrics
-signals.observe_request("search", 0.032)
-signals.observe_request("search", 0.200, status="failure", error_type="Timeout")
-
-# Saturation — how full is the resource?
-signals.set_saturation("cpu", 0.72)           # 72% CPU
-signals.set_saturation("connections", 0.95)   # 95% connection pool full
-
-# Queue depth as a saturation proxy
-signals.set_queue_depth("order_queue", depth=1_250)
-```
-
-Created Prometheus metrics (saturation):
-
-- `<service>_resource_saturation{resource="..."}` — Gauge 0.0–1.0
-- `<service>_queue_depth{queue_name="..."}` — Gauge
-
----
-
-## USE Method — USEMetrics
-
-**Utilization · Saturation · Errors** — designed for infrastructure and resource monitoring, not request flows.
-
-```python
-from obskit.metrics.use import USEMetrics
-
-use = USEMetrics("app_server")
-
-# Utilization — how busy is the resource?
-use.set_utilization("cpu", 0.68)          # 68% CPU time busy
-use.set_utilization("memory", 0.45)       # 45% of RAM in use
-use.set_utilization("db_pool", 0.80)      # 80% of DB connections used
-
-# Saturation — extra work that can't be serviced immediately
-use.set_saturation("cpu", 0.12)           # run-queue length normalised
-use.set_saturation("disk_io", 8.0)        # I/O queue depth
-
-# Errors — discrete error events
-use.inc_error("network", "packet_loss")
-use.inc_error("disk", "read_error")
-```
-
-Created Prometheus metrics:
-
-| Family | Type | Labels |
-|---|---|---|
-| `<category>_utilization` | Gauge | `resource` |
-| `<category>_saturation` | Gauge | `resource` |
-| `<category>_errors_total` | Counter | `resource`, `error_type` |
-
----
-
 ## Exemplars
 
 Prometheus exemplars embed a `trace_id` into individual histogram observations, allowing Grafana to draw a clickable link from a latency spike on a metric panel directly to the matching Tempo trace.
@@ -182,44 +121,6 @@ observe_with_exemplar(
 
 !!! note "OpenMetrics scrape format"
     Prometheus must scrape your `/metrics` endpoint using the **OpenMetrics** content type (`application/openmetrics-text`) for exemplars to be included in the scrape.
-
----
-
-## Tenant metrics — TenantREDMetrics
-
-Inject a `tenant_id` label into all RED metrics for multi-tenant SaaS services.
-
-```python
-from obskit.metrics.tenant import (
-    TenantREDMetrics,
-    tenant_metrics_context,
-    get_tenant_id,
-    set_tenant_id,
-)
-
-tenant_metrics = TenantREDMetrics("order_service")
-
-# Explicit tenant ID per observation
-tenant_metrics.observe_request(
-    tenant_id="acme-corp",
-    operation="create_order",
-    duration_seconds=0.045,
-    status="success",
-)
-
-# Context-manager approach — set once, used by all metrics in scope
-with tenant_metrics_context("acme-corp"):
-    red = get_red_metrics()
-    red.observe_request("create_order", 0.045)
-    red.observe_request("list_orders", 0.012)
-
-# Low-level context variable
-set_tenant_id("acme-corp")
-current = get_tenant_id()   # "acme-corp"
-```
-
-!!! warning "Cardinality caution"
-    Adding `tenant_id` as a label multiplies cardinality by the number of unique tenants. Pair `TenantREDMetrics` with `CardinalityGuard` when you have more than a few hundred tenants.
 
 ---
 
@@ -273,23 +174,6 @@ setup_otlp_metrics(
 
 # Graceful shutdown (flushes pending exports)
 shutdown_otlp_metrics()
-```
-
----
-
-## Prometheus Push Gateway
-
-Send metrics from short-lived jobs (batch jobs, crons) to a Prometheus Pushgateway.
-
-```python
-from obskit.metrics.pushgateway import push_to_gateway
-
-# Push all registered metrics
-push_to_gateway(
-    gateway="http://pushgateway:9091",
-    job="nightly_report",
-    grouping_key={"instance": "worker-01"},
-)
 ```
 
 ---
@@ -386,7 +270,6 @@ os.environ.setdefault("PROMETHEUS_MULTIPROC_DIR", "/tmp/prometheus_multiproc")
 ```python
 from obskit.config import configure
 from obskit.metrics import REDMetrics
-from obskit.metrics.golden import GoldenSignals
 from obskit.metrics.exemplar import is_exemplar_available
 
 configure(
@@ -396,7 +279,6 @@ configure(
 )
 
 red = REDMetrics("order_service")
-golden = GoldenSignals("order_service")
 
 async def create_order(order_data: dict):
     with red.track_request("create_order"):
@@ -408,9 +290,4 @@ async def create_order(order_data: dict):
             exemplars=is_exemplar_available(),
         )
         return result
-
-# Update saturation from a background task
-async def update_saturation():
-    golden.set_saturation("db_pool", db_pool.utilization())
-    golden.set_queue_depth("order_queue", await queue.depth())
 ```

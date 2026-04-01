@@ -398,7 +398,7 @@ class TestCreateHeadersCoverage:
 
     def test_include_tenant_id_with_tenant_set(self):
         """Test include_tenant_id=True when tenant_id is set (line 147->148)."""
-        from obskit.metrics.tenant import set_tenant_id
+        from obskit.middleware.base import set_tenant_id
         from obskit.middleware.base import inject_context_to_headers
 
         set_tenant_id("test-tenant")
@@ -408,7 +408,7 @@ class TestCreateHeadersCoverage:
 
     def test_include_tenant_id_false(self):
         """Test include_tenant_id=False skips tenant header (line 145->151)."""
-        from obskit.metrics.tenant import set_tenant_id
+        from obskit.middleware.base import set_tenant_id
         from obskit.middleware.base import inject_context_to_headers
 
         set_tenant_id("some-tenant")

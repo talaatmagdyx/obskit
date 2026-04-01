@@ -31,13 +31,28 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from enum import Enum
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from obskit.health import HealthChecker, get_health_checker
 from obskit.logging import get_logger
-from obskit.slo import SLOTracker, get_slo_tracker
+
+if TYPE_CHECKING:
+    from obskit.slo import SLOTracker
 
 logger = get_logger("obskit.health.slo_check")
+
+
+def get_slo_tracker() -> Any:
+    """Lazy accessor for the global SLO tracker; raises ImportError if obskit[slo] not installed."""
+    try:
+        from obskit.slo import get_slo_tracker as _get  # noqa: PLC0415
+
+        return _get()
+    except ImportError as e:  # pragma: no cover
+        raise ImportError(  # pragma: no cover
+            "SLO health checks require obskit[slo]. "
+            "Install: pip install obskit[slo]  or  obskit[slo-all]"
+        ) from e
 
 
 class SLOHealthStatus(Enum):

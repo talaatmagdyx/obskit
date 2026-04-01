@@ -4,13 +4,13 @@ Complete reference for all public APIs across all obskit packages.
 APIs are stable across minor versions within a major version (SemVer).
 
 !!! tip "Finding the right API"
-    - **New to obskit?** Start with [`configure()`](#configure) and
-      [`get_logger()`](#get_logger).
-    - **Adding metrics?** See [`REDMetrics`](#redmetrics) for request metrics,
-      [`GoldenSignals`](#goldensignals) for comprehensive monitoring.
+    - **New to obskit?** Start with [`configure_observability()`](#configure_observability) (v1.0.0+)
+      or [`configure()`](#configure) (legacy, still supported).
+    - **Adding metrics?** See [`REDMetrics`](#redmetrics) for request metrics.
     - **Tracing?** See [`setup_tracing()`](#setup_tracing) and [`trace_span()`](#trace_span).
     - **Health checks?** See [`HealthChecker`](#healthchecker).
-    - **Circuit breaker?** See [`CircuitBreaker`](#circuitbreaker).
+    - **Framework instrumentation?** See [`instrument_fastapi()`](#instrument_fastapi),
+      [`instrument_flask()`](#instrument_flask), [`instrument_django()`](#instrument_django).
     - **Diagnosing issues?** See [`collect_diagnostics()`](#collect_diagnostics).
 
 ---
@@ -77,6 +77,166 @@ from obskit.config import ObskitSettings
 Pydantic-Settings model.  All fields can be set via `OBSKIT_*` environment
 variables.  See the [Configuration Reference](configuration.md) for the full
 field list.
+
+---
+
+## obskit — Unified API (v1.0.0+)
+
+**Package:** `obskit`
+**Install:** `pip install obskit`
+
+The unified API provides a single entry point that configures logging, tracing,
+and metrics in one call.  The legacy `configure()` + `setup_tracing()` +
+`configure_logging()` sequence still works and is not deprecated.
+
+### configure_observability()
+
+```python
+from obskit import configure_observability
+```
+
+One-call setup that replaces the previous multi-step initialisation.  Returns
+an [`Observability`](#observability) handle.
+
+```python
+obs = configure_observability(
+    service_name="order-service",
+    environment="production",
+    version="1.0.0",
+    tracing_enabled=True,
+    otlp_endpoint="http://tempo:4317",
+    trace_sample_rate=0.1,
+    log_level="INFO",
+    log_format="json",
+    metrics_enabled=True,
+)
+
+logger = obs.logger(__name__)
+logger.info("ready")
+```
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `service_name` | `str` | `"unknown"` | Identifies this service in traces, metrics, and logs |
+| `environment` | `str` | `"development"` | Deployment environment |
+| `version` | `str` | `"0.0.0"` | Service version |
+| `log_level` | `str` | `"INFO"` | Minimum log level |
+| `log_format` | `str` | `"json"` | `json` or `console` |
+| `metrics_enabled` | `bool` | `True` | Enable Prometheus metrics |
+| `tracing_enabled` | `bool` | `True` | Enable OpenTelemetry tracing |
+| `otlp_endpoint` | `str` | `"http://localhost:4317"` | OTLP collector endpoint |
+| `trace_sample_rate` | `float` | `1.0` | Fraction of traces to sample |
+
+### Observability
+
+```python
+from obskit import configure_observability
+
+obs = configure_observability(service_name="my-service")
+```
+
+Returned by `configure_observability()`.  Provides access to all subsystems.
+
+| Attribute / Method | Type | Description |
+|---|---|---|
+| `obs.tracer` | OTel `Tracer` | The configured OpenTelemetry tracer |
+| `obs.metrics` | Metrics registry handle | Access to the Prometheus metrics registry |
+| `obs.logger(name)` | `BoundLogger` | Returns a structlog logger with trace injection |
+| `obs.config` | `ObservabilityConfig` | Frozen snapshot of the active configuration |
+| `await obs.shutdown()` | coroutine | Flush pending spans / metrics and release resources |
+
+### ObservabilityConfig
+
+```python
+from obskit import configure_observability
+
+obs = configure_observability(service_name="my-service")
+cfg = obs.config
+
+print(cfg.service_name)   # "my-service"
+print(cfg.environment)    # "development"
+```
+
+Frozen dataclass that exposes the effective configuration.  Read-only after
+creation.
+
+### get_observability()
+
+```python
+from obskit import get_observability
+
+obs = get_observability()
+# Returns the Observability instance created by configure_observability(),
+# or None if configure_observability() has not been called yet.
+```
+
+Retrieve the current `Observability` singleton from anywhere in the
+application.  Useful in modules that cannot receive the handle directly.
+
+### reset_observability()
+
+```python
+from obskit import reset_observability
+
+reset_observability()
+```
+
+Tear down the current `Observability` instance and reset global state.
+Primarily used in test fixtures.
+
+### instrument_fastapi()
+
+```python
+from obskit import instrument_fastapi
+
+app = FastAPI()
+instrument_fastapi(
+    app,
+    exclude_paths={"/health/live", "/health/ready", "/metrics"},
+)
+```
+
+Attach `ObskitMiddleware` (raw ASGI) to a FastAPI application.  Automatically
+records RED metrics, creates trace spans for every request, and propagates
+correlation IDs.
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `app` | `FastAPI` | required | The FastAPI application instance |
+| `exclude_paths` | `set[str]` | `set()` | Paths to exclude from tracing and metrics |
+
+### instrument_flask()
+
+```python
+from obskit import instrument_flask
+
+app = Flask(__name__)
+instrument_flask(
+    app,
+    exclude_paths={"/health/live", "/health/ready", "/metrics"},
+)
+```
+
+Wrap a Flask application's WSGI callable with `ObskitFlaskMiddleware`.
+Provides the same RED metrics, tracing, and correlation ID propagation as
+`instrument_fastapi()`.
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `app` | `Flask` | required | The Flask application instance |
+| `exclude_paths` | `set[str]` | `set()` | Paths to exclude from tracing and metrics |
+
+### instrument_django()
+
+```python
+from obskit import instrument_django
+
+instrument_django()
+```
+
+Install obskit middleware into the Django middleware stack.  Call this in your
+Django `settings.py` or `AppConfig.ready()` method.  The middleware is
+inserted at the outermost position automatically.
 
 ---
 
@@ -417,78 +577,10 @@ checker.add_check("redis", redis_check)
 
 ---
 
-## obskit.resilience
-
-**Package:** `obskit`
-**Install:** `pip install obskit`
-
-### CircuitBreaker
-
-```python
-from obskit.resilience import CircuitBreaker, CircuitState
-
-breaker = CircuitBreaker(
-    name="payment_api",
-    failure_threshold=5,       # open after 5 failures
-    recovery_timeout=30.0,     # wait 30s before half-open
-    half_open_requests=3,      # test with 3 requests
-)
-
-# Async context manager
-async with breaker:
-    await call_payment_api()
-
-# Sync context manager
-with breaker:
-    call_payment_api_sync()
-
-# Check state
-print(breaker.state)    # CircuitState.CLOSED | OPEN | HALF_OPEN
-```
-
-### CircuitState
-
-```python
-from obskit.resilience import CircuitState
-
-CircuitState.CLOSED      # normal operation
-CircuitState.OPEN        # fast-fail; no calls to downstream
-CircuitState.HALF_OPEN   # testing recovery
-```
-
-### retry() / async_retry()
-
-```python
-from obskit.resilience import retry, async_retry
-
-@retry(max_attempts=3, base_delay=1.0, max_delay=60.0, exponential_base=2.0)
-def fetch_data():
-    return requests.get("http://api/data").json()
-
-@async_retry(max_attempts=3, base_delay=0.5)
-async def async_fetch():
-    return await httpx.get("http://api/data")
-```
-
-### RateLimiter
-
-```python
-from obskit.resilience import RateLimiter
-
-limiter = RateLimiter(requests=100, window_seconds=60.0)
-
-async def handle_request():
-    if not await limiter.acquire():
-        raise TooManyRequestsError("Rate limit exceeded")
-    return await process()
-```
-
----
-
 ## obskit.slo
 
-**Package:** `obskit`
-**Install:** `pip install obskit`
+**Package:** `obskit[slo]`
+**Install:** `pip install "obskit[slo]"`
 
 ### SLOTracker
 

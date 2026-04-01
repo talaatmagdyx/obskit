@@ -102,7 +102,7 @@ export OBSKIT_TRACE_SAMPLE_RATE=0.1
 | `log_level` | `OBSKIT_LOG_LEVEL` | `str` | `"INFO"` | Minimum log level.  Values: `DEBUG`, `INFO`, `WARNING`, `ERROR`, `CRITICAL`. |
 | `log_format` | `OBSKIT_LOG_FORMAT` | `str` | `"json"` | Output format.  `"json"` for production (machine-readable); `"console"` for local development (coloured, human-readable). |
 | `log_include_timestamp` | `OBSKIT_LOG_INCLUDE_TIMESTAMP` | `bool` | `True` | Include ISO-8601 timestamp in log records.  Disable when your log aggregator adds its own timestamp to avoid duplication. |
-| `logging_backend` | `OBSKIT_LOGGING_BACKEND` | `str` | `"auto"` | Logging backend: `"structlog"` (default), `"loguru"`, or `"auto"` (detects installed backend). |
+| `logging_backend` | `OBSKIT_LOGGING_BACKEND` | `str` | `"auto"` | Logging backend: `"structlog"` (default) or `"auto"` (detects installed backend). |
 | `log_sample_rate` | `OBSKIT_LOG_SAMPLE_RATE` | `float` | `1.0` | Fraction of log records to emit.  Example: `0.01` = 1% sampling for high-throughput paths.  Always emits `ERROR` and `CRITICAL` regardless. |
 
 ---
@@ -112,46 +112,6 @@ export OBSKIT_TRACE_SAMPLE_RATE=0.1
 | Field | Env Var | Type | Default | Description |
 |---|---|---|---|---|
 | `health_check_timeout` | `OBSKIT_HEALTH_CHECK_TIMEOUT` | `float` | `5.0` | Seconds before an individual health check is considered failed.  Keep below your readiness probe `periodSeconds`. |
-
----
-
-## Circuit Breaker
-
-| Field | Env Var | Type | Default | Description |
-|---|---|---|---|---|
-| `circuit_breaker_failure_threshold` | `OBSKIT_CIRCUIT_BREAKER_FAILURE_THRESHOLD` | `int` | `5` | Number of consecutive failures before the circuit opens.  Lower = faster failure detection but more false positives.  Higher = slower detection but fewer false positives. |
-| `circuit_breaker_recovery_timeout` | `OBSKIT_CIRCUIT_BREAKER_RECOVERY_TIMEOUT` | `float` | `30.0` | Seconds the circuit stays open before entering HALF_OPEN.  Too short = unnecessary load on recovering service.  Too long = extended outage. |
-| `circuit_breaker_half_open_requests` | `OBSKIT_CIRCUIT_BREAKER_HALF_OPEN_REQUESTS` | `int` | `3` | Number of test requests sent in HALF_OPEN state.  If all succeed, the circuit closes. |
-
----
-
-## Retry
-
-| Field | Env Var | Type | Default | Description |
-|---|---|---|---|---|
-| `retry_max_attempts` | `OBSKIT_RETRY_MAX_ATTEMPTS` | `int` | `3` | Total call attempts (including the first try).  Setting to `1` disables retries. |
-| `retry_base_delay` | `OBSKIT_RETRY_BASE_DELAY` | `float` | `1.0` | Initial delay in seconds between retries.  Actual delay = `base_delay × exponential_base ^ attempt`. |
-| `retry_max_delay` | `OBSKIT_RETRY_MAX_DELAY` | `float` | `60.0` | Maximum delay cap in seconds.  Prevents exponential backoff from growing unbounded. |
-| `retry_exponential_base` | `OBSKIT_RETRY_EXPONENTIAL_BASE` | `float` | `2.0` | Exponential growth factor.  `2.0` = delays double each attempt: 1s, 2s, 4s, 8s… |
-
-**Example retry schedule** (`base_delay=1.0`, `exponential_base=2.0`, `max_delay=60.0`):
-
-| Attempt | Delay before attempt |
-|---|---|
-| 1 | 0 (first try) |
-| 2 | 1.0 s |
-| 3 | 2.0 s |
-| 4 | 4.0 s (if `max_attempts≥4`) |
-| 5 | 8.0 s |
-
----
-
-## Rate Limiting
-
-| Field | Env Var | Type | Default | Description |
-|---|---|---|---|---|
-| `rate_limit_requests` | `OBSKIT_RATE_LIMIT_REQUESTS` | `int` | `100` | Maximum requests per window.  Example: 100 requests per 60 seconds ≈ 1.67 req/s. |
-| `rate_limit_window_seconds` | `OBSKIT_RATE_LIMIT_WINDOW_SECONDS` | `float` | `60.0` | Sliding window duration in seconds. |
 
 ---
 
@@ -174,10 +134,6 @@ OBSKIT_TRACE_SAMPLE_RATE=0.05
 OBSKIT_METRICS_ENABLED=true
 OBSKIT_METRICS_AUTH_ENABLED=true
 OBSKIT_METRICS_AUTH_TOKEN=your-secret-token-here
-
-OBSKIT_CIRCUIT_BREAKER_FAILURE_THRESHOLD=5
-OBSKIT_CIRCUIT_BREAKER_RECOVERY_TIMEOUT=30.0
-OBSKIT_RETRY_MAX_ATTEMPTS=3
 ```
 
 ---

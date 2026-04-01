@@ -282,8 +282,7 @@ metrics_generator:
 - [ ] Configure promtail or OTLP collector to ship logs to Loki
 - [ ] Set up Grafana correlations (Loki trace_id → Tempo)
 - [ ] Set up Grafana Service Graph (Tempo metrics-generator)
-- [ ] Import Grafana dashboards from `obskit.dashboards` module
-- [ ] Migrate Datadog monitors to Alertmanager / Grafana Alerting rules
+- [ ] Migrate Datadog monitors to Grafana Alerting rules
 - [ ] Remove `ddtrace` and `datadog` packages from `requirements.txt`
 - [ ] Update `DD_*` environment variables to `OBSKIT_*`
 - [ ] Run `python -m obskit.core.diagnose` to verify the install

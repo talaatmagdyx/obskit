@@ -161,17 +161,9 @@ from obskit.metrics.exemplar import (
     is_exemplar_available,
     observe_with_exemplar,
 )
-from obskit.metrics.golden import GoldenSignals
 from obskit.metrics.red import REDMetrics
 from obskit.metrics.registry import get_registry, start_http_server
-from obskit.metrics.self_metrics import (
-    get_self_metrics,
-    record_dropped_metric,
-    record_error,
-    update_queue_metrics,
-)
 from obskit.metrics.types import Counter, Gauge, Histogram, Summary
-from obskit.metrics.use import USEMetrics
 
 __all__ = [
     # ==========================================================================
@@ -180,12 +172,6 @@ __all__ = [
     # RED Method (Rate, Errors, Duration)
     # Best for: Service endpoints, API calls
     "REDMetrics",
-    # Four Golden Signals (Latency, Traffic, Errors, Saturation)
-    # Best for: Complete service monitoring
-    "GoldenSignals",
-    # USE Method (Utilization, Saturation, Errors)
-    # Best for: Infrastructure monitoring
-    "USEMetrics",
     # ==========================================================================
     # Cardinality Protection
     # ==========================================================================
@@ -221,17 +207,6 @@ __all__ = [
     "get_registry",
     # Start HTTP server for /metrics endpoint
     "start_http_server",
-    # ==========================================================================
-    # Self-Monitoring Metrics
-    # ==========================================================================
-    # Get obskit's internal metrics
-    "get_self_metrics",
-    # Record dropped metric event
-    "record_dropped_metric",
-    # Record internal error
-    "record_error",
-    # Update queue metrics
-    "update_queue_metrics",
     # ==========================================================================
     # Trace Exemplars (link metric data-points to Tempo traces)
     # ==========================================================================

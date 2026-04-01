@@ -44,6 +44,34 @@ jobs:
       - name: Run unit tests
         run: uv run pytest tests/unit/ -q --tb=short --no-cov --timeout=30 --benchmark-disable
 
+  minimal-deps:
+    name: Minimal Deps (no extras)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install obskit core only (no extras)
+        run: uv sync --no-dev
+
+      - name: Verify import works without optional deps
+        run: |
+          uv run python -c "
+          from obskit import configure_observability, get_logger, get_observability
+          from obskit import Observability, ObservabilityConfig
+          obs = configure_observability(service_name='test')
+          assert obs.config.service.name == 'test'
+          print('minimal-deps import OK')
+          "
+
   lint:
     name: Lint
     runs-on: ubuntu-latest

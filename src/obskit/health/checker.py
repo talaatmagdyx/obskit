@@ -48,6 +48,8 @@ from __future__ import annotations
 import asyncio
 import inspect
 import json
+import logging as _hc_logging
+import threading
 import time
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass, field
@@ -602,8 +604,6 @@ class HealthChecker:
                 )
             # Handle int results (non-zero = healthy, 0 = unhealthy)
             if isinstance(result, int):
-                import logging as _hc_logging
-
                 _hc_logging.getLogger(__name__).warning(
                     "health_check_unexpected_result_type: check=%r returned int %r, "
                     "interpreting as bool (non-zero=healthy)",
@@ -616,8 +616,6 @@ class HealthChecker:
                     duration_ms=duration_ms,
                 )
             # Treat truthy values as healthy (unexpected type — log warning)
-            import logging as _hc_logging
-
             _hc_logging.getLogger(__name__).warning(
                 "health_check_unexpected_result_type: check=%r returned %r (%s), treating as bool",
                 check.name,
@@ -842,8 +840,6 @@ def create_health_response(result: HealthResult) -> dict[str, Any]:
         "body": result.to_dict(),
     }
 
-
-import threading
 
 # Global health checker for module-level usage
 _health_checker: HealthChecker | None = None

@@ -148,13 +148,13 @@ cat prometheus.yml | grep -A 5 "order-service"
 
 === "Metrics server not started"
 
-    If you use FastAPI with `ObservabilityMiddleware`, the metrics server on port 9090 starts automatically. For standalone scripts, you must start it manually:
+    If you use FastAPI with `instrument_fastapi()` or `ObskitMiddleware`, the metrics server on port 9090 starts automatically. For standalone scripts, you must start it manually:
 
     ```python
+    from obskit import configure_observability
     from obskit.metrics import start_metrics_server
-    from obskit.config import configure
 
-    configure(service_name="my-service", metrics_port=9090)
+    configure_observability(service_name="my-service", metrics_port=9090)
     start_metrics_server()   # opens port 9090 in background thread
     ```
 
@@ -306,9 +306,15 @@ logger.info("outside span")      # will NOT have trace_id — this is correct
 
 === "structlog not using obskit processor"
 
-    If you configured structlog manually without obskit's processor chain, the injection does not occur. Use obskit's factory:
+    If you configured structlog manually without obskit's processor chain, the injection does not occur. Use obskit's unified setup:
 
     ```python
+    # v1.0.0+ (recommended)
+    from obskit import configure_observability
+    obs = configure_observability(service_name="my-service")
+    # Logging, tracing, and metrics are all configured automatically.
+
+    # Legacy (still supported)
     from obskit.logging.factory import configure_logging
     configure_logging()   # sets up the full processor chain including OTel injection
     ```
@@ -417,63 +423,6 @@ for metric, count in series.most_common(10):
 
 ---
 
-## Issue: Circuit Breaker Opens Immediately
-
-### Diagnosis steps
-
-```python
-from obskit.resilience import CircuitBreaker
-
-cb = CircuitBreaker(name="payment-api", failure_threshold=5)
-
-# Print current state
-print(f"State           : {cb.state}")
-print(f"Failure count   : {cb.failure_count}")
-print(f"Last failure    : {cb.last_failure_time}")
-```
-
-### Common causes and fixes
-
-=== "Threshold too low"
-
-    ```bash
-    # Default is 5; for bursty dependencies, raise it
-    OBSKIT_CIRCUIT_BREAKER_FAILURE_THRESHOLD=10
-    ```
-
-=== "External service is genuinely down"
-
-    The circuit breaker is working correctly. Fix the downstream service or increase the recovery timeout:
-
-    ```bash
-    OBSKIT_CIRCUIT_BREAKER_RECOVERY_TIMEOUT=60.0   # wait 60 s before probing
-    ```
-
-=== "Transient errors counted as failures"
-
-    Exclude expected exceptions from the failure counter:
-
-    ```python
-    cb = CircuitBreaker(
-        name="payment-api",
-        failure_threshold=5,
-        # Only count server errors (5xx), not client errors (4xx)
-        exclude_exceptions=(ValueError, KeyError),
-    )
-    ```
-
-=== "Recovery timeout too short"
-
-    If the downstream service needs more than 30 s to restart, the circuit oscillates between half-open and open:
-
-    ```python
-    cb = CircuitBreaker(
-        name="payment-api",
-        recovery_timeout=120.0,   # 2 minutes
-        half_open_requests=1,     # probe with a single request
-    )
-    ```
-
 ---
 
 ## Debug Mode: Printing Spans
@@ -505,7 +454,7 @@ python -m obskit.core.diagnose
 ### Interpreting the output
 
 ```
-obskit v2.0.0 — Diagnostic Report (2026-02-28T10:30:00Z)
+obskit v1.0.0 — Diagnostic Report (2026-02-28T10:30:00Z)
 ==========================================================
 
 Service
@@ -604,7 +553,7 @@ pip install pytest-benchmark memory-profiler
 
 # Run all benchmarks
 cd benchmarks/
-pytest bench_metrics.py bench_circuit_breaker.py bench_context.py -v
+pytest bench_metrics.py bench_context.py -v
 
 # Profile memory allocation
 python bench_memory.py
@@ -620,7 +569,6 @@ Expected baseline numbers on a modern laptop (M2 MacBook Pro):
 | `logger.info()` | 4 µs | 12 µs |
 | `counter.inc()` | 0.8 µs | 2 µs |
 | `histogram.observe()` | 1.2 µs | 4 µs |
-| `CircuitBreaker.__call__` (closed) | 2 µs | 8 µs |
 | `setup_tracing()` (startup, once) | 50 ms | — |
 | Context propagation per span | 5 µs | 20 µs |
 
@@ -681,9 +629,6 @@ If none of the above resolves your issue:
     Search Loki or Elasticsearch for obskit-emitted error events:
 
     ```
-    # Loki query for circuit breaker transitions
-    {app="order-service"} | json | event = "circuit_breaker_state_change"
-
     # Loki query for slow requests (> 1 s)
     {app="order-service"} | json | duration_ms > 1000
 

@@ -10,7 +10,34 @@ pip install "obskit[django]"
 
 ---
 
-## Setup
+## Quick Setup with `instrument_django()` (Recommended)
+
+*New in v1.0.0.* The simplest way to add observability to a Django app is `instrument_django()`. Call it in your `AppConfig.ready()` or `settings.py` to automatically register `ObskitDjangoMiddleware` and wire up tracing:
+
+```python
+# apps.py
+from django.apps import AppConfig
+
+class OrdersConfig(AppConfig):
+    name = "orders"
+
+    def ready(self):
+        from obskit import configure_observability, instrument_django
+
+        configure_observability(
+            service_name="order-service",
+            environment="production",
+            version="2.0.0",
+            otlp_endpoint="http://tempo:4317",
+        )
+        instrument_django()
+```
+
+`instrument_django()` is equivalent to manually adding `ObskitDjangoMiddleware` to your `MIDDLEWARE` list and calling `setup_tracing()`. For fine-grained control, use the direct approach below.
+
+---
+
+## Direct Setup
 
 Add `ObskitDjangoMiddleware` to your Django `MIDDLEWARE` list. It should appear early so that correlation context is available to all subsequent middleware and views.
 

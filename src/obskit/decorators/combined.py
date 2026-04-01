@@ -66,7 +66,7 @@ from functools import wraps
 from typing import Any, ParamSpec, TypeVar
 
 from obskit.core.context import async_correlation_context, get_correlation_id
-from obskit.decorators.ht_runtime import get_ht_pipeline
+from obskit.decorators._ht_pipeline import get_ht_pipeline
 from obskit.logging import get_logger, log_error, log_operation, log_performance
 from obskit.metrics.red import get_red_metrics
 
@@ -225,6 +225,9 @@ def with_observability(
         # Use provided values or derive from function metadata
         comp = component or func.__module__.split(".")[-1]
         op = operation or func.__name__
+        # Resolve singleton once at decoration time — avoids a function call,
+        # global read, and None-check on every request invocation.
+        _red = get_red_metrics() if track_metrics else None
 
         @wraps(func)  # Preserves function metadata (__name__, __doc__, etc.)
         async def wrapper(*args: P.args, **kwargs: P.kwargs) -> T:
@@ -313,9 +316,8 @@ def with_observability(
                     # =========================================================
                     # Step 8: Record metrics (if enabled)
                     # =========================================================
-                    if track_metrics:  # pragma: no branch
-                        red = get_red_metrics()
-                        red.observe_request(
+                    if _red is not None:  # pragma: no branch
+                        _red.observe_request(
                             operation=op,
                             duration_seconds=duration_ms / 1000.0,
                             status="success",
@@ -353,9 +355,8 @@ def with_observability(
                     # =========================================================
                     # Step 12: Record error metrics (if enabled)
                     # =========================================================
-                    if track_metrics:
-                        red = get_red_metrics()
-                        red.observe_request(
+                    if _red is not None:
+                        _red.observe_request(
                             operation=op,
                             duration_seconds=duration_ms / 1000.0,
                             status="failure",
@@ -450,6 +451,7 @@ def with_observability_sync(
     def decorator(func: Callable[P, T]) -> Callable[P, T]:
         comp = component or func.__module__.split(".")[-1]
         op = operation or func.__name__
+        _red = get_red_metrics() if track_metrics else None
 
         @wraps(func)
         def wrapper(*args: P.args, **kwargs: P.kwargs) -> T:
@@ -503,9 +505,8 @@ def with_observability_sync(
                     **context,
                 )
 
-                if track_metrics:  # pragma: no branch
-                    red = get_red_metrics()
-                    red.observe_request(
+                if _red is not None:  # pragma: no branch
+                    _red.observe_request(
                         operation=op,
                         duration_seconds=duration_ms / 1000.0,
                         status="success",
@@ -533,9 +534,8 @@ def with_observability_sync(
                 )
 
                 # Record error metrics
-                if track_metrics:
-                    red = get_red_metrics()
-                    red.observe_request(
+                if _red is not None:
+                    _red.observe_request(
                         operation=op,
                         duration_seconds=duration_ms / 1000.0,
                         status="failure",
@@ -736,8 +736,8 @@ def track_metrics_only(
     """
 
     def decorator(func: Callable[P, Awaitable[T]]) -> Callable[P, Awaitable[T]]:
-        component or func.__module__.split(".")[-1]
         op = operation or func.__name__
+        _red = get_red_metrics()
 
         @wraps(func)
         async def wrapper(*args: P.args, **kwargs: P.kwargs) -> T:
@@ -750,8 +750,7 @@ def track_metrics_only(
 
                 # Record success metrics
                 duration_seconds = time.perf_counter() - start_time
-                red = get_red_metrics()
-                red.observe_request(
+                _red.observe_request(
                     operation=op,
                     duration_seconds=duration_seconds,
                     status="success",
@@ -762,8 +761,7 @@ def track_metrics_only(
             except Exception as e:
                 # Record failure metrics
                 duration_seconds = time.perf_counter() - start_time
-                red = get_red_metrics()
-                red.observe_request(
+                _red.observe_request(
                     operation=op,
                     duration_seconds=duration_seconds,
                     status="failure",
@@ -782,27 +780,7 @@ def track_metrics_only(
 # =============================================================================
 
 
-class _AsyncNullContext:
-    """
-    Async null context manager that does nothing.
-
-    Used when we don't need to create a new correlation context
-    (because one already exists).
-    """
-
-    async def __aenter__(self) -> None:
-        """Enter context (no-op)."""
-
-    async def __aexit__(self, *args: Any) -> None:
-        """Exit context (no-op)."""
-
-
 @asynccontextmanager
 async def _async_null_context() -> AsyncGenerator[None, None]:
-    """
-    Async context manager that does nothing.
-
-    This is used when a correlation ID already exists and we don't
-    need to create a new correlation context.
-    """
-    yield  # pragma: no cover
+    """No-op async context manager used when a correlation ID already exists."""
+    yield

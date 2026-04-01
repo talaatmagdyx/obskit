@@ -6,7 +6,6 @@ Build a production-ready **Order Service** with full observability in under 30 m
 - RED metrics scraped by **Prometheus** and visualised in **Grafana**
 - Structured JSON logs shipped to **Loki** with automatic `trace_id` injection
 - Health checks compatible with Kubernetes probes
-- Circuit breakers protecting external calls
 - SLO tracking from day one
 
 ---
@@ -22,7 +21,7 @@ order-service/
 │   │   ├── orders.py
 │   │   └── health.py
 │   ├── services/
-│   │   └── payment.py   ← external call with circuit breaker
+│   │   └── payment.py   ← external call to payment API
 │   └── models.py
 ├── tests/
 │   ├── conftest.py
@@ -44,7 +43,7 @@ uvicorn[standard]>=0.29.0
 httpx>=0.27.0
 pydantic>=2.0.0
 
-"obskit[prometheus,otlp,fastapi]>=3.0.0"
+"obskit[prometheus,otlp,fastapi]>=1.0.0"
 fastapi>=0.100.0
 uvicorn[standard]>=0.30.0
 ```
@@ -66,55 +65,41 @@ import asyncio
 from fastapi import FastAPI, Request, Response
 from fastapi.responses import JSONResponse
 
-# ── obskit: configure FIRST, before any other obskit import ──────────────────
-from obskit import configure
-from obskit.config import validate_config
-
-configure(
-    service_name=os.getenv("OBSKIT_SERVICE_NAME", "order-service"),
-    environment=os.getenv("OBSKIT_ENVIRONMENT", "development"),
-    version=os.getenv("OBSKIT_VERSION", "2.0.0"),
-)
-
-is_valid, errors = validate_config()
-if not is_valid:
-    for err in errors:
-        print(f"[CONFIG ERROR] {err}", flush=True)
-    raise SystemExit(1)
-
-# ── obskit packages (import after configure) ──────────────────────────────────
-from obskit.tracing import setup_tracing
-from obskit.logging.factory import configure_logging
-from obskit.metrics import start_metrics_server
-from obskit.middleware.fastapi import ObservabilityMiddleware
+# ── obskit: unified setup (v1.0.0+) ──────────────────────────────────────────
+from obskit import configure_observability
 from obskit.health import HealthChecker
 from obskit.health.checks import DatabaseCheck, RedisCheck
-from obskit.shutdown import ShutdownManager
 
-# Initialise tracing (must be before any logger creation)
-setup_tracing()
+# configure_observability() replaces the old configure() + setup_tracing() +
+# configure_logging() sequence.  It returns an Observability handle with
+# .tracer, .metrics, .logger, .config, and .shutdown().
+obs = configure_observability(
+    service_name=os.getenv("OBSKIT_SERVICE_NAME", "order-service"),
+    environment=os.getenv("OBSKIT_ENVIRONMENT", "development"),
+    version=os.getenv("OBSKIT_VERSION", "4.0.0"),
+    tracing_enabled=True,
+    otlp_endpoint=os.getenv("OBSKIT_OTLP_ENDPOINT", "http://localhost:4317"),
+)
 
-# Initialise structured logging with OTel trace injection
-configure_logging()
-
-from obskit.logging import get_logger
-logger = get_logger(__name__)
+logger = obs.logger(__name__)
 
 # ── FastAPI application ───────────────────────────────────────────────────────
 app = FastAPI(
     title="Order Service",
     description="Production-ready order management with full observability",
-    version="2.0.0",
+    version="1.0.0",
     docs_url="/docs",
     redoc_url="/redoc",
 )
 
-# ── Middleware ────────────────────────────────────────────────────────────────
-app.add_middleware(
-    ObservabilityMiddleware,
-    # Exclude noisy endpoints from traces and metrics
+# ── Middleware (v1.0.0: use instrument_fastapi for one-line setup) ────────────
+from obskit import instrument_fastapi
+
+instrument_fastapi(
+    app,
     exclude_paths={"/health/live", "/health/ready", "/metrics", "/docs", "/redoc"},
 )
+# instrument_fastapi() attaches ObskitMiddleware (raw ASGI) under the hood.
 
 # ── Health checker ────────────────────────────────────────────────────────────
 health_checker = HealthChecker()
@@ -143,34 +128,29 @@ app.include_router(orders_router, prefix="/orders", tags=["orders"])
 app.include_router(health_router, tags=["health"])
 
 # ── Lifecycle ─────────────────────────────────────────────────────────────────
-shutdown_manager = ShutdownManager()
-
 @app.on_event("startup")
 async def on_startup():
-    logger.info("order-service starting", version="2.0.0")
-    # Start Prometheus metrics server on port 9090
-    start_metrics_server()
-    logger.info("metrics server started", port=9090)
+    logger.info("order-service starting", version="1.0.0")
+    logger.info("observability ready", config=str(obs.config))
 
 @app.on_event("shutdown")
 async def on_shutdown():
     logger.info("order-service shutting down — flushing telemetry")
-    await shutdown_manager.shutdown()
+    await obs.shutdown()
 
 # ── Diagnose endpoint ─────────────────────────────────────────────────────────
 @app.get("/diagnose", include_in_schema=False)
 async def diagnose():
     """obskit diagnostic snapshot — restrict to internal network in production."""
-    from obskit.config import get_settings
-    s = get_settings()
+    from obskit import get_observability
+    o = get_observability()
+    cfg = o.config
     return {
-        "service": s.service_name,
-        "environment": s.environment,
-        "version": s.version,
-        "tracing_enabled": s.tracing_enabled,
-        "otlp_endpoint": s.otlp_endpoint,
-        "metrics_port": s.metrics_port,
-        "log_level": s.log_level,
+        "service": cfg.service_name,
+        "environment": cfg.environment,
+        "version": cfg.version,
+        "tracing_enabled": cfg.tracing_enabled,
+        "otlp_endpoint": cfg.otlp_endpoint,
     }
 ```
 
@@ -248,7 +228,7 @@ async def create_order(body: OrderCreate):
         item_count=len(body.items),
     )
 
-    # ── Payment processing (external call with circuit breaker) ───────────────
+    # ── Payment processing (external call) ───────────────────────────────────
     with tracer.start_as_current_span("payment.charge") as payment_span:
         try:
             payment_result = await charge_payment(
@@ -401,45 +381,29 @@ class OrderResponse(BaseModel):
 
 ---
 
-## Payment Service with Circuit Breaker
+## Payment Service
 
 ```python
 # app/services/payment.py
 """
-External payment API integration with circuit breaker + retry.
+External payment API integration.
 """
 from __future__ import annotations
 
 import httpx
 from obskit.logging import get_logger
-from obskit.resilience import CircuitBreaker, with_retry
 
 logger = get_logger(__name__)
-
-_payment_cb = CircuitBreaker(
-    name="payment-gateway",
-    failure_threshold=5,
-    recovery_timeout=30.0,
-    half_open_requests=2,
-)
 
 PAYMENT_API_URL = "https://api.payments.example.com/v1/charge"
 
 
-@with_retry(max_attempts=3, base_delay=0.5, max_delay=10.0)
-@_payment_cb
 async def charge_payment(
     order_id: str,
     amount: float,
     currency: str,
 ) -> dict:
-    """
-    Call the external payment gateway.
-
-    Decorated with:
-    - @with_retry: up to 3 attempts with exponential backoff
-    - @_payment_cb: circuit breaker opens after 5 consecutive failures
-    """
+    """Call the external payment gateway."""
     logger.info("charging payment", order_id=order_id, amount=amount, currency=currency)
 
     async with httpx.AsyncClient(timeout=10.0) as client:
@@ -479,7 +443,7 @@ When a request comes in, the middleware creates a span. Every `logger.info()` ca
   "currency": "USD",
   "service": "order-service",
   "environment": "production",
-  "version": "2.0.0",
+  "version": "4.0.0",
   "trace_id": "4bf92f3577b34da6a3ce929d0e0e4736",
   "span_id": "00f067aa0ba902b7"
 }
@@ -495,23 +459,19 @@ In Grafana, you can click the `trace_id` in a Loki log line and jump directly to
 # tests/conftest.py
 import pytest
 from fastapi.testclient import TestClient
-from obskit.config import configure, reset_settings
+from obskit import configure_observability, reset_observability
 
 @pytest.fixture(autouse=True)
 def obskit_test_config():
-    configure(
+    configure_observability(
         service_name="order-service-test",
         environment="test",
         tracing_enabled=False,
         metrics_enabled=False,
         log_level="WARNING",
-        circuit_breaker_failure_threshold=2,
-        circuit_breaker_recovery_timeout=1.0,
-        retry_max_attempts=1,
-        retry_base_delay=0.0,
     )
     yield
-    reset_settings()
+    reset_observability()
 
 @pytest.fixture()
 def client():
@@ -596,7 +556,7 @@ services:
     environment:
       OBSKIT_SERVICE_NAME: order-service
       OBSKIT_ENVIRONMENT: development
-      OBSKIT_VERSION: "2.0.0-dev"
+      OBSKIT_VERSION: "1.0.0-dev"
       OBSKIT_TRACING_ENABLED: "true"
       OBSKIT_OTLP_ENDPOINT: http://tempo:4317
       OBSKIT_OTLP_INSECURE: "true"
@@ -760,7 +720,7 @@ open http://localhost:3200
 
 ## RED Metrics in Detail
 
-The `ObservabilityMiddleware` automatically records three core RED metrics for every non-excluded route:
+The `ObskitMiddleware` automatically records three core RED metrics for every non-excluded route:
 
 === "Rate"
 
@@ -800,7 +760,7 @@ The `ObservabilityMiddleware` automatically records three core RED metrics for e
     ```
 
 !!! warning "Health check exclusion"
-    Always exclude `/health/*` and `/metrics` from the `ObservabilityMiddleware` via the `exclude_paths` argument. Including them pollutes your RED metrics with high-frequency internal traffic that skews error rates and latency histograms.
+    Always exclude `/health/*` and `/metrics` from the `ObskitMiddleware` via the `exclude_paths` argument. Including them pollutes your RED metrics with high-frequency internal traffic that skews error rates and latency histograms.
 
 !!! info "Auto-instrumentation for SQLAlchemy"
     If you use SQLAlchemy, install `opentelemetry-instrumentation-sqlalchemy` and it will automatically create spans for every SQL query, visible as child spans of your route handler spans in Tempo.

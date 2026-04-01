@@ -3,10 +3,10 @@
 ## Project Overview
 
 **obskit** is a production-ready observability toolkit for Python microservices.
-Version: 3.3.0 | License: MIT | Python: ≥3.11
+Version: 1.0.0 | License: MIT | Python: ≥3.11
 
 Provides: structured logging, RED metrics, distributed tracing (OTel), health checks,
-circuit breakers, rate limiters, SLO tracking, PII redaction, and ASGI middleware — all
+SLO tracking, PII redaction, and ASGI middleware — all
 from a single package with optional extras.
 
 ---
@@ -43,7 +43,10 @@ python -m mypy src/obskit/ --config-file pyproject.toml --no-incremental
 
 ```
 src/obskit/
-  core/           context.py (correlation ID), shutdown.py
+  core/           context.py (correlation ID), shutdown.py,
+                  observability.py (Observability facade),
+                  observability_config.py (ObservabilityConfig dataclasses),
+                  deprecation.py (deprecation utilities)
   logging/        factory.py, logger.py, redaction.py, sampling.py,
                   trace_correlation.py, dynamic.py, async_ring.py
                   adapters/   (structlog processors)
@@ -55,16 +58,17 @@ src/obskit/
   tracing/        tracer.py, setup.py, auto.py
   health/         checker.py, checks.py, router.py, aggregator.py,
                   server.py, slo_check.py
-  resilience/     circuit_breaker.py, rate_limiter.py, retry.py,
                   adaptive.py, combined.py, distributed.py, factory.py
-  middleware/     fastapi.py, flask.py, django.py, grpc.py
+  middleware/     fastapi.py, flask.py, django.py,
+                  core.py (MiddlewareCore — shared request instrumentation),
+                  instrument.py (instrument_fastapi/flask/django)
   slo/            (SLO tracking and error budget)
-  alerts/         builder.py (AlertRule, AlertGroup, export_yaml)
-  queue/          (async queue utilities)
-  db/             (database observability)
-  decorators/     (function-level observability decorators)
+  integrations/   db/ (tracker, sqlalchemy, psycopg2, psycopg3)
+                  queue/ (tracker, tracing, kafka, rabbitmq)
+                  grpc.py
   testing/        mocks.py (test helpers)
-  config.py       ObskitSettings (pydantic-settings, env-driven)
+  _experimental/  (experimental modules — API may change)
+  config.py       ObskitSettings + configure_observability()
   interfaces.py   shared protocols
 ```
 
@@ -72,19 +76,37 @@ src/obskit/
 
 ## Key Patterns
 
-### Configuration
+### Configuration (recommended)
 ```python
-from obskit import configure
-configure(
+from obskit import configure_observability, instrument_fastapi
+
+obs = configure_observability(
     service_name="my-service",
     environment="production",
     version="1.0.0",
-    tracing_enabled=True,
     otlp_endpoint="http://tempo:4317",
+    trace_sample_rate=0.1,
 )
+# obs.tracer  — OpenTelemetry tracer
+# obs.metrics — RED metrics recorder
+# obs.logger  — structured logger
+# obs.config  — immutable ObservabilityConfig
+
+app = FastAPI()
+instrument_fastapi(app)
 ```
-`configure()` must be called **before** any other obskit import. Settings read from
+
+`configure_observability()` returns an `Observability` facade. The legacy
+`configure()` / `get_settings()` API also works. Settings read from
 `OBSKIT_*` env vars (prefix set in `ObskitSettings`).
+
+### ObservabilityConfig (structured config)
+```python
+obs.config.service.name           # "my-service"
+obs.config.tracing.sample_rate    # 0.1
+obs.config.metrics.port           # 9090
+obs.config.logging.level          # "INFO"
+```
 
 ### Correlation ID
 - Always propagated via `x-correlation-id` header
@@ -101,22 +123,6 @@ metrics.observe_request(operation="create_order", duration_seconds=0.05, status=
 - Invalid characters → normalised to `"invalid_operation"` (warning logged)
 - Labels >128 chars → hash-suffixed truncation (119 + "_" + 8-char md5)
 - 404 with no matched route → `"unmatched_route"` (prevents cardinality explosion)
-
-### Circuit Breaker
-```python
-from obskit.resilience import CircuitBreaker
-cb = CircuitBreaker(name="payment-gw", failure_threshold=5, recovery_timeout=30.0)
-@cb
-async def call_payment(): ...
-```
-Uses `time.monotonic()` — immune to NTP clock adjustments.
-
-### Rate Limiter
-```python
-from obskit.resilience.rate_limiter import RateLimiter
-limiter = RateLimiter(requests=100, window_seconds=60.0)
-```
-Sliding window + token bucket, both using `time.monotonic()`.
 
 ### Baggage / Tracing
 - W3C traceparent + baggage propagation
@@ -187,20 +193,17 @@ Set `PROMETHEUS_MULTIPROC_DIR=/tmp/prometheus_multiproc` before importing promet
 
 ## obskit-specific Rules
 
-- `alerts/builder.py` — fluent builder (`AlertRule`, `AlertGroup`, `export_yaml`); no hardcoded thresholds
 - `health/router.py` — `build_health_router(checks, readiness_checks, liveness_checks, prefix)`; caller provides callables
 - `health/checker.py` — `HealthCheck` accepts `check=` (preferred) or `check_fn=` (legacy)
 - `HealthStatus`: `healthy` / `degraded` / `unhealthy` — non-critical failure → degraded; critical failure → unhealthy
 - `middleware/fastapi.py` — raw ASGI (not `BaseHTTPMiddleware`); measures full response duration including streaming
-- All time-based resilience logic uses `time.monotonic()` — never `time.time()`
 - `metrics/red.py` regex: `^[a-zA-Z0-9_]+$` (char check) then `elif len > 128` (length truncation) — these are two separate tiers, not combined
 
 ---
 
-## Version History (recent)
+## Version History
 
-- **3.3.0** — 8 production-hardening fixes: monotonic clock, thread join, cardinality guard,
-  span drop observability, baggage byte validation, multiprocess cleanup, secret masking,
-  404 route normalisation; pymdownx pinned to <10.0.0 to fix docs build
-- **3.2.0** — `obskit.logging.redaction`, `obskit.metrics.multiprocess`, 100% test coverage
-- **3.1.0** — adaptive sampling, OpenMetrics exemplars, SLO error budgets
+- **1.0.0** — Initial production release. Unified `configure_observability()` API,
+  `Observability` facade, `ObservabilityConfig` dataclasses, `MiddlewareCore` shared
+  instrumentation, `instrument_fastapi/flask/django()` helpers, `_experimental/` and
+  `_internal/` namespace packages, lazy imports for optional deps; 4,168 tests, 100% coverage

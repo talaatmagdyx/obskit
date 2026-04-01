@@ -102,7 +102,7 @@ class LRUCache:
 
             # Check TTL
             if self.ttl_seconds is not None:
-                if time.time() - timestamp > self.ttl_seconds:
+                if time.monotonic() - timestamp > self.ttl_seconds:
                     del self._cache[key]
                     return None
 
@@ -115,25 +115,66 @@ class LRUCache:
         with self._lock:
             if key in self._cache:
                 self._cache.move_to_end(key)
-                self._cache[key] = (value, time.time())
+                self._cache[key] = (value, time.monotonic())
             else:
                 if len(self._cache) >= self.max_size:
                     # Remove oldest item
                     self._cache.popitem(last=False)
-                self._cache[key] = (value, time.time())
+                self._cache[key] = (value, time.monotonic())
 
     def contains(self, key: str) -> bool:
-        """Check if key is in cache (without updating LRU order)."""
+        """Check if key is in cache, updating LRU order on hit."""
         with self._lock:
             if key not in self._cache:
                 return False
 
             if self.ttl_seconds is not None:
                 _, timestamp = self._cache[key]
-                if time.time() - timestamp > self.ttl_seconds:
+                if time.monotonic() - timestamp > self.ttl_seconds:
                     del self._cache[key]
                     return False
 
+            # Mark as recently used so it isn't evicted ahead of older keys.
+            self._cache.move_to_end(key)
+            return True
+
+    def check_and_add(self, key: str, value: Any, max_size: int) -> bool:
+        """Atomically check presence and add if under *max_size*.
+
+        Single lock acquisition eliminates the TOCTOU window that exists when
+        callers chain separate ``contains()`` + ``len()`` + ``put()`` calls.
+
+        Returns
+        -------
+        bool
+            ``True`` if the key was already present **or** was successfully
+            added.  ``False`` if the key is new but adding it would exceed
+            *max_size* (caller should use fallback value).
+        """
+        with self._lock:
+            if key in self._cache:
+                # Handle TTL expiry on hit
+                if self.ttl_seconds is not None:
+                    _, timestamp = self._cache[key]
+                    if time.monotonic() - timestamp > self.ttl_seconds:
+                        del self._cache[key]
+                        # Fall through to the addition logic below
+                    else:
+                        self._cache.move_to_end(key)
+                        return True
+                else:
+                    self._cache.move_to_end(key)
+                    return True
+
+            # Key not present (or was just expired) — check capacity.
+            if len(self._cache) >= max_size:
+                return False  # at limit; caller must use fallback
+
+            # Evict oldest entry if the cache's own max_size would be exceeded.
+            if len(self._cache) >= self.max_size:
+                self._cache.popitem(last=False)
+
+            self._cache[key] = (value, time.monotonic())
             return True
 
     def __len__(self) -> int:
@@ -275,15 +316,12 @@ class CardinalityProtector:
 
         cache = self._get_cache(label_name)
         key = transform(value) if transform else str(value)
-
-        # Check if already tracked
-        if cache.contains(key):
-            return value
-
-        # Check if we can add new value
         limit = self.config.label_limits.get(label_name, self.config.default_limit)
-        if len(cache) < limit:
-            cache.put(key, value)
+
+        # Single atomic operation: presence check + conditional insertion.
+        # Replaces the previous contains() / len() / put() triple that had
+        # a TOCTOU window allowing concurrent threads to overshoot the limit.
+        if cache.check_and_add(key, value, max_size=limit):
             if PROMETHEUS_AVAILABLE and CARDINALITY_CURRENT is not None:  # pragma: no branch
                 CARDINALITY_CURRENT.labels(label_name=label_name).set(len(cache))
             return value
@@ -298,7 +336,6 @@ class CardinalityProtector:
             value_rejected=key[:50] if len(key) > 50 else key,
         )
 
-        # Return fallback
         if fallback is not None:
             return fallback
 

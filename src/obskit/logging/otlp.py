@@ -317,6 +317,40 @@ class OTLPLogHandler(logging.Handler):
         self._queue: Queue[dict[str, Any]] = Queue(maxsize=10000)
         self._shutdown = False
         self._flush_thread: threading.Thread | None = None
+        self._logger_provider: Any | None = None
+        self._otel_handler: logging.Handler | None = None
+
+        # Set up real OTel export pipeline if SDK is available
+        if OTEL_LOGGING_AVAILABLE and OTLP_EXPORTER_AVAILABLE:
+            try:
+                _resource = Resource.create(
+                    {
+                        "service.name": self.service_name,
+                        "service.version": settings.version,
+                        "deployment.environment": settings.environment,
+                    }
+                )
+                _provider = LoggerProvider(resource=_resource)
+                _exporter = OTLPLogExporter(
+                    endpoint=self.endpoint,
+                    insecure=self.insecure,
+                )
+                _processor = BatchLogRecordProcessor(
+                    _exporter,
+                    max_export_batch_size=self.batch_size,
+                    export_timeout_millis=int(self.flush_interval * 1000),
+                )
+                _provider.add_log_record_processor(_processor)
+                self._logger_provider = _provider
+                self._otel_handler = cast(
+                    logging.Handler,
+                    LoggingHandler(
+                        level=logging.NOTSET,
+                        logger_provider=_provider,
+                    ),
+                )
+            except Exception:  # pragma: no cover  # nosec B110 - setup errors must not crash init
+                pass  # Fallback: logs will be queued but not exported
 
         # Start background flush thread
         self._start_flush_thread()
@@ -363,14 +397,12 @@ class OTLPLogHandler(logging.Handler):
             self._export_batch(batch)
 
     def _export_batch(self, batch: list[dict[str, Any]]) -> None:
-        """Export a batch of logs to OTLP."""
-        if not batch:
-            return
+        """Batch processing hook (records are exported in real-time via the internal OTel pipeline in emit()).
 
-        # This is a simplified implementation
-        # In production, you'd use the actual OTLP exporter
-        # For now, just a placeholder - real implementation would serialize and send to OTLP
-        _ = batch  # Acknowledge batch parameter for future implementation
+        This method is retained for the background flush thread lifecycle; the actual
+        OTLP export happens in :meth:`emit` via ``self._otel_handler``.
+        """
+        pass  # Real export handled by BatchLogRecordProcessor in emit()
 
     def emit(self, record: logging.LogRecord) -> None:
         """
@@ -383,6 +415,13 @@ class OTLPLogHandler(logging.Handler):
         """
         if self._shutdown:
             return
+
+        # Export via real OTel pipeline if available
+        if self._otel_handler is not None:
+            try:
+                self._otel_handler.emit(record)
+            except Exception:  # pragma: no cover  # nosec B110 - emit errors must not crash caller
+                pass
 
         try:
             # Build log entry
@@ -451,6 +490,12 @@ class OTLPLogHandler(logging.Handler):
         self._shutdown = True
         if self._flush_thread and self._flush_thread.is_alive():
             self._flush_thread.join(timeout=5.0)
+        if self._logger_provider is not None:
+            try:
+                self._logger_provider.shutdown()
+            except Exception:  # pragma: no cover  # nosec B110 - shutdown errors are non-critical
+                pass
+            self._logger_provider = None
         super().close()
 
 

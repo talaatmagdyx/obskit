@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: "Version being published (e.g. 3.0.0) — informational only"
+        description: "Version being published (e.g. 1.0.0) — informational only"
         required: false
         default: ""
 

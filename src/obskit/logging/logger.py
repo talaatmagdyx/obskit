@@ -52,8 +52,8 @@ from typing import Any
 import structlog
 from structlog.types import EventDict, WrappedLogger
 
-from obskit.config import get_settings
 from obskit.core.context import get_correlation_id
+from obskit.logging.redaction import make_redaction_processor
 from obskit.logging.trace_correlation import add_trace_context
 
 # =============================================================================
@@ -94,7 +94,7 @@ def sample_log(
     logger: WrappedLogger,
     method_name: str,
     event_dict: EventDict,
-) -> EventDict | None:
+) -> EventDict:
     """
     Processor that samples logs based on log_sample_rate setting.
 
@@ -127,8 +127,8 @@ def sample_log(
     # nosec B311 - random is used for log sampling, not security
     if (
         sample_rate < 1.0 and random.random() > sample_rate  # nosec B311
-    ):  # pragma: no branch
-        return None  # Drop this log entry  # pragma: no cover
+    ):
+        raise structlog.DropEvent()
 
     return event_dict
 
@@ -168,8 +168,8 @@ def add_correlation_id(
     correlation_id = get_correlation_id()
 
     # Only add if we have one
-    if correlation_id is not None:  # pragma: no branch
-        event_dict["correlation_id"] = correlation_id  # pragma: no cover
+    if correlation_id is not None:
+        event_dict["correlation_id"] = correlation_id
 
     return event_dict
 
@@ -289,6 +289,10 @@ def configure_logging() -> None:
     global _cached_service_name, _cached_environment, _cached_version
     global _cached_log_sample_rate
 
+    from obskit.config import (
+        get_settings,  # noqa: PLC0415 — deferred to avoid pydantic at import time
+    )
+
     settings = get_settings()
 
     # Handle settings attributes that might not exist during circular imports
@@ -343,6 +347,9 @@ def configure_logging() -> None:
         add_correlation_id,
         # Inject trace_id + span_id when an OTel span is active
         add_trace_context,
+        # Redact sensitive fields (passwords, tokens, secrets …) before
+        # sampling so secrets are never written even when sampling passes.
+        make_redaction_processor(),
         # Apply log sampling (must be after correlation ID for context)
         sample_log,
         # Handle exception info

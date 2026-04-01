@@ -10,9 +10,36 @@ pip install "obskit[fastapi]"
 
 ---
 
-## ObservabilityMiddleware
+## Quick Setup with `instrument_fastapi()` (Recommended)
 
-`ObskitMiddleware` is a Starlette `BaseHTTPMiddleware` subclass that wraps every request in a complete observability context.
+*New in v1.0.0.* The simplest way to add observability to a FastAPI app is `instrument_fastapi()`. It applies `ObskitMiddleware`, mounts the health/metrics/diagnose routers, and wires up tracing in a single call:
+
+```python
+from fastapi import FastAPI
+from obskit import configure_observability, instrument_fastapi
+
+obs = configure_observability(
+    service_name="order-service",
+    environment="production",
+    version="2.0.0",
+    otlp_endpoint="http://tempo:4317",
+)
+
+app = FastAPI()
+instrument_fastapi(app)
+
+@app.get("/orders")
+async def get_orders():
+    return {"orders": []}
+```
+
+`instrument_fastapi(app)` is equivalent to manually adding `ObskitMiddleware` and including the health, metrics, and diagnose routers. For fine-grained control over middleware parameters or router mounting, use the direct approach below.
+
+---
+
+## Direct Setup with `ObskitMiddleware`
+
+`ObskitMiddleware` is a raw ASGI middleware (not `BaseHTTPMiddleware`) that wraps every request in a complete observability context.
 
 ### What it provides per request
 
@@ -163,8 +190,8 @@ app.include_router(create_diagnose_router(), prefix="")
 ```json
 {
   "packages": [
-    {"name": "obskit", "installed": true, "version": "3.3.0", "integrations": [...]},
-    {"name": "obskit", "installed": true, "version": "3.3.0", "integrations": [...]}
+    {"name": "obskit", "installed": true, "version": "1.0.0", "integrations": [...]},
+    {"name": "obskit", "installed": true, "version": "1.0.0", "integrations": [...]}
   ],
   "python": "3.12.1",
   "executable": "/usr/local/bin/python3"

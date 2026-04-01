@@ -5,7 +5,13 @@ Service Level Objective (SLO) tracking, error budget management, and Prometheus 
 ## Installation
 
 ```bash
-pip install obskit
+pip install "obskit[slo]"
+```
+
+For Prometheus burn-rate alert rule generation:
+
+```bash
+pip install "obskit[slo-prometheus]"
 ```
 
 ---
@@ -274,22 +280,6 @@ async def slo_availability_check():
     }
 
 checker.add_check("slo_availability", slo_availability_check)
-```
-
----
-
-## Integration with AlertManager
-
-Generate AlertManager routing rules from SLO definitions:
-
-```python
-from obskit.slo.alertmanager import generate_alertmanager_config
-
-config = generate_alertmanager_config(
-    slo_name="api_availability",
-    pagerduty_key="your-pd-key",
-    slack_webhook="https://hooks.slack.com/...",
-)
 ```
 
 ---

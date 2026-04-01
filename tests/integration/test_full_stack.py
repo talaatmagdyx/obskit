@@ -341,41 +341,6 @@ class TestConfigurationIntegration:
         reset_settings()
 
 
-class TestAsyncRecordingIntegration:
-    """Test async metric recording."""
-
-    @pytest.mark.asyncio
-    async def test_async_metrics_queue_processing(self) -> None:
-        """Test async metrics are processed correctly."""
-        from obskit.metrics import REDMetrics
-        from obskit.metrics.async_recording import (
-            AsyncREDMetrics,
-            shutdown_async_recording,
-        )
-        from obskit.metrics.registry import create_registry
-
-        registry = create_registry()
-        if registry is None:
-            pytest.skip("prometheus_client not available")
-
-        base = REDMetrics("async_test")
-        async_metrics = AsyncREDMetrics(base)
-
-        # Record metrics asynchronously
-        for _i in range(10):
-            await async_metrics.observe_request(
-                operation="async_op",
-                duration_seconds=0.01,
-                status="success",
-            )
-
-        # Give time for processing
-        await asyncio.sleep(0.1)
-
-        # Shutdown
-        await shutdown_async_recording()
-
-
 class TestBuiltInHealthChecks:
     """Test built-in health check functions."""
 

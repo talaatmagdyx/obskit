@@ -8,7 +8,7 @@ This tutorial adapts the Order Service from the [FastAPI example](fastapi.md) fo
 
 | Aspect | FastAPI | Flask |
 |---|---|---|
-| Middleware | `app.add_middleware(ObservabilityMiddleware)` | `app.wsgi_app = ObservabilityMiddleware(app.wsgi_app)` |
+| Middleware | `instrument_fastapi(app)` | `instrument_flask(app)` |
 | Async support | Native `async def` routes | Requires `gevent` or thread-based concurrency |
 | Startup hooks | `@app.on_event("startup")` | `@app.before_first_request` or factory init |
 | Request context | `Request` object injected | `flask.request` thread-local |
@@ -51,33 +51,16 @@ from __future__ import annotations
 
 import os
 
-# ── obskit: configure FIRST ───────────────────────────────────────────────────
-from obskit import configure
-from obskit.config import validate_config
+# ── obskit: unified setup (v1.0.0+) ──────────────────────────────────────────
+from obskit import configure_observability, instrument_flask
 
-configure(
+obs = configure_observability(
     service_name=os.getenv("OBSKIT_SERVICE_NAME", "order-service-flask"),
     environment=os.getenv("OBSKIT_ENVIRONMENT", "development"),
-    version=os.getenv("OBSKIT_VERSION", "2.0.0"),
+    version=os.getenv("OBSKIT_VERSION", "4.0.0"),
 )
 
-is_valid, errors = validate_config()
-if not is_valid:
-    for err in errors:
-        print(f"[CONFIG ERROR] {err}", flush=True)
-    raise SystemExit(1)
-
-# ── obskit packages ───────────────────────────────────────────────────────────
-from obskit.tracing import setup_tracing
-from obskit.logging.factory import configure_logging
-from obskit.metrics import start_metrics_server
-from obskit.middleware.flask import ObservabilityMiddleware as FlaskObsMiddleware
-
-setup_tracing()
-configure_logging()
-
-from obskit.logging import get_logger
-logger = get_logger(__name__)
+logger = obs.logger(__name__)
 
 from flask import Flask
 
@@ -103,17 +86,11 @@ def create_app(config_object: str | None = None) -> Flask:
     config_object = config_object or os.getenv("FLASK_CONFIG", "app.config.DevelopmentConfig")
     app.config.from_object(config_object)
 
-    # ── obskit WSGI middleware ────────────────────────────────────────────────
-    # Wraps the WSGI application to inject tracing and metrics middleware.
-    # Note: This wraps app.wsgi_app, not app itself, so Flask context still works.
-    app.wsgi_app = FlaskObsMiddleware(  # type: ignore[assignment]
-        app.wsgi_app,
+    # ── obskit WSGI middleware (v1.0.0: one-line instrumentation) ────────────
+    instrument_flask(
+        app,
         exclude_paths={"/health/live", "/health/ready", "/metrics"},
     )
-
-    # ── Start metrics server (separate thread) ────────────────────────────────
-    with app.app_context():
-        start_metrics_server()
 
     # ── Register blueprints ───────────────────────────────────────────────────
     from app.routes.orders import orders_bp
@@ -338,46 +315,6 @@ def startup_check():
 
 ---
 
-## Payment Service with Circuit Breaker
-
-Flask routes are synchronous, so use the **synchronous** circuit breaker:
-
-```python
-# app/services/payment.py
-from __future__ import annotations
-
-import httpx
-from obskit.logging import get_logger
-from obskit.resilience.circuit_breaker import SyncCircuitBreaker
-from obskit.resilience.retry import sync_retry
-
-logger = get_logger(__name__)
-
-_payment_cb = SyncCircuitBreaker(
-    name="payment-gateway",
-    failure_threshold=5,
-    recovery_timeout=30.0,
-)
-
-PAYMENT_API_URL = "https://api.payments.example.com/v1/charge"
-
-
-@sync_retry(max_attempts=3, base_delay=0.5)
-@_payment_cb
-def charge_payment(order_id: str, amount: float, currency: str) -> dict:
-    """Synchronous payment call — suitable for Flask (WSGI)."""
-    logger.info("charging payment", order_id=order_id, amount=amount)
-
-    with httpx.Client(timeout=10.0) as client:
-        response = client.post(
-            PAYMENT_API_URL,
-            json={"order_id": order_id, "amount": amount, "currency": currency},
-            headers={"Authorization": "Bearer <token>"},
-        )
-        response.raise_for_status()
-        return response.json()
-```
-
 ---
 
 ## Gunicorn Deployment
@@ -440,21 +377,19 @@ access_log_format = '{"remote_addr":"%(h)s","method":"%(m)s","path":"%(U)s","sta
 ```python
 # tests/conftest.py
 import pytest
-from obskit.config import configure, reset_settings
+from obskit import configure_observability, reset_observability
 
 @pytest.fixture(autouse=True)
 def obskit_test_config():
-    configure(
+    configure_observability(
         service_name="order-service-flask-test",
         environment="test",
         tracing_enabled=False,
         metrics_enabled=False,
         log_level="WARNING",
-        retry_max_attempts=1,
-        retry_base_delay=0.0,
     )
     yield
-    reset_settings()
+    reset_observability()
 
 @pytest.fixture()
 def app():
@@ -527,13 +462,13 @@ CMD ["gunicorn", "--config", "gunicorn.conf.py", "wsgi:application"]
 
 ## Middleware Internals
 
-The `ObservabilityMiddleware` for Flask wraps the WSGI callable:
+The `instrument_flask()` helper (or the underlying `ObskitFlaskMiddleware`) wraps the WSGI callable:
 
 ```
 HTTP Request
      │
      ▼
-FlaskObsMiddleware.wsgi_app
+ObskitFlaskMiddleware.wsgi_app
      ├── Extract/create trace context (W3C traceparent)
      ├── Start HTTP span
      ├── Call Flask app (inner WSGI callable)

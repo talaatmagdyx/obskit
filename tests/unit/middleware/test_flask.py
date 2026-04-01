@@ -19,7 +19,7 @@ class TestObskitFlaskMiddleware:
     """Tests for ObskitFlaskMiddleware class."""
 
     @patch("obskit.middleware.flask.FLASK_AVAILABLE", True)
-    @patch("obskit.middleware.flask.get_red_metrics")
+    @patch("obskit.middleware.core.get_red_metrics")
     def test_init(self, mock_get_red_metrics):
         """Test middleware initialization without app."""
         from obskit.middleware.flask import ObskitFlaskMiddleware
@@ -29,13 +29,13 @@ class TestObskitFlaskMiddleware:
 
         middleware = ObskitFlaskMiddleware()
 
-        assert middleware.track_metrics is True
-        assert middleware.track_logging is True
-        assert middleware.track_tracing is True
-        assert middleware.red_metrics == mock_red
+        assert middleware._core.track_metrics is True
+        assert middleware._core.track_logging is True
+        assert middleware._core.track_tracing is True
+        assert middleware._core.red_metrics == mock_red
 
     @patch("obskit.middleware.flask.FLASK_AVAILABLE", True)
-    @patch("obskit.middleware.flask.get_red_metrics")
+    @patch("obskit.middleware.core.get_red_metrics")
     def test_init_with_custom_params(self, mock_get_red_metrics):
         """Test initialization with custom parameters."""
         from obskit.middleware.flask import ObskitFlaskMiddleware
@@ -47,13 +47,13 @@ class TestObskitFlaskMiddleware:
             track_tracing=False,
         )
 
-        assert middleware.exclude_paths == ["/api/health"]
-        assert middleware.track_metrics is False
-        assert middleware.track_logging is False
-        assert middleware.track_tracing is False
+        assert middleware._core.exclude_paths == ["/api/health"]
+        assert middleware._core.track_metrics is False
+        assert middleware._core.track_logging is False
+        assert middleware._core.track_tracing is False
 
     @patch("obskit.middleware.flask.FLASK_AVAILABLE", True)
-    @patch("obskit.middleware.flask.get_red_metrics")
+    @patch("obskit.middleware.core.get_red_metrics")
     def test_init_app(self, mock_get_red_metrics):
         """Test init_app registers hooks."""
         from obskit.middleware.flask import ObskitFlaskMiddleware
@@ -70,7 +70,7 @@ class TestObskitFlaskMiddleware:
         mock_app.teardown_request.assert_called_once()
 
     @patch("obskit.middleware.flask.FLASK_AVAILABLE", True)
-    @patch("obskit.middleware.flask.get_red_metrics")
+    @patch("obskit.middleware.core.get_red_metrics")
     def test_init_with_app(self, mock_get_red_metrics):
         """Test initialization with app."""
         from obskit.middleware.flask import ObskitFlaskMiddleware
@@ -83,18 +83,18 @@ class TestObskitFlaskMiddleware:
         assert "obskit" in mock_app.extensions
 
     @patch("obskit.middleware.flask.FLASK_AVAILABLE", True)
-    @patch("obskit.middleware.flask.get_red_metrics")
+    @patch("obskit.middleware.core.get_red_metrics")
     def test_should_exclude(self, mock_get_red_metrics):
         """Test path exclusion logic."""
         from obskit.middleware.flask import ObskitFlaskMiddleware
 
         middleware = ObskitFlaskMiddleware(exclude_paths=["/health", "/metrics"])
 
-        assert middleware._should_exclude("/health") is True
-        assert middleware._should_exclude("/metrics") is True
-        assert middleware._should_exclude("/api/orders") is False
+        assert middleware._core.should_exclude("/health") is True
+        assert middleware._core.should_exclude("/metrics") is True
+        assert middleware._core.should_exclude("/api/orders") is False
 
-    @patch("obskit.middleware.flask.get_red_metrics")
+    @patch("obskit.middleware.core.get_red_metrics")
     def test_full_request_cycle(self, mock_get_red_metrics):
         """Test full request cycle with Flask test client."""
         from obskit.middleware.flask import ObskitFlaskMiddleware
@@ -116,7 +116,7 @@ class TestObskitFlaskMiddleware:
             assert "X-Correlation-ID" in response.headers
             mock_red.observe_request.assert_called()
 
-    @patch("obskit.middleware.flask.get_red_metrics")
+    @patch("obskit.middleware.core.get_red_metrics")
     def test_excluded_path_skips_observability(self, mock_get_red_metrics):
         """Test that excluded paths skip observability."""
         from obskit.middleware.flask import ObskitFlaskMiddleware
@@ -142,7 +142,7 @@ class TestObskitFlaskMiddleware:
             # Should not record metrics for excluded path
             mock_red.observe_request.assert_not_called()
 
-    @patch("obskit.middleware.flask.get_red_metrics")
+    @patch("obskit.middleware.core.get_red_metrics")
     def test_error_response_records_failure(self, mock_get_red_metrics):
         """Test that error responses record failure metrics."""
         from obskit.middleware.flask import ObskitFlaskMiddleware
@@ -167,7 +167,7 @@ class TestObskitFlaskMiddleware:
             call_kwargs = mock_red.observe_request.call_args.kwargs
             assert call_kwargs.get("status") == "failure"
 
-    @patch("obskit.middleware.flask.get_red_metrics")
+    @patch("obskit.middleware.core.get_red_metrics")
     def test_correlation_id_from_header(self, mock_get_red_metrics):
         """Test correlation ID is taken from request header."""
         from obskit.middleware.flask import ObskitFlaskMiddleware
@@ -188,7 +188,7 @@ class TestObskitFlaskMiddleware:
             assert response.status_code == 200
             assert response.headers.get("X-Correlation-ID") == "custom-123"
 
-    @patch("obskit.middleware.flask.get_red_metrics")
+    @patch("obskit.middleware.core.get_red_metrics")
     def test_exception_in_view_records_error(self, mock_get_red_metrics):
         """Test that exception in view records error metrics."""
         from obskit.middleware.flask import ObskitFlaskMiddleware
@@ -212,7 +212,7 @@ class TestObskitFlaskMiddleware:
             # Error metrics should be recorded in teardown
             # Note: actual behavior depends on exception handling
 
-    @patch("obskit.middleware.flask.get_red_metrics")
+    @patch("obskit.middleware.core.get_red_metrics")
     def test_init_app_without_extensions(self, mock_get_red_metrics):
         """Test init_app creates extensions dict if not present."""
         from obskit.middleware.flask import ObskitFlaskMiddleware
@@ -236,9 +236,9 @@ class TestObskitFlaskMiddleware:
         assert hasattr(mock_app, "extensions")
         assert mock_app.extensions["obskit"] is middleware
 
-    @patch("obskit.middleware.flask.get_red_metrics")
-    @patch("obskit.middleware.flask.inject_trace_context")
-    @patch("obskit.middleware.flask.extract_trace_context")
+    @patch("obskit.middleware.core.get_red_metrics")
+    @patch("obskit.middleware.core.inject_trace_context")
+    @patch("obskit.middleware.core.extract_trace_context")
     def test_request_with_tracing(self, mock_extract, mock_inject, mock_get_red_metrics):
         """Test request with tracing enabled."""
         from obskit.middleware.flask import ObskitFlaskMiddleware
@@ -262,8 +262,8 @@ class TestObskitFlaskMiddleware:
             mock_extract.assert_called()
             mock_inject.assert_called()
 
-    @patch("obskit.middleware.flask.get_red_metrics")
-    @patch("obskit.middleware.flask.logger")
+    @patch("obskit.middleware.core.get_red_metrics")
+    @patch("obskit.middleware.core._core_logger")
     def test_request_with_logging(self, mock_logger, mock_get_red_metrics):
         """Test request with logging enabled."""
         from obskit.middleware.flask import ObskitFlaskMiddleware
@@ -285,8 +285,8 @@ class TestObskitFlaskMiddleware:
             # Logger should be called at least twice (start and complete)
             assert mock_logger.info.call_count >= 2
 
-    @patch("obskit.middleware.flask.get_red_metrics")
-    @patch("obskit.middleware.flask.logger")
+    @patch("obskit.middleware.core.get_red_metrics")
+    @patch("obskit.middleware.core._core_logger")
     def test_teardown_with_exception(self, mock_logger, mock_get_red_metrics):
         """Test teardown logs errors on exception."""
         from obskit.middleware.flask import ObskitFlaskMiddleware
@@ -314,7 +314,7 @@ class TestObskitFlaskMiddleware:
             # Error metrics and logging should be recorded
             mock_red.observe_request.assert_called()
 
-    @patch("obskit.middleware.flask.get_red_metrics")
+    @patch("obskit.middleware.core.get_red_metrics")
     def test_get_obskit_flask_creates_instance(self, mock_get_red_metrics):
         """Test get_obskit_flask creates singleton when _obskit_flask is None (lines 331-333)."""
         import obskit.middleware.flask as flask_module
@@ -337,7 +337,7 @@ class TestObskitFlaskMiddleware:
         finally:
             flask_module._obskit_flask = original
 
-    @patch("obskit.middleware.flask.get_red_metrics")
+    @patch("obskit.middleware.core.get_red_metrics")
     def test_get_obskit_flask_returns_existing_instance(self, mock_get_red_metrics):
         """Test get_obskit_flask returns existing instance when already set."""
         import obskit.middleware.flask as flask_module

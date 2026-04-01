@@ -222,58 +222,19 @@ def start_http_server(
         actual_host = host if host is not None else "0.0.0.0"  # nosec B104
 
         try:
-            # Check if authentication is enabled
-            if settings.metrics_auth_enabled and settings.metrics_auth_token:
-                # Use custom authenticated handler
-                from http.server import HTTPServer
-
-                from obskit.metrics.auth import create_authenticated_handler
-
-                handler_class = create_authenticated_handler(settings.metrics_auth_token)
-                _http_server = HTTPServer((actual_host, actual_port), handler_class)
-                _http_server_thread = threading.Thread(
-                    target=_http_server.serve_forever,
-                    daemon=True,
-                    name="obskit-metrics-server",
-                )
-                _http_server_thread.start()
-                # _http_server is stored for potential future cleanup (currently unused)
-                logger.info(
-                    "metrics_server_started_with_auth",
+            # Plain Prometheus handler — no auth, no rate limit
+            # _start_http_server returns (WSGIServer, Thread)
+            server_result = _start_http_server(actual_port, addr=actual_host)
+            if server_result is not None:
+                _server, _http_server_thread = server_result
+                _http_server = _server
+            else:  # pragma: no cover
+                logger.error(  # pragma: no cover
+                    "metrics_server_start_returned_none",
                     port=actual_port,
-                    host=actual_host,
+                    detail="prometheus_client.start_http_server returned None; "
+                    "metrics endpoint may not be running",
                 )
-            else:
-                # Use default Prometheus handler, optionally with rate limiting.
-                # Rate limiting prevents DoS via metric serialisation CPU spikes.
-                if getattr(settings, "metrics_rate_limit_enabled", False):
-                    from http.server import HTTPServer
-
-                    from obskit.metrics.auth import create_rate_limited_handler
-
-                    handler_class = create_rate_limited_handler()
-                    _http_server = HTTPServer((actual_host, actual_port), handler_class)
-                    _http_server_thread = threading.Thread(
-                        target=_http_server.serve_forever,
-                        daemon=True,
-                        name="obskit-metrics-server",
-                    )
-                    _http_server_thread.start()
-                else:
-                    # Plain Prometheus handler — no auth, no rate limit
-                    # _start_http_server returns (WSGIServer, Thread)
-                    server_result = _start_http_server(actual_port, addr=actual_host)
-                    if server_result is not None:
-                        _server, _http_server_thread = server_result
-                        _http_server = _server
-                    else:  # pragma: no cover
-                        logger.error(  # pragma: no cover
-                            "metrics_server_start_returned_none",
-                            port=actual_port,
-                            detail="prometheus_client.start_http_server returned None; "
-                            "metrics endpoint may not be running",
-                        )
-
             _http_server_started = True
 
             logger.info(
@@ -344,8 +305,8 @@ def stop_http_server() -> None:
                 # joining with a timeout gives it a chance to flush pending scrapes.
                 logger.info("metrics_server_stopping")
                 _http_server_thread.join(timeout=5.0)
-                if _http_server_thread.is_alive():
-                    logger.warning(
+                if _http_server_thread.is_alive():  # pragma: no cover
+                    logger.warning(  # pragma: no cover
                         "metrics_server_thread_did_not_stop",
                         hint="Thread is daemon; process will exit cleanly regardless.",
                     )

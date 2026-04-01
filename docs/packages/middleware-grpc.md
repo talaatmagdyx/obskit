@@ -5,7 +5,7 @@ gRPC server and client interceptors that bring full obskit observability to gRPC
 ## Installation
 
 ```bash
-pip install obskit
+pip install "obskit[grpc]"
 ```
 
 ---
@@ -40,7 +40,7 @@ Both support `grpc.aio` (async) only. For synchronous gRPC servers, wrap the han
 ```python
 import grpc
 from grpc import aio
-from obskit.middleware.grpc import ObskitServerInterceptor
+from obskit.integrations.grpc import ObskitServerInterceptor
 from obskit.config import configure
 from obskit.tracing import setup_tracing
 
@@ -114,7 +114,7 @@ class OrderServicer(order_pb2_grpc.OrderServiceServicer):
 Injects trace context and correlation IDs into outgoing gRPC calls so that downstream services can continue the trace chain.
 
 ```python
-from obskit.middleware.grpc import ObskitClientInterceptor
+from obskit.integrations.grpc import ObskitClientInterceptor
 
 interceptor = ObskitClientInterceptor(
     track_metrics=True,    # record RED metrics for outgoing calls
@@ -181,9 +181,7 @@ import grpc
 from grpc import aio
 from obskit.config import configure
 from obskit.tracing import setup_tracing
-from obskit.middleware.grpc import ObskitServerInterceptor
-from obskit.health import get_health_checker
-from obskit.health.server import start_health_server, stop_health_server
+from obskit.integrations.grpc import ObskitServerInterceptor
 
 # generated stubs
 import order_pb2
@@ -212,13 +210,9 @@ async def serve():
     order_pb2_grpc.add_OrderServiceServicer_to_server(OrderServicer(), server)
     server.add_insecure_port("[::]:50051")
 
-    # Expose health + metrics on a separate HTTP port for Kubernetes
-    start_health_server(port=8888)
-
     await server.start()
     print("gRPC server listening on :50051")
     await server.wait_for_termination()
-    stop_health_server()
 
 if __name__ == "__main__":
     asyncio.run(serve())
@@ -233,7 +227,7 @@ import asyncio
 from grpc import aio
 from obskit.config import configure
 from obskit.tracing import setup_tracing, async_trace_span
-from obskit.middleware.grpc import ObskitClientInterceptor
+from obskit.integrations.grpc import ObskitClientInterceptor
 import order_pb2
 import order_pb2_grpc
 
@@ -262,7 +256,7 @@ asyncio.run(main())
 
 ## Kubernetes probe configuration
 
-Run the standalone health HTTP server alongside the gRPC server:
+Expose a health endpoint alongside your gRPC service. One common pattern is to run a minimal HTTP server (e.g., a FastAPI app) on a separate port for Kubernetes probes:
 
 ```yaml
 spec:
@@ -271,18 +265,18 @@ spec:
       ports:
         - containerPort: 50051
           name: grpc
-        - containerPort: 8888
-          name: health
+        - containerPort: 8000
+          name: http
       livenessProbe:
         httpGet:
           path: /health/live
-          port: health
+          port: http
         initialDelaySeconds: 10
         periodSeconds: 15
       readinessProbe:
         httpGet:
           path: /health/ready
-          port: health
+          port: http
         initialDelaySeconds: 5
         periodSeconds: 10
 ```

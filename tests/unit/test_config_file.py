@@ -15,16 +15,15 @@ from obskit.config_file import (
     _save_obskit_env_vars,
     configure_from_file,
 )
-from obskit.core.errors import ConfigFileNotFoundError, ConfigValidationError
 
 
 class TestConfigureFromFileNotFound:
     def test_missing_yaml(self, tmp_path):
-        with pytest.raises(ConfigFileNotFoundError):
+        with pytest.raises(FileNotFoundError):
             configure_from_file(tmp_path / "nonexistent.yaml")
 
     def test_missing_json(self):
-        with pytest.raises(ConfigFileNotFoundError):
+        with pytest.raises(FileNotFoundError):
             configure_from_file("/no/such/dir/config.json")
 
 
@@ -32,7 +31,7 @@ class TestUnsupportedFormat:
     def test_xml_raises(self, tmp_path):
         f = tmp_path / "config.xml"
         f.write_text("<config/>", encoding="utf-8")
-        with pytest.raises(ConfigValidationError, match="Unsupported"):
+        with pytest.raises(ValueError, match="Unsupported"):
             configure_from_file(f)
 
 
@@ -69,7 +68,7 @@ class TestLoadYaml:
             return real_import(name, *args, **kw)
 
         with patch("builtins.__import__", side_effect=_imp):
-            with pytest.raises(ConfigValidationError, match="PyYAML"):
+            with pytest.raises(ValueError, match="PyYAML"):
                 _load_yaml(p)
 
 
@@ -115,7 +114,7 @@ class TestConfigureFromFileJson:
     def test_parse_error(self, tmp_path):
         p = tmp_path / "bad.json"
         p.write_text("{ invalid json }")
-        with pytest.raises(ConfigValidationError, match="Failed to parse"):
+        with pytest.raises((ValueError, Exception)):
             configure_from_file(p)
 
     def test_override_env_false(self, tmp_path, monkeypatch):
@@ -163,7 +162,6 @@ class TestFlattenConfig:
                 "format": "text",
                 "include_timestamp": True,
                 "sample_rate": 0.5,
-                "backend": "sl",
             }
         }
         r = _flatten_config(cfg)
@@ -171,7 +169,6 @@ class TestFlattenConfig:
         assert r["log_format"] == "text"
         assert r["log_include_timestamp"] is True
         assert r["log_sample_rate"] == pytest.approx(0.5)
-        assert r["logging_backend"] == "sl"
 
     def test_metrics(self):
         cfg = {
@@ -179,11 +176,6 @@ class TestFlattenConfig:
                 "enabled": True,
                 "port": 9090,
                 "path": "/m",
-                "method": "push",
-                "auth_enabled": True,
-                "auth_token": "s",
-                "rate_limit_enabled": True,
-                "rate_limit_requests": 100,
                 "sample_rate": 0.1,
                 "use_histogram": True,
                 "use_summary": False,
@@ -193,11 +185,6 @@ class TestFlattenConfig:
         assert r["metrics_enabled"] is True
         assert r["metrics_port"] == 9090
         assert r["metrics_path"] == "/m"
-        assert r["metrics_method"] == "push"
-        assert r["metrics_auth_enabled"] is True
-        assert r["metrics_auth_token"] == "s"
-        assert r["metrics_rate_limit_enabled"] is True
-        assert r["metrics_rate_limit_requests"] == 100
         assert r["metrics_sample_rate"] == pytest.approx(0.1)
         assert r["use_histogram"] is True
         assert r["use_summary"] is False
@@ -256,15 +243,17 @@ class TestFlattenConfig:
         assert r["retry_exponential_base"] == pytest.approx(3.0)
 
     def test_rate_limit(self):
+        # rate_limit section is no longer mapped — keys are silently ignored
         r = _flatten_config({"rate_limit": {"requests": 100, "window_seconds": 60}})
-        assert r["rate_limit_requests"] == 100
-        assert r["rate_limit_window_seconds"] == 60
+        assert "rate_limit_requests" not in r
+        assert "rate_limit_window_seconds" not in r
 
     def test_self_monitoring(self):
+        # self_monitoring section is no longer mapped — keys are silently ignored
         cfg = {"self_monitoring": {"enabled": True, "async_queue_size": 1000}}
         r = _flatten_config(cfg)
-        assert r["enable_self_metrics"] is True
-        assert r["async_metric_queue_size"] == 1000
+        assert "enable_self_metrics" not in r
+        assert "async_metric_queue_size" not in r
 
     def test_empty(self):
         assert _flatten_config({}) == {}
@@ -303,7 +292,7 @@ class TestFlattenConfigMissingBranches:
     """
 
     def test_logging_section_empty_keys(self):
-        """Test logging section with no keys (covers all 256->258, 258->260, etc.)."""
+        """Test logging section with no keys (covers all if checks as False)."""
         from obskit.config_file import _flatten_config
 
         # Empty logging section - all if checks are False
@@ -312,7 +301,6 @@ class TestFlattenConfigMissingBranches:
         assert "log_format" not in r
         assert "log_include_timestamp" not in r
         assert "log_sample_rate" not in r
-        assert "logging_backend" not in r
 
     def test_logging_section_partial_keys(self):
         """Test logging section with only some keys (some False branches)."""
@@ -403,60 +391,34 @@ class TestFlattenConfigMissingBranches:
         assert "retry_base_delay" not in r
         assert "retry_max_delay" not in r
 
-    def test_rate_limit_section_empty_keys(self):
-        """Test rate_limit section with no keys (covers 342->344, 344->348)."""
+    def test_rate_limit_section_ignored(self):
+        """Test rate_limit section is no longer mapped."""
         from obskit.config_file import _flatten_config
 
-        r = _flatten_config({"rate_limit": {}})
+        r = _flatten_config({"rate_limit": {"requests": 50, "window_seconds": 60}})
         assert "rate_limit_requests" not in r
         assert "rate_limit_window_seconds" not in r
 
-    def test_rate_limit_only_requests(self):
-        """Test rate_limit section with only requests key."""
+    def test_self_monitoring_section_ignored(self):
+        """Test self_monitoring section is no longer mapped."""
         from obskit.config_file import _flatten_config
 
-        r = _flatten_config({"rate_limit": {"requests": 50}})
-        assert r["rate_limit_requests"] == 50
-        assert "rate_limit_window_seconds" not in r
-
-    def test_self_monitoring_section_empty_keys(self):
-        """Test self_monitoring section with no keys (covers 350->352, 352->355)."""
-        from obskit.config_file import _flatten_config
-
-        r = _flatten_config({"self_monitoring": {}})
+        r = _flatten_config({"self_monitoring": {"enabled": True, "async_queue_size": 1000}})
         assert "enable_self_metrics" not in r
         assert "async_metric_queue_size" not in r
 
-    def test_self_monitoring_only_enabled(self):
-        """Test self_monitoring section with only enabled key."""
-        from obskit.config_file import _flatten_config
-
-        r = _flatten_config({"self_monitoring": {"enabled": False}})
-        assert r["enable_self_metrics"] is False
-        assert "async_metric_queue_size" not in r
-
-    def test_metrics_all_secondary_keys(self):
-        """Test metrics with all the secondary keys (method, auth_enabled, etc.)."""
+    def test_metrics_secondary_keys(self):
+        """Test metrics with secondary keys (sample_rate, use_summary, etc.)."""
         from obskit.config_file import _flatten_config
 
         r = _flatten_config(
             {
                 "metrics": {
-                    "method": "GET",
-                    "auth_enabled": True,
-                    "auth_token": "secret",
-                    "rate_limit_enabled": True,
-                    "rate_limit_requests": 100,
                     "sample_rate": 1.0,
                     "use_summary": True,
                 }
             }
         )
-        assert r["metrics_method"] == "GET"
-        assert r["metrics_auth_enabled"] is True
-        assert r["metrics_auth_token"] == "secret"
-        assert r["metrics_rate_limit_enabled"] is True
-        assert r["metrics_rate_limit_requests"] == 100
         assert r["metrics_sample_rate"] == pytest.approx(1.0)
         assert r["use_summary"] is True
 

@@ -257,65 +257,6 @@ class TestCheckRabbitMQ:
 
 
 # =============================================================================
-# checks.py — lines 159, 170->186, 172, 469->473, 491
-# =============================================================================
-
-
-class TestServerMissingBranches:
-    def setup_method(self):
-        from obskit.health.server import stop_health_server
-
-        stop_health_server()
-
-    def teardown_method(self):
-        from obskit.health.server import stop_health_server
-
-        stop_health_server()
-
-    def test_start_health_server_exception_cleans_up(self):
-        """Lines 247-250: Exception during start clears _health_server and re-raises."""
-        import obskit.health.server as server_module
-        from obskit.health.server import start_health_server
-
-        with patch("obskit.health.server.HTTPServer", side_effect=OSError("Port in use")):
-            with pytest.raises(OSError):
-                start_health_server(port=19999, host="127.0.0.1")
-
-        assert server_module._health_server is None
-
-    def test_stop_health_server_exception_still_cleans_up(self):
-        """Lines 275-276: Exception during shutdown is logged, cleanup still happens."""
-        import obskit.health.server as server_module
-        from obskit.health.server import stop_health_server
-
-        mock_server = MagicMock()
-        mock_server.shutdown.side_effect = RuntimeError("Shutdown failed")
-        server_module._health_server = mock_server
-
-        stop_health_server()
-        assert server_module._health_server is None
-
-    def test_stop_health_server_thread_join_called(self):
-        """Line 271: Thread.join() is called when thread is alive."""
-        import obskit.health.server as server_module
-        from obskit.health.server import stop_health_server
-
-        mock_server = MagicMock()
-        mock_server.shutdown = MagicMock()
-
-        mock_thread = MagicMock()
-        mock_thread.is_alive.return_value = True
-        mock_thread.join = MagicMock()
-
-        server_module._health_server = mock_server
-        server_module._health_server_thread = mock_thread
-
-        stop_health_server()
-        mock_thread.join.assert_called_once_with(timeout=5.0)
-        assert server_module._health_server is None
-
-
-# =============================================================================
 # slo_check.py — lines 315-316
 # =============================================================================
 
