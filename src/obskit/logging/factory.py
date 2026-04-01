@@ -102,8 +102,7 @@ def configure_logging_backend(  # pragma: no cover
                 backend_class = _backends["structlog"]
             else:
                 raise ImportError(
-                    "No logging backend available. Install structlog: "
-                    "pip install structlog"
+                    "No logging backend available. Install structlog: pip install structlog"
                 )
         else:
             if backend not in _backends:

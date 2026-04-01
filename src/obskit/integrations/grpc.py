@@ -154,8 +154,7 @@ class ObskitServerInterceptor:
     ) -> None:
         if not GRPC_AVAILABLE:  # pragma: no cover
             raise ImportError(
-                "gRPC is not installed. "
-                "Install: pip install obskit[grpc]  or  obskit[integrations]"
+                "gRPC is not installed. Install: pip install obskit[grpc]  or  obskit[integrations]"
             )
 
         settings = get_settings()
@@ -284,8 +283,7 @@ class ObskitClientInterceptor:
     ) -> None:
         if not GRPC_AVAILABLE:  # pragma: no cover
             raise ImportError(
-                "gRPC is not installed. "
-                "Install: pip install obskit[grpc]  or  obskit[integrations]"
+                "gRPC is not installed. Install: pip install obskit[grpc]  or  obskit[integrations]"
             )
 
         self.track_metrics = track_metrics

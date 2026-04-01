@@ -363,6 +363,7 @@ class REDMetrics:
         """
         # Get settings for defaults
         from obskit.config import get_settings  # noqa: PLC0415
+
         settings = get_settings()
         registry = get_registry()
 
@@ -733,6 +734,7 @@ def get_red_metrics() -> REDMetrics:
         with _red_metrics_lock:
             if _red_metrics is None:  # pragma: no cover  # re-check inside lock
                 from obskit.config import get_settings  # noqa: PLC0415  # pragma: no cover
+
                 settings = get_settings()  # pragma: no cover
                 _red_metrics = REDMetrics(settings.service_name)  # pragma: no cover
 

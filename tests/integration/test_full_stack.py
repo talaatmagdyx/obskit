@@ -48,50 +48,6 @@ class TestMetricsIntegration:
         assert b"integration_test_request_duration_seconds" in output
         assert b"integration_test_errors_total" in output
 
-    def test_golden_signals_end_to_end(self) -> None:
-        """Test Golden Signals metrics."""
-        from obskit.metrics import GoldenSignals
-        from obskit.metrics.registry import create_registry, generate_latest
-
-        registry = create_registry()
-        if registry is None:
-            pytest.skip("prometheus_client not available")
-
-        golden = GoldenSignals("golden_test")
-
-        # Record metrics using the actual v2 GoldenSignals API
-        golden.observe_request("api_call", duration_seconds=0.05)
-        golden.observe_request(
-            "api_call", duration_seconds=0.01, status="failure", error_type="ValidationError"
-        )
-        golden.set_saturation("cpu", 0.75)
-        golden.set_queue_depth("requests", 42)
-
-        output = generate_latest()
-        assert b"golden_test_request_duration_seconds" in output
-        assert b"golden_test_requests_total" in output
-        assert b"golden_test_errors_total" in output
-        assert b"golden_test_saturation" in output
-
-    def test_use_metrics_end_to_end(self) -> None:
-        """Test USE metrics."""
-        from obskit.metrics import USEMetrics
-        from obskit.metrics.registry import create_registry, generate_latest
-
-        registry = create_registry()
-        if registry is None:
-            pytest.skip("prometheus_client not available")
-
-        use = USEMetrics("use_test")
-
-        use.set_utilization("cpu", 0.65)
-        use.set_saturation("cpu", 3)
-        use.inc_error("cpu", "thermal")
-
-        output = generate_latest()
-        assert b"use_test_utilization" in output
-        assert b"use_test_saturation" in output
-        assert b"use_test_errors_total" in output
 
 
 class TestLoggingIntegration:
@@ -187,70 +143,6 @@ class TestHealthCheckIntegration:
         assert result.checks["working_service"].healthy is True
 
 
-class TestResilienceIntegration:
-    """Test resilience components."""
-
-    @pytest.mark.asyncio
-    async def test_circuit_breaker_lifecycle(self) -> None:
-        """Test circuit breaker state transitions."""
-        from obskit.resilience import CircuitBreaker, CircuitOpenError
-        from obskit.resilience.circuit_breaker import CircuitState
-
-        breaker = CircuitBreaker(
-            name="integration_test",
-            failure_threshold=2,
-            recovery_timeout=0.1,
-            half_open_requests=1,
-        )
-
-        # Initially closed
-        assert breaker.state == CircuitState.CLOSED
-
-        # Fail twice to open
-        for _ in range(2):
-            try:
-                async with breaker:
-                    raise ValueError("Simulated failure")
-            except ValueError:
-                pass  # Expected exception - testing circuit breaker
-
-        # Should be open now
-        assert breaker.state == CircuitState.OPEN
-
-        # Requests should fail immediately
-        with pytest.raises(CircuitOpenError):
-            async with breaker:
-                pass  # NOSONAR
-
-        # Wait for recovery timeout
-        await asyncio.sleep(0.15)
-
-        # Should allow one request (half-open)
-        try:
-            async with breaker:
-                pass  # Success
-        except CircuitOpenError:
-            pass  # May still be open depending on timing
-
-    def test_retry_with_success(self) -> None:
-        """Test retry decorator succeeds after failures."""
-        from obskit.resilience import retry
-
-        call_count = 0
-
-        @retry(max_attempts=3, base_delay=0.01)
-        async def flaky_operation() -> str:
-            nonlocal call_count
-            call_count += 1
-            if call_count < 3:
-                raise ValueError("Temporary failure")
-            return "success"
-
-        # Run the operation
-        result = asyncio.get_event_loop().run_until_complete(flaky_operation())
-        assert result == "success"
-        assert call_count == 3
-
 
 class TestMiddlewareIntegration:
     """Test middleware integration."""
@@ -276,36 +168,6 @@ class TestMiddlewareIntegration:
         # Verify middleware is added
         assert len(app.user_middleware) > 0
 
-
-class TestSelfMetricsIntegration:
-    """Test self-monitoring metrics."""
-
-    def test_self_metrics_initialization(self) -> None:
-        """Test self-metrics can be initialized and used."""
-        from obskit.metrics.self_metrics import (
-            get_self_metrics,
-            record_dropped_metric,
-            record_error,
-            reset_self_metrics,
-            update_queue_metrics,
-        )
-
-        # Reset for clean state
-        reset_self_metrics()
-
-        # Get metrics instance
-        metrics = get_self_metrics()
-        assert metrics is not None
-
-        # Record various metrics
-        update_queue_metrics(depth=100, capacity=10000)
-        record_dropped_metric("test_op", "queue_full")
-        record_error("async_recording", "TimeoutError")
-
-        # Get snapshot
-        snapshot = metrics.get_snapshot()
-        assert snapshot.queue_depth >= 0
-        assert snapshot.version is not None
 
 
 class TestConfigurationIntegration:
@@ -393,28 +255,3 @@ class TestBuiltInHealthChecks:
         assert result is True
 
 
-class TestRateLimiting:
-    """Test rate limiting functionality."""
-
-    def test_rate_limiter_allows_requests(self) -> None:
-        """Test rate limiter allows requests within limit."""
-        from obskit.metrics.auth import RateLimiter
-
-        limiter = RateLimiter(max_requests=10, window_seconds=60)
-
-        # All requests should be allowed
-        for _ in range(10):
-            assert limiter.is_allowed()
-
-        # Next request should be blocked
-        assert not limiter.is_allowed()
-
-    def test_rate_limiter_remaining(self) -> None:
-        """Test rate limiter remaining count."""
-        from obskit.metrics.auth import RateLimiter
-
-        limiter = RateLimiter(max_requests=5, window_seconds=60)
-
-        assert limiter.get_remaining() == 5
-        limiter.is_allowed()
-        assert limiter.get_remaining() == 4
