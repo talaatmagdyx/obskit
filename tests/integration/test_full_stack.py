@@ -49,7 +49,6 @@ class TestMetricsIntegration:
         assert b"integration_test_errors_total" in output
 
 
-
 class TestLoggingIntegration:
     """Test logging components working together."""
 
@@ -143,7 +142,6 @@ class TestHealthCheckIntegration:
         assert result.checks["working_service"].healthy is True
 
 
-
 class TestMiddlewareIntegration:
     """Test middleware integration."""
 
@@ -167,7 +165,6 @@ class TestMiddlewareIntegration:
 
         # Verify middleware is added
         assert len(app.user_middleware) > 0
-
 
 
 class TestConfigurationIntegration:
@@ -253,5 +250,3 @@ class TestBuiltInHealthChecks:
         result = await check()
 
         assert result is True
-
-

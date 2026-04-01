@@ -16,6 +16,9 @@ import sys
 from dataclasses import dataclass, field
 from typing import Any
 
+# Sentinel strings used when an optional setting is absent.
+_NOT_CONFIGURED = "(not configured)"
+
 # ---------------------------------------------------------------------------
 # Data types
 # ---------------------------------------------------------------------------
@@ -178,14 +181,14 @@ def _check_tracing() -> PackageInfo:
         try:
             from obskit.config import get_settings
 
-            endpoint = get_settings().otlp_endpoint or "(not configured)"
+            endpoint = get_settings().otlp_endpoint or _NOT_CONFIGURED
         except Exception:
             endpoint = "(unavailable)"
         integrations.append(
-            IntegrationInfo("otlp-endpoint", bool(endpoint != "(not configured)"), endpoint)
+            IntegrationInfo("otlp-endpoint", bool(endpoint != _NOT_CONFIGURED), endpoint)
         )
         # Probe TCP reachability of the configured endpoint
-        if endpoint not in {"(not configured)", "(unavailable)"}:
+        if endpoint not in {_NOT_CONFIGURED, "(unavailable)"}:
             reachable, detail = _check_otlp_reachable(endpoint)
             integrations.append(IntegrationInfo("otlp-reachable", reachable, detail))
     return PackageInfo(

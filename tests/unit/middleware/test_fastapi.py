@@ -663,8 +663,8 @@ class TestObskitMiddleware:
 
         mw.app = disconnecting_app
 
-        async def fake_send(msg):
-            pass
+        async def fake_send(msg):  # NOSONAR
+            pass  # intentional no-op — ASGI send stub
 
         async def fake_receive():
             return {"type": "http.request", "body": b""}
@@ -791,8 +791,8 @@ class TestObskitMiddleware:
 
         mw.app = ws_app
 
-        async def fake_send(msg):
-            pass
+        async def fake_send(msg):  # NOSONAR
+            pass  # intentional no-op — ASGI send stub
 
         async def fake_receive():
             return {"type": "websocket.connect"}
@@ -832,8 +832,8 @@ class TestObskitMiddleware:
 
         mw.app = silent_http_app
 
-        async def fake_send(msg):
-            pass
+        async def fake_send(msg):  # NOSONAR
+            pass  # intentional no-op — ASGI send stub
 
         async def fake_receive():
             return {"type": "http.request", "body": b""}

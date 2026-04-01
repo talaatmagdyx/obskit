@@ -248,6 +248,38 @@ class DependencyHealthAggregator:
 
             return await self._run_check(name)
 
+    def _consecutive_failures(self, name: str) -> int:
+        """Return next consecutive failure count for *name* using the cached state."""
+        prev = self._cached_health.get(name)
+        return (prev.consecutive_failures + 1) if prev else 1
+
+    def _apply_check_result(self, health: DependencyHealth, result: Any) -> None:
+        """Populate *health* fields from the raw check result."""
+        if isinstance(result, bool):
+            health.healthy = result
+            health.status = HealthStatus.HEALTHY if result else HealthStatus.UNHEALTHY
+        elif isinstance(result, dict):
+            health.healthy = result.get("healthy", False)
+            health.status = HealthStatus(
+                result.get("status", "healthy" if health.healthy else "unhealthy")
+            )
+            health.details = result.get("details", {})
+            health.error = result.get("error")
+        else:
+            health.healthy = bool(result)
+            health.status = HealthStatus.HEALTHY if health.healthy else HealthStatus.UNHEALTHY
+
+        health.consecutive_failures = (
+            0 if health.healthy else self._consecutive_failures(health.name)
+        )
+
+    async def _invoke_check(self, check_func: HealthCheckFunc, timeout: float) -> Any:
+        """Run *check_func* (sync or async) with *timeout* and return its result."""
+        if asyncio.iscoroutinefunction(check_func):
+            return await asyncio.wait_for(check_func(), timeout=timeout)
+        loop = asyncio.get_running_loop()
+        return await asyncio.wait_for(loop.run_in_executor(None, check_func), timeout=timeout)
+
     async def _run_check(self, name: str) -> DependencyHealth:
         """Execute the health check function (called with per-dependency lock held)."""
         check_func, dep_type, custom_timeout = self._dependencies[name]
@@ -259,57 +291,24 @@ class DependencyHealthAggregator:
         )
 
         try:
-            # Run check with timeout
-            if asyncio.iscoroutinefunction(check_func):
-                result = await asyncio.wait_for(check_func(), timeout=timeout)
-            else:
-                # Run sync function in executor
-                loop = asyncio.get_running_loop()
-                result = await asyncio.wait_for(
-                    loop.run_in_executor(None, check_func), timeout=timeout
-                )
+            result = await self._invoke_check(check_func, timeout)
 
-            latency_ms = (time.time() - start_time) * 1000
-            health.latency_ms = latency_ms
-
-            # Parse result
-            if isinstance(result, bool):
-                health.healthy = result
-                health.status = HealthStatus.HEALTHY if result else HealthStatus.UNHEALTHY
-            elif isinstance(result, dict):
-                health.healthy = result.get("healthy", False)
-                health.status = HealthStatus(
-                    result.get("status", "healthy" if health.healthy else "unhealthy")
-                )
-                health.details = result.get("details", {})
-                health.error = result.get("error")
-            else:
-                health.healthy = bool(result)
-                health.status = HealthStatus.HEALTHY if health.healthy else HealthStatus.UNHEALTHY
-
-            # Reset consecutive failures on success
-            if health.healthy:
-                health.consecutive_failures = 0
-            else:
-                prev = self._cached_health.get(name)
-                health.consecutive_failures = (prev.consecutive_failures + 1) if prev else 1
+            health.latency_ms = (time.time() - start_time) * 1000
+            self._apply_check_result(health, result)
 
         except TimeoutError:
             health.healthy = False
             health.status = HealthStatus.UNHEALTHY
             health.error = f"Health check timed out after {timeout}s"
             health.latency_ms = timeout * 1000
-            prev = self._cached_health.get(name)
-            health.consecutive_failures = (prev.consecutive_failures + 1) if prev else 1
+            health.consecutive_failures = self._consecutive_failures(name)
 
         except Exception as e:
             health.healthy = False
             health.status = HealthStatus.UNHEALTHY
             health.error = str(e)
             health.latency_ms = (time.time() - start_time) * 1000
-            prev = self._cached_health.get(name)
-            health.consecutive_failures = (prev.consecutive_failures + 1) if prev else 1
-
+            health.consecutive_failures = self._consecutive_failures(name)
             logger.warning("dependency_check_failed", dependency=name, error=str(e))
 
         # Update metrics

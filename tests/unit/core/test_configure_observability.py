@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from collections.abc import Generator
+
 import pytest
 
 from obskit.config import configure_observability, reset_settings
@@ -9,10 +11,10 @@ from obskit.core.observability import Observability, get_observability, reset_ob
 
 
 @pytest.fixture(autouse=True)
-def _clean() -> None:
+def _clean() -> Generator[None, None, None]:
     reset_settings()
     reset_observability()
-    yield  # type: ignore[misc]
+    yield
     reset_settings()
     reset_observability()
 
@@ -60,4 +62,4 @@ class TestConfigureObservability:
         assert obs.config.service.version == "3.0.0"
         assert obs.config.logging.level == "DEBUG"
         assert obs.config.logging.format == "console"
-        assert obs.config.tracing.sample_rate == 0.5
+        assert obs.config.tracing.sample_rate == pytest.approx(0.5)

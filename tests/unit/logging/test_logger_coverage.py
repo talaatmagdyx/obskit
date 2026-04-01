@@ -82,7 +82,7 @@ class TestAddCorrelationIdProcessor:
         from obskit.core.context import correlation_context
 
         with correlation_context("test-cid-abc"):
-            result = add_service_info.__module__  # noqa: F841
+            _ = add_service_info.__module__
             from obskit.logging.logger import add_correlation_id
 
             event = {"event": "test"}
@@ -118,10 +118,12 @@ class TestSampleLogDropEvent:
         with patch("obskit.logging.logger.random.random", return_value=1.0):
             # Override cached sample rate to sub-1.0 to activate sampling path
             import obskit.logging.logger as _lm
+
             original = _lm._cached_log_sample_rate
             _lm._cached_log_sample_rate = 0.01
             try:
                 import pytest
+
                 with pytest.raises(structlog.DropEvent):
                     sample_log(MagicMock(), "info", {"event": "test"})
             finally:

@@ -381,7 +381,7 @@ class TestCheckOtlpReachable:
         mock_cm.__enter__ = MagicMock(return_value=mock_cm)
         mock_cm.__exit__ = MagicMock(return_value=False)
         with patch("socket.create_connection", return_value=mock_cm) as mock_conn:
-            reachable, detail = _check_otlp_reachable("http://tempo")
+            reachable, _ = _check_otlp_reachable("http://tempo")
         assert reachable is True
         # Verify port 4317 was used
         call_args = mock_conn.call_args[0][0]

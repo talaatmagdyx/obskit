@@ -59,6 +59,69 @@ DEFAULT_SENSITIVE_FIELDS: frozenset[str] = frozenset(
 _DEFAULT_PLACEHOLDER = "[REDACTED]"
 
 
+class _Redactor:
+    """Callable structlog processor that redacts sensitive log fields.
+
+    Constructed by :func:`make_redaction_processor`; holds the compiled
+    regex and placeholder so the nested closure depth is zero.
+    """
+
+    __name__ = "redact_sensitive_fields"
+    __qualname__ = "redact_sensitive_fields"
+
+    def __init__(self, sensitive_re: re.Pattern[str], placeholder: str) -> None:
+        self._sensitive_re = sensitive_re
+        self._placeholder = placeholder
+
+    def redact_value(self, obj: Any, depth: int = 0, _seen: frozenset[int] | None = None) -> Any:
+        """Recursively redact sensitive keys inside dicts (max 10 levels deep).
+
+        Returns a new dict at each level instead of mutating in-place,
+        so the original event_dict is never modified.  Tracks object ids
+        to detect circular references and stop recursion early.
+        """
+        if depth > 10 or not isinstance(obj, dict):
+            return obj
+        seen = _seen if _seen is not None else frozenset()
+        obj_id = id(obj)
+        if obj_id in seen:
+            return "<circular>"
+        seen = seen | {obj_id}
+        result: dict[Any, Any] = {}
+        for key, val in obj.items():
+            # Guard against non-string keys (e.g. integer keys) that would
+            # raise TypeError in _sensitive_re.search().  Non-string keys
+            # are never sensitive field names, so we skip the regex check.
+            if isinstance(key, str) and self._sensitive_re.search(key):
+                result[key] = self._placeholder
+            elif isinstance(val, dict):
+                result[key] = self.redact_value(val, depth + 1, seen)
+            elif isinstance(val, list):
+                # Recurse into list items that are dicts so sensitive keys
+                # inside e.g. {"users": [{"password": "s3cr3t"}]} are redacted.
+                result[key] = [
+                    self.redact_value(item, depth + 1, seen) if isinstance(item, dict) else item
+                    for item in val
+                ]
+            else:
+                result[key] = val
+        return result
+
+    def __call__(
+        self,
+        logger: WrappedLogger,
+        method_name: str,
+        event_dict: EventDict,
+    ) -> EventDict:
+        try:
+            return self.redact_value(event_dict)  # type: ignore[no-any-return]
+        except Exception:  # pragma: no cover
+            # Never let a redaction failure suppress a log event.
+            # Return the event_dict unmodified — PII *may* be logged, but
+            # that is preferable to silently dropping the log record.
+            return event_dict
+
+
 def make_redaction_processor(
     fields: set[str] | frozenset[str] | None = None,
     placeholder: str = _DEFAULT_PLACEHOLDER,
@@ -86,70 +149,19 @@ def make_redaction_processor(
     >>> result["password"]
     '[REDACTED]'
     """
-    _fields_norm: frozenset[str] = (
+    fields_norm: frozenset[str] = (
         frozenset(f.lower() for f in fields) if fields is not None else DEFAULT_SENSITIVE_FIELDS
     )
-    _placeholder = placeholder
     # Pre-compile a single case-insensitive regex from all sensitive keywords.
     # One C-level re.search() replaces O(keywords) Python generator steps per field.
     # Sort longest first so longer patterns (e.g. "private_key") match before their
     # substrings (e.g. "key") — though with IGNORECASE substring matching this only
     # matters if keywords overlap, which they don't in DEFAULT_SENSITIVE_FIELDS.
-    _sensitive_re = re.compile(
-        "|".join(re.escape(f) for f in sorted(_fields_norm, key=len, reverse=True)),
+    sensitive_re = re.compile(
+        "|".join(re.escape(f) for f in sorted(fields_norm, key=len, reverse=True)),
         re.IGNORECASE,
     )
-
-    def _redact_value(obj: Any, depth: int = 0, _seen: frozenset[int] | None = None) -> Any:
-        """Recursively redact sensitive keys inside dicts (max 10 levels deep).
-
-        Returns a new dict at each level instead of mutating in-place,
-        so the original event_dict is never modified.  Tracks object ids
-        to detect circular references and stop recursion early.
-        """
-        if depth > 10 or not isinstance(obj, dict):
-            return obj
-        seen = _seen if _seen is not None else frozenset()
-        obj_id = id(obj)
-        if obj_id in seen:
-            return "<circular>"
-        seen = seen | {obj_id}
-        result: dict[Any, Any] = {}
-        for key, val in obj.items():
-            # Guard against non-string keys (e.g. integer keys) that would
-            # raise TypeError in _sensitive_re.search().  Non-string keys
-            # are never sensitive field names, so we skip the regex check.
-            if isinstance(key, str) and _sensitive_re.search(key):
-                result[key] = _placeholder
-            elif isinstance(val, dict):
-                result[key] = _redact_value(val, depth + 1, seen)
-            elif isinstance(val, list):
-                # Recurse into list items that are dicts so sensitive keys
-                # inside e.g. {"users": [{"password": "s3cr3t"}]} are redacted.
-                result[key] = [
-                    _redact_value(item, depth + 1, seen) if isinstance(item, dict) else item
-                    for item in val
-                ]
-            else:
-                result[key] = val
-        return result
-
-    def _redact_processor(
-        logger: WrappedLogger,
-        method_name: str,
-        event_dict: EventDict,
-    ) -> EventDict:
-        try:
-            return _redact_value(event_dict)  # type: ignore[no-any-return]
-        except Exception:  # pragma: no cover
-            # Never let a redaction failure suppress a log event.
-            # Return the event_dict unmodified — PII *may* be logged, but
-            # that is preferable to silently dropping the log record.
-            return event_dict
-
-    _redact_processor.__name__ = "redact_sensitive_fields"
-    _redact_processor.__qualname__ = "redact_sensitive_fields"
-    return _redact_processor
+    return _Redactor(sensitive_re, placeholder)
 
 
 # Convenience singleton with default settings — import directly for zero-config use.

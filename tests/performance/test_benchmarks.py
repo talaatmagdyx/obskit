@@ -5,6 +5,7 @@ These tests verify correctness under load and establish minimum throughput
 floors. They are intentionally generous so they pass on slow CI machines.
 Run locally for accurate numbers.
 """
+
 from __future__ import annotations
 
 import threading
@@ -17,6 +18,7 @@ import pytest
 # =============================================================================
 # 1. AsyncLogRing — lock-free ring buffer throughput
 # =============================================================================
+
 
 class TestAsyncLogRingThroughput:
     """Verify AsyncLogRing enqueues records quickly and drains without loss."""
@@ -40,15 +42,13 @@ class TestAsyncLogRingThroughput:
             ring.stop(timeout_s=5.0)
 
             throughput = n / enqueue_time
-            print(f"\nAsyncLogRing single-producer: {throughput:,.0f} rec/s "
-                  f"({enqueue_time * 1000:.1f} ms for {n} records)")
+            print(
+                f"\nAsyncLogRing single-producer: {throughput:,.0f} rec/s "
+                f"({enqueue_time * 1000:.1f} ms for {n} records)"
+            )
 
-            assert throughput > 100_000, (
-                f"Expected > 100 000 rec/s, got {throughput:,.0f}"
-            )
-            assert len(emitted) == n, (
-                f"Expected {n} emitted, got {len(emitted)} (data loss)"
-            )
+            assert throughput > 100_000, f"Expected > 100 000 rec/s, got {throughput:,.0f}"
+            assert len(emitted) == n, f"Expected {n} emitted, got {len(emitted)} (data loss)"
         finally:
             ring.stop(timeout_s=1.0)
 
@@ -74,8 +74,7 @@ class TestAsyncLogRingThroughput:
             threads = [
                 threading.Thread(
                     target=lambda: [
-                        ring.enqueue({"event": "t", "x": i})
-                        for i in range(n_per_thread)
+                        ring.enqueue({"event": "t", "x": i}) for i in range(n_per_thread)
                     ]
                 )
                 for _ in range(n_threads)
@@ -90,12 +89,12 @@ class TestAsyncLogRingThroughput:
             elapsed = time.perf_counter() - t0
 
             throughput = total / elapsed
-            print(f"\nAsyncLogRing concurrent ({n_threads} threads): "
-                  f"{throughput:,.0f} rec/s, {len(emitted)}/{total} delivered")
-
-            assert len(emitted) == total, (
-                f"Data loss: expected {total}, got {len(emitted)}"
+            print(
+                f"\nAsyncLogRing concurrent ({n_threads} threads): "
+                f"{throughput:,.0f} rec/s, {len(emitted)}/{total} delivered"
             )
+
+            assert len(emitted) == total, f"Data loss: expected {total}, got {len(emitted)}"
         finally:
             ring.stop(timeout_s=1.0)
 
@@ -103,6 +102,7 @@ class TestAsyncLogRingThroughput:
 # =============================================================================
 # 2. RED Metrics — concurrent observation throughput
 # =============================================================================
+
 
 class TestREDMetricsThroughput:
     """Verify REDMetrics is thread-safe and fast under concurrent load."""
@@ -141,13 +141,13 @@ class TestREDMetricsThroughput:
         elapsed = time.perf_counter() - t0
 
         throughput = total / elapsed
-        print(f"\nREDMetrics concurrent ({n_threads} threads): "
-              f"{throughput:,.0f} obs/s, {len(errors)} errors")
+        print(
+            f"\nREDMetrics concurrent ({n_threads} threads): "
+            f"{throughput:,.0f} obs/s, {len(errors)} errors"
+        )
 
         assert not errors, f"Exceptions under concurrent load: {errors}"
-        assert throughput > 10_000, (
-            f"Expected > 10 000 obs/s, got {throughput:,.0f}"
-        )
+        assert throughput > 10_000, f"Expected > 10 000 obs/s, got {throughput:,.0f}"
 
     def test_track_request_context_manager(self):
         """track_request context manager works correctly and times operations."""
@@ -165,6 +165,7 @@ class TestREDMetricsThroughput:
 # 3. SampledLogger — correctness under concurrent access
 # =============================================================================
 
+
 class TestSampledLoggerConcurrency:
     """Verify SampledLogger maintains correct counts under concurrent access."""
 
@@ -173,7 +174,7 @@ class TestSampledLoggerConcurrency:
         from obskit.logging.sampling import SampledLogger, SamplingConfig
 
         config = SamplingConfig(
-            info_rate=1.0,       # log everything at info level
+            info_rate=1.0,  # log everything at info level
             always_log_first_n=5,
             dedupe_window_seconds=0.0,  # no dedup window for this test
         )
@@ -200,20 +201,20 @@ class TestSampledLoggerConcurrency:
             t.join()
 
         total = n_threads * 100
-        print(f"\nSampledLogger concurrent ({n_threads} threads × 100): "
-              f"{len(results)}/{total} results, {len(errors)} errors")
+        print(
+            f"\nSampledLogger concurrent ({n_threads} threads × 100): "
+            f"{len(results)}/{total} results, {len(errors)} errors"
+        )
 
         assert not errors, f"Exceptions under concurrent access: {errors}"
-        assert len(results) == total, (
-            f"Lost results: expected {total}, got {len(results)}"
-        )
+        assert len(results) == total, f"Lost results: expected {total}, got {len(results)}"
 
     def test_first_n_always_logged_under_concurrency(self):
         """always_log_first_n=10: first 10 calls always pass regardless of concurrency."""
         from obskit.logging.sampling import SampledLogger, SamplingConfig
 
         config = SamplingConfig(
-            info_rate=0.0,       # sample nothing after first_n
+            info_rate=0.0,  # sample nothing after first_n
             always_log_first_n=10,
             dedupe_window_seconds=0.0,
         )
@@ -223,7 +224,7 @@ class TestSampledLoggerConcurrency:
         lock = threading.Lock()
 
         def worker() -> None:
-            result, reason = sampler._should_log("info", "first_n_event")
+            _, reason = sampler._should_log("info", "first_n_event")
             with lock:
                 if reason == "first_occurrences":
                     passed_first.append(True)

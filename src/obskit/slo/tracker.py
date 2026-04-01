@@ -90,6 +90,21 @@ class SLOTracker:
             window_seconds=window_seconds,
         )
 
+    def _decrement_counter(self, name: str, measurement: SLOMeasurement) -> None:
+        """Decrement incremental counters when a measurement is evicted (lock must be held)."""
+        self._total_counts[name] -= 1
+        if measurement.success:
+            self._success_counts[name] -= 1
+
+    def _evict_expired(self, name: str, buf: deque[SLOMeasurement], target: SLOTarget) -> None:
+        """Remove expired entries from the front of *buf* (lock must be held)."""
+        _is_counter = target.slo_type in (SLOType.AVAILABILITY, SLOType.ERROR_RATE)
+        cutoff = datetime.now(UTC) - timedelta(seconds=target.window_seconds)
+        while buf and buf[0].timestamp < cutoff:
+            evicted = buf.popleft()
+            if _is_counter:
+                self._decrement_counter(name, evicted)
+
     def record_measurement(
         self,
         name: str,
@@ -121,10 +136,7 @@ class SLOTracker:
             # When the deque is at maxlen, appending implicitly evicts buf[0].
             # Decrement counters here to keep them consistent.
             if _is_counter and len(buf) == self._MAX_MEASUREMENTS:  # pragma: no cover
-                _auto_evicted = buf[0]
-                self._total_counts[name] -= 1
-                if _auto_evicted.success:
-                    self._success_counts[name] -= 1
+                self._decrement_counter(name, buf[0])
 
             buf.append(measurement)
 
@@ -151,13 +163,7 @@ class SLOTracker:
             # are appended in chronological order, so stale entries always sit
             # at the head.  popleft() is O(1) and we only iterate expired items,
             # making the overall cost O(k) per insert rather than O(n).
-            cutoff = datetime.now(UTC) - timedelta(seconds=target.window_seconds)
-            while buf and buf[0].timestamp < cutoff:
-                evicted = buf.popleft()
-                if _is_counter:
-                    self._total_counts[name] -= 1
-                    if evicted.success:
-                        self._success_counts[name] -= 1
+            self._evict_expired(name, buf, target)
 
     def get_status(self, name: str) -> SLOStatus | None:
         """Get current SLO status.

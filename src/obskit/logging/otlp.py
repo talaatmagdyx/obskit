@@ -91,6 +91,37 @@ _otlp_logger_provider: LoggerProvider | None = None
 _otlp_configured = False
 _otlp_lock = threading.Lock()
 
+# OTel semantic-convention attribute key — defined once to avoid repeating the literal.
+_SERVICE_NAME_KEY = "service.name"
+
+# LogRecord attributes that are internal to Python's logging and should not be
+# forwarded as custom OTLP attributes (they are already mapped to OTel fields).
+_LOG_RECORD_INTERNAL_KEYS = frozenset(
+    {
+        "name",
+        "msg",
+        "args",
+        "levelname",
+        "levelno",
+        "pathname",
+        "filename",
+        "module",
+        "lineno",
+        "funcName",
+        "created",
+        "msecs",
+        "relativeCreated",
+        "thread",
+        "threadName",
+        "processName",
+        "process",
+        "message",
+        "exc_info",
+        "exc_text",
+        "stack_info",
+    }
+)
+
 
 def configure_otlp_logging(
     endpoint: str | None = None,
@@ -157,7 +188,7 @@ def configure_otlp_logging(
         # Create resource
         resource = Resource.create(
             {
-                "service.name": actual_service_name,
+                _SERVICE_NAME_KEY: actual_service_name,
                 "service.version": settings.version,
                 "deployment.environment": settings.environment,
             }
@@ -325,7 +356,7 @@ class OTLPLogHandler(logging.Handler):
             try:
                 _resource = Resource.create(
                     {
-                        "service.name": self.service_name,
+                        _SERVICE_NAME_KEY: self.service_name,
                         "service.version": settings.version,
                         "deployment.environment": settings.environment,
                     }
@@ -404,6 +435,39 @@ class OTLPLogHandler(logging.Handler):
         """
         pass  # Real export handled by BatchLogRecordProcessor in emit()
 
+    def _build_log_entry(self, record: logging.LogRecord) -> dict[str, Any]:
+        """Build the log entry dict from a LogRecord."""
+        log_entry: dict[str, Any] = {
+            "timestamp": datetime.now(UTC).isoformat(),
+            "severity": record.levelname,
+            "body": self.format(record),
+            "attributes": {
+                "logger.name": record.name,
+                "code.filepath": record.pathname,
+                "code.lineno": record.lineno,
+                "code.function": record.funcName,
+            },
+            "resource": {
+                _SERVICE_NAME_KEY: self.service_name,
+            },
+        }
+
+        # Add trace context if available
+        if OTEL_LOGGING_AVAILABLE and trace is not None:
+            span = trace.get_current_span()
+            if span and span.is_recording():
+                ctx = span.get_span_context()
+                log_entry["trace_id"] = format(ctx.trace_id, "032x")
+                log_entry["span_id"] = format(ctx.span_id, "016x")
+
+        # Add extra attributes from the LogRecord
+        if hasattr(record, "__dict__"):
+            for key, value in record.__dict__.items():
+                if key not in _LOG_RECORD_INTERNAL_KEYS:
+                    log_entry["attributes"][key] = str(value)
+
+        return log_entry
+
     def emit(self, record: logging.LogRecord) -> None:
         """
         Emit a log record to the OTLP queue.
@@ -424,57 +488,7 @@ class OTLPLogHandler(logging.Handler):
                 pass
 
         try:
-            # Build log entry
-            log_entry: dict[str, Any] = {
-                "timestamp": datetime.now(UTC).isoformat(),
-                "severity": record.levelname,
-                "body": self.format(record),
-                "attributes": {
-                    "logger.name": record.name,
-                    "code.filepath": record.pathname,
-                    "code.lineno": record.lineno,
-                    "code.function": record.funcName,
-                },
-                "resource": {
-                    "service.name": self.service_name,
-                },
-            }
-
-            # Add trace context if available
-            if OTEL_LOGGING_AVAILABLE and trace is not None:
-                span = trace.get_current_span()
-                if span and span.is_recording():
-                    ctx = span.get_span_context()
-                    log_entry["trace_id"] = format(ctx.trace_id, "032x")
-                    log_entry["span_id"] = format(ctx.span_id, "016x")
-
-            # Add extra attributes
-            if hasattr(record, "__dict__"):
-                for key, value in record.__dict__.items():
-                    if key not in (
-                        "name",
-                        "msg",
-                        "args",
-                        "levelname",
-                        "levelno",
-                        "pathname",
-                        "filename",
-                        "module",
-                        "lineno",
-                        "funcName",
-                        "created",
-                        "msecs",
-                        "relativeCreated",
-                        "thread",
-                        "threadName",
-                        "processName",
-                        "process",
-                        "message",
-                        "exc_info",
-                        "exc_text",
-                        "stack_info",
-                    ):
-                        log_entry["attributes"][key] = str(value)
+            log_entry = self._build_log_entry(record)
 
             # Queue for async export
             try:

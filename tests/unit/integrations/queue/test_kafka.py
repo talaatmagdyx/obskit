@@ -144,7 +144,7 @@ class TestInstrumentKafkaImportError:
             with __import__("unittest.mock", fromlist=["patch"]).patch(
                 "builtins.__import__",
                 side_effect=lambda name, *a, **kw: (
-                    (_ for _ in ()).throw(ImportError("no kafka"))
+                    (_ for _ in ()).throw(ImportError("no kafka"))  # NOSONAR
                     if name == "kafka"
                     else __import__(name, *a, **kw)
                 ),

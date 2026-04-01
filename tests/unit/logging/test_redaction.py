@@ -165,7 +165,7 @@ class TestNonStringKeyHandling:
     def test_integer_key_with_sensitive_string_sibling(self) -> None:
         """Integer key coexists with a sensitive string key."""
         processor = make_redaction_processor()
-        result = processor(None, "info", {"event": "ok", 1: "num", "password": "s3cr3t"})
+        result = processor(None, "info", {"event": "ok", 1: "num", "password": "s3cr3t"})  # NOSONAR
         assert result[1] == "num"
         assert result["password"] == "[REDACTED]"
 
@@ -179,7 +179,7 @@ class TestListRedaction:
         result = processor(
             None,
             "info",
-            {"event": "ok", "users": [{"password": "s3cr3t", "name": "alice"}]},
+            {"event": "ok", "users": [{"password": "s3cr3t", "name": "alice"}]},  # NOSONAR
         )
         assert result["users"][0]["password"] == "[REDACTED]"
         assert result["users"][0]["name"] == "alice"

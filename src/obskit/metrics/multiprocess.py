@@ -151,6 +151,24 @@ def make_multiprocess_app() -> Any:
     return prometheus_client.make_wsgi_app(registry)
 
 
+def _cleanup_worker_files(mp_dir: str, worker_pid: int) -> None:  # pragma: no cover
+    """Delete stale ``.db`` metric files for *worker_pid* from *mp_dir*.
+
+    prometheus_client names files like ``<metric_type>_<pid>.db``, so we
+    match on the ``_<pid>.db`` suffix.  Errors are silently ignored because
+    files may already be removed by a concurrent cleanup.
+    """
+    if not (mp_dir and os.path.isdir(mp_dir)):  # pragma: no cover
+        return
+    pid_suffix = f"_{worker_pid}.db"
+    for filename in os.listdir(mp_dir):
+        if filename.endswith(pid_suffix):
+            try:
+                os.unlink(os.path.join(mp_dir, filename))
+            except OSError:
+                pass  # Non-critical; file may already be removed
+
+
 def child_exit(server: Any, worker: Any) -> None:  # pragma: no cover
     """Gunicorn ``child_exit`` server hook — cleans up worker metric files.
 
@@ -172,16 +190,8 @@ def child_exit(server: Any, worker: Any) -> None:  # pragma: no cover
 
         # Also delete the worker's metric files so the multiprocess directory
         # does not accumulate stale files over repeated gunicorn reloads
-        # (SIGHUP).  prometheus_client names files like
-        # ``<metric_type>_<pid>.db`` so we match on the pid suffix.
+        # (SIGHUP).
         mp_dir = os.environ.get("PROMETHEUS_MULTIPROC_DIR") or os.environ.get(
             "prometheus_multiproc_dir", ""
         )
-        if mp_dir and os.path.isdir(mp_dir):
-            pid_suffix = f"_{worker.pid}.db"
-            for filename in os.listdir(mp_dir):
-                if filename.endswith(pid_suffix):
-                    try:
-                        os.unlink(os.path.join(mp_dir, filename))
-                    except OSError:
-                        pass  # Non-critical; file may already be removed
+        _cleanup_worker_files(mp_dir, worker.pid)

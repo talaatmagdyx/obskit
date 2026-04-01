@@ -102,6 +102,10 @@ if TYPE_CHECKING:  # pragma: no cover
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+# Default OTLP collector endpoint — defined as a constant to avoid
+# duplicating the literal string across the field definition.
+_DEFAULT_OTLP_ENDPOINT = "http://localhost:4317"
+
 
 class ObskitSettings(BaseSettings):
     """
@@ -232,15 +236,15 @@ class ObskitSettings(BaseSettings):
     )
 
     otlp_endpoint: str = Field(
-        default="http://localhost:4317",
+        default=_DEFAULT_OTLP_ENDPOINT,
         description=(
             "OpenTelemetry Protocol (OTLP) collector endpoint. "
             "This is where traces are sent. Examples: "
             "- Jaeger: http://jaeger:4317 "
             "- Tempo: http://tempo:4317 "
-            "- Local: http://localhost:4317"
+            f"- Local: {_DEFAULT_OTLP_ENDPOINT}"
         ),
-        examples=["http://localhost:4317", "http://jaeger:4317"],
+        examples=[_DEFAULT_OTLP_ENDPOINT, "http://jaeger:4317"],
     )
 
     otlp_insecure: bool = Field(

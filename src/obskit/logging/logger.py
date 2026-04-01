@@ -115,20 +115,14 @@ def sample_log(
     EventDict or None
         The event dictionary if log should be emitted, None to drop.
     """
-    # Always log errors (not sampled)
-    if method_name in ("error", "critical", "exception"):
-        return event_dict
-
     # Use cached sample rate (set at configure_logging() time) to avoid
     # calling get_settings() on every log event in the hot path.
-    sample_rate = _cached_log_sample_rate
-
-    # Apply sampling for other log levels
-    # nosec B311 - random is used for log sampling, not security
-    if (
-        sample_rate < 1.0 and random.random() > sample_rate  # nosec B311  # NOSONAR
-    ):
-        raise structlog.DropEvent()
+    # Errors are never sampled — only other log levels are subject to rate limiting.
+    if method_name not in ("error", "critical", "exception"):
+        sample_rate = _cached_log_sample_rate
+        # nosec B311 - random is used for log sampling, not security
+        if sample_rate < 1.0 and random.random() > sample_rate:  # nosec B311  # NOSONAR
+            raise structlog.DropEvent()
 
     return event_dict
 

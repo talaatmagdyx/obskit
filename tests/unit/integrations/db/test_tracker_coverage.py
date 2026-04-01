@@ -6,7 +6,12 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 import obskit.integrations.db.tracker as tracker_module
-from obskit.integrations.db.tracker import DatabaseTracker, _get_slo_tracker, _get_tracer, track_query
+from obskit.integrations.db.tracker import (
+    DatabaseTracker,
+    _get_slo_tracker,
+    _get_tracer,
+    track_query,
+)
 
 
 class TestGetTracerLazy:

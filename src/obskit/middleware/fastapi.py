@@ -180,11 +180,10 @@ class ObskitMiddleware:
         # ── Run inside observability context ─────────────────────────────────
         async with async_correlation_context(raw_cid):
             try:
-                if self._core.track_tracing:
-                    if ctx.trace_ctx is not None:
-                        with trace_context(headers):
-                            await self.app(scope, receive, observing_send)
-                        return
+                if self._core.track_tracing and ctx.trace_ctx is not None:
+                    with trace_context(headers):
+                        await self.app(scope, receive, observing_send)
+                    return
 
                 await self.app(scope, receive, observing_send)
 

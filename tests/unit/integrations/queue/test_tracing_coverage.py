@@ -5,7 +5,11 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from obskit.integrations.queue.tracing import MessageTracer, TracedMessagePublisher, traced_message_handler
+from obskit.integrations.queue.tracing import (
+    MessageTracer,
+    TracedMessagePublisher,
+    traced_message_handler,
+)
 
 
 class TestTracePubishAttributes:

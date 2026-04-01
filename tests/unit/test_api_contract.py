@@ -7,6 +7,7 @@ Update the expected values intentionally, not accidentally.
 from __future__ import annotations
 
 import re
+from collections.abc import Generator
 
 import pytest
 
@@ -15,10 +16,10 @@ from obskit.core.observability import reset_observability
 
 
 @pytest.fixture(autouse=True)
-def _clean() -> None:
+def _clean() -> Generator[None, None, None]:
     reset_settings()
     reset_observability()
-    yield  # type: ignore[misc]
+    yield
     reset_settings()
     reset_observability()
 

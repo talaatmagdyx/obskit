@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from collections.abc import Generator
+
 import pytest
 
 from obskit.core.observability import (
@@ -14,10 +16,10 @@ from obskit.core.observability_config import ObservabilityConfig, ServiceConfig
 
 
 @pytest.fixture(autouse=True)
-def _clean_global() -> None:
+def _clean_global() -> Generator[None, None, None]:
     """Ensure the global singleton is reset after every test."""
     reset_observability()
-    yield  # type: ignore[misc]
+    yield
     reset_observability()
 
 

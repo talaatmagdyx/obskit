@@ -16,16 +16,25 @@ from obskit.logging import get_logger
 # Rule: anything that touches pydantic-settings, prometheus-client, or
 # opentelemetry lives here so that `import obskit` and
 # `from obskit.logging import get_logger` remain lightweight.
+
+# Module path constants — defined once to avoid repeated literal strings.
+_MOD_CONFIG = "obskit.config"
+_MOD_OBSERVABILITY = "obskit.core.observability"
+_MOD_REGISTRY = "obskit.metrics.registry"
+_MOD_TRACER = "obskit.tracing.tracer"
+_MOD_INSTRUMENT = "obskit.middleware.instrument"
+_MOD_MULTIPROCESS = "obskit.metrics.multiprocess"
+
 _LAZY_IMPORTS: dict[str, tuple[str, str]] = {
     # ── Configuration (pydantic-settings) ────────────────────────────────
-    "ObskitSettings": ("obskit.config", "ObskitSettings"),
-    "configure": ("obskit.config", "configure"),
-    "configure_observability": ("obskit.config", "configure_observability"),
-    "get_settings": ("obskit.config", "get_settings"),
+    "ObskitSettings": (_MOD_CONFIG, "ObskitSettings"),
+    "configure": (_MOD_CONFIG, "configure"),
+    "configure_observability": (_MOD_CONFIG, "configure_observability"),
+    "get_settings": (_MOD_CONFIG, "get_settings"),
     # ── Observability facade ─────────────────────────────────────────────
-    "Observability": ("obskit.core.observability", "Observability"),
-    "get_observability": ("obskit.core.observability", "get_observability"),
-    "reset_observability": ("obskit.core.observability", "reset_observability"),
+    "Observability": (_MOD_OBSERVABILITY, "Observability"),
+    "get_observability": (_MOD_OBSERVABILITY, "get_observability"),
+    "reset_observability": (_MOD_OBSERVABILITY, "reset_observability"),
     "ObservabilityConfig": ("obskit.core.observability_config", "ObservabilityConfig"),
     # ── Logging helpers (structlog — already a hard dep, but deferred to
     #    keep this __init__ minimal) ────────────────────────────────────
@@ -36,33 +45,33 @@ _LAZY_IMPORTS: dict[str, tuple[str, str]] = {
     # ── Metrics (prometheus-client) ──────────────────────────────────────
     "REDMetrics": ("obskit.metrics.red", "REDMetrics"),
     "get_red_metrics": ("obskit.metrics.red", "get_red_metrics"),
-    "generate_latest": ("obskit.metrics.registry", "generate_latest"),
-    "get_registry": ("obskit.metrics.registry", "get_registry"),
-    "start_http_server": ("obskit.metrics.registry", "start_http_server"),
-    "stop_http_server": ("obskit.metrics.registry", "stop_http_server"),
+    "generate_latest": (_MOD_REGISTRY, "generate_latest"),
+    "get_registry": (_MOD_REGISTRY, "get_registry"),
+    "start_http_server": (_MOD_REGISTRY, "start_http_server"),
+    "stop_http_server": (_MOD_REGISTRY, "stop_http_server"),
     # ── Tracing (opentelemetry) ──────────────────────────────────────────
-    "async_trace_span": ("obskit.tracing.tracer", "async_trace_span"),
-    "configure_tracing": ("obskit.tracing.tracer", "configure_tracing"),
-    "get_tracer": ("obskit.tracing.tracer", "get_tracer"),
-    "inject_trace_context": ("obskit.tracing.tracer", "inject_trace_context"),
-    "setup_signal_handlers": ("obskit.tracing.tracer", "setup_signal_handlers"),
-    "shutdown_tracing": ("obskit.tracing.tracer", "shutdown_tracing"),
-    "trace_operation": ("obskit.tracing.tracer", "trace_operation"),
-    "trace_span": ("obskit.tracing.tracer", "trace_span"),
-    "tracing_lifespan": ("obskit.tracing.tracer", "tracing_lifespan"),
+    "async_trace_span": (_MOD_TRACER, "async_trace_span"),
+    "configure_tracing": (_MOD_TRACER, "configure_tracing"),
+    "get_tracer": (_MOD_TRACER, "get_tracer"),
+    "inject_trace_context": (_MOD_TRACER, "inject_trace_context"),
+    "setup_signal_handlers": (_MOD_TRACER, "setup_signal_handlers"),
+    "shutdown_tracing": (_MOD_TRACER, "shutdown_tracing"),
+    "trace_operation": (_MOD_TRACER, "trace_operation"),
+    "trace_span": (_MOD_TRACER, "trace_span"),
+    "tracing_lifespan": (_MOD_TRACER, "tracing_lifespan"),
     # ── Health (optional extra) ──────────────────────────────────────────
     "HealthCheck": ("obskit.health", "HealthCheck"),
     "HealthChecker": ("obskit.health", "HealthChecker"),
     "build_health_router": ("obskit.health.router", "build_health_router"),
     # ── Framework instrumentation ────────────────────────────────────────
-    "instrument_fastapi": ("obskit.middleware.instrument", "instrument_fastapi"),
-    "instrument_flask": ("obskit.middleware.instrument", "instrument_flask"),
-    "instrument_django": ("obskit.middleware.instrument", "instrument_django"),
+    "instrument_fastapi": (_MOD_INSTRUMENT, "instrument_fastapi"),
+    "instrument_flask": (_MOD_INSTRUMENT, "instrument_flask"),
+    "instrument_django": (_MOD_INSTRUMENT, "instrument_django"),
     # ── Multiprocess metrics ─────────────────────────────────────────────
-    "child_exit": ("obskit.metrics.multiprocess", "child_exit"),
-    "is_multiprocess_mode": ("obskit.metrics.multiprocess", "is_multiprocess_mode"),
-    "make_multiprocess_app": ("obskit.metrics.multiprocess", "make_multiprocess_app"),
-    "setup_multiprocess_registry": ("obskit.metrics.multiprocess", "setup_multiprocess_registry"),
+    "child_exit": (_MOD_MULTIPROCESS, "child_exit"),
+    "is_multiprocess_mode": (_MOD_MULTIPROCESS, "is_multiprocess_mode"),
+    "make_multiprocess_app": (_MOD_MULTIPROCESS, "make_multiprocess_app"),
+    "setup_multiprocess_registry": (_MOD_MULTIPROCESS, "setup_multiprocess_registry"),
 }
 
 

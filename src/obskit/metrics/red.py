@@ -185,7 +185,7 @@ _logger = _logging.getLogger(__name__)
 # Compiled once at module load — reused on every hot-path call to observe_request().
 # Validating labels against a freshly compiled regex per request would add ~200 ns
 # of overhead at millions of requests/second and waste CPU in the re module cache.
-_VALID_OPERATION_RE = _re.compile(r"^[a-zA-Z0-9_]+$")
+_VALID_OPERATION_RE = _re.compile(r"^\w+$", _re.ASCII)
 
 from obskit.metrics.registry import get_registry
 from obskit.metrics.types import Counter, Histogram, Summary

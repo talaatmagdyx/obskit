@@ -38,10 +38,10 @@ class TestTracingConfig:
         assert cfg.enabled is True
         assert cfg.otlp_endpoint == "http://localhost:4317"
         assert cfg.otlp_insecure is False
-        assert cfg.sample_rate == 1.0
+        assert cfg.sample_rate == pytest.approx(1.0)
         assert cfg.export_queue_size == 2048
         assert cfg.export_batch_size == 512
-        assert cfg.export_timeout == 30.0
+        assert cfg.export_timeout == pytest.approx(30.0)
 
 
 class TestMetricsConfig:
@@ -52,7 +52,7 @@ class TestMetricsConfig:
         assert cfg.path == "/metrics"
         assert cfg.use_histogram is True
         assert cfg.use_summary is False
-        assert cfg.sample_rate == 1.0
+        assert cfg.sample_rate == pytest.approx(1.0)
 
 
 class TestLoggingConfig:
@@ -61,13 +61,13 @@ class TestLoggingConfig:
         assert cfg.level == "INFO"
         assert cfg.format == "json"
         assert cfg.include_timestamp is True
-        assert cfg.sample_rate == 1.0
+        assert cfg.sample_rate == pytest.approx(1.0)
 
 
 class TestHealthConfig:
     def test_defaults(self) -> None:
         cfg = HealthConfig()
-        assert cfg.check_timeout == 5.0
+        assert cfg.check_timeout == pytest.approx(5.0)
 
 
 class TestObservabilityConfig:
@@ -77,7 +77,7 @@ class TestObservabilityConfig:
         assert cfg.tracing.enabled is True
         assert cfg.metrics.enabled is True
         assert cfg.logging.level == "INFO"
-        assert cfg.health.check_timeout == 5.0
+        assert cfg.health.check_timeout == pytest.approx(5.0)
 
     def test_frozen(self) -> None:
         cfg = ObservabilityConfig()
@@ -117,24 +117,24 @@ class TestObservabilityConfig:
         assert cfg.tracing.enabled is False
         assert cfg.tracing.otlp_endpoint == "http://tempo:4317"
         assert cfg.tracing.otlp_insecure is True
-        assert cfg.tracing.sample_rate == 0.5
+        assert cfg.tracing.sample_rate == pytest.approx(0.5)
         assert cfg.tracing.export_queue_size == 1024
         assert cfg.tracing.export_batch_size == 256
-        assert cfg.tracing.export_timeout == 10.0
+        assert cfg.tracing.export_timeout == pytest.approx(10.0)
 
         assert cfg.metrics.enabled is True
         assert cfg.metrics.port == 8080
         assert cfg.metrics.path == "/prom"
         assert cfg.metrics.use_histogram is False
         assert cfg.metrics.use_summary is True
-        assert cfg.metrics.sample_rate == 0.9
+        assert cfg.metrics.sample_rate == pytest.approx(0.9)
 
         assert cfg.logging.level == "DEBUG"
         assert cfg.logging.format == "console"
         assert cfg.logging.include_timestamp is False
-        assert cfg.logging.sample_rate == 0.5
+        assert cfg.logging.sample_rate == pytest.approx(0.5)
 
-        assert cfg.health.check_timeout == 10.0
+        assert cfg.health.check_timeout == pytest.approx(10.0)
 
     def test_from_kwargs(self) -> None:
         cfg = ObservabilityConfig.from_kwargs(
