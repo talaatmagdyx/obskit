@@ -341,10 +341,8 @@ class DependencyHealthAggregator:
         """
         # Run all checks in parallel
         names = list(self._dependencies)
-        results_list = await asyncio.gather(
-            *(self.check(name, use_cache) for name in names)
-        )
-        results = dict(zip(names, results_list))
+        results_list = await asyncio.gather(*(self.check(name, use_cache) for name in names))
+        results = dict(zip(names, results_list, strict=True))
 
         # Aggregate results
         healthy_count = sum(1 for h in results.values() if h.healthy)
@@ -465,7 +463,7 @@ async def check_redis(host: str, port: int = 6379) -> dict[str, Any]:
 
         client = redis_async.Redis(host=host, port=port, socket_timeout=5)
         result = await client.ping()
-        await client.aclose()
+        await client.aclose()  # type: ignore[attr-defined]
         return {"healthy": result, "details": {"connected": True}}
     except Exception as e:
         return {"healthy": False, "error": str(e)}
