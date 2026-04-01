@@ -275,10 +275,11 @@ class DependencyHealthAggregator:
 
     async def _invoke_check(self, check_func: HealthCheckFunc, timeout: float) -> Any:
         """Run *check_func* (sync or async) with *timeout* and return its result."""
-        if asyncio.iscoroutinefunction(check_func):
-            return await asyncio.wait_for(check_func(), timeout=timeout)
-        loop = asyncio.get_running_loop()
-        return await asyncio.wait_for(loop.run_in_executor(None, check_func), timeout=timeout)
+        async with asyncio.timeout(timeout):
+            if asyncio.iscoroutinefunction(check_func):
+                return await check_func()
+            loop = asyncio.get_running_loop()
+            return await loop.run_in_executor(None, check_func)
 
     async def _run_check(self, name: str) -> DependencyHealth:
         """Execute the health check function (called with per-dependency lock held)."""

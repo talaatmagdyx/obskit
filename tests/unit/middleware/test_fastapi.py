@@ -666,7 +666,7 @@ class TestObskitMiddleware:
         async def fake_send(msg):  # NOSONAR
             pass  # intentional no-op — ASGI send stub
 
-        async def fake_receive():
+        async def fake_receive():  # NOSONAR — must be async for ASGI protocol
             return {"type": "http.request", "body": b""}
 
         async def run():
@@ -708,10 +708,10 @@ class TestObskitMiddleware:
 
         mw.app = headers_only_app
 
-        async def fake_send(msg):
-            pass
+        async def fake_send(msg):  # NOSONAR
+            pass  # intentional no-op — ASGI send stub
 
-        async def fake_receive():
+        async def fake_receive():  # NOSONAR — must be async for ASGI protocol
             return {"type": "http.request", "body": b""}
 
         async def run():
@@ -749,10 +749,10 @@ class TestObskitMiddleware:
 
         mw.app = headers_only_app
 
-        async def fake_send(msg):
-            pass
+        async def fake_send(msg):  # NOSONAR
+            pass  # intentional no-op — ASGI send stub
 
-        async def fake_receive():
+        async def fake_receive():  # NOSONAR — must be async for ASGI protocol
             return {"type": "http.request", "body": b""}
 
         async def run():
@@ -794,7 +794,7 @@ class TestObskitMiddleware:
         async def fake_send(msg):  # NOSONAR
             pass  # intentional no-op — ASGI send stub
 
-        async def fake_receive():
+        async def fake_receive():  # NOSONAR — must be async for ASGI protocol
             return {"type": "websocket.connect"}
 
         async def run():
@@ -835,7 +835,7 @@ class TestObskitMiddleware:
         async def fake_send(msg):  # NOSONAR
             pass  # intentional no-op — ASGI send stub
 
-        async def fake_receive():
+        async def fake_receive():  # NOSONAR — must be async for ASGI protocol
             return {"type": "http.request", "body": b""}
 
         async def run():
