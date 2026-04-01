@@ -167,12 +167,13 @@ class LRUCache:
                     return True
 
             # Key not present (or was just expired) — check capacity.
+            # The LRU cache is always created with max_size equal to the
+            # cardinality limit, so these two values are always the same.
+            # Return False (use fallback) when at limit; never evict here
+            # because eviction would allow a previously-seen label value to
+            # be treated as new, breaking cardinality accounting.
             if len(self._cache) >= max_size:
                 return False  # at limit; caller must use fallback
-
-            # Evict oldest entry if the cache's own max_size would be exceeded.
-            if len(self._cache) >= self.max_size:
-                self._cache.popitem(last=False)
 
             self._cache[key] = (value, time.monotonic())
             return True

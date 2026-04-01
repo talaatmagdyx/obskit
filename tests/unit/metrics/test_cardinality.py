@@ -167,19 +167,20 @@ class TestLRUCache:
         assert result is True  # re-added after TTL expiry
         assert cache.contains("k")
 
-    def test_check_and_add_evicts_lru_when_own_max_size_exceeded(self):
-        """check_and_add evicts LRU entry when cache's own max_size would be exceeded (line 175)."""
-        # Create cache with max_size=2 but call check_and_add with max_size=10
-        # so the capacity guard at line 170 is bypassed while line 174 fires.
+    def test_check_and_add_max_size_param_is_authoritative(self):
+        """check_and_add uses the max_size parameter (not self.max_size) for the capacity guard.
+
+        When max_size=10 is passed and len==2, the capacity guard is not triggered
+        and the item is added — even though self.max_size==2.  No eviction occurs.
+        """
         cache = LRUCache(max_size=2)
         cache.put("a", 1)
         cache.put("b", 2)
-        # Cache is full (own max_size=2); pass max_size=10 so line 170 doesn't
-        # return False — forces the eviction path at line 175.
+        # max_size=10 → len(2) < 10 → item added; no eviction
         result = cache.check_and_add("c", 3, max_size=10)
         assert result is True
-        assert len(cache) == 2  # "a" was evicted, "b" and "c" remain
-        assert not cache.contains("a")
+        assert len(cache) == 3
+        assert cache.contains("a")
         assert cache.contains("b")
         assert cache.contains("c")
 

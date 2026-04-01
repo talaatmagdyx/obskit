@@ -153,6 +153,56 @@ class TestDefaultSensitiveFields:
             assert expected in DEFAULT_SENSITIVE_FIELDS
 
 
+class TestNonStringKeyHandling:
+    """Non-string dict keys pass through without TypeError (Fix #8)."""
+
+    def test_integer_key_passes_through(self) -> None:
+        """Integer key does not raise TypeError and value is preserved."""
+        processor = make_redaction_processor()
+        result = processor(None, "info", {"event": "ok", 42: "value"})
+        assert result[42] == "value"
+
+    def test_integer_key_with_sensitive_string_sibling(self) -> None:
+        """Integer key coexists with a sensitive string key."""
+        processor = make_redaction_processor()
+        result = processor(None, "info", {"event": "ok", 1: "num", "password": "s3cr3t"})
+        assert result[1] == "num"
+        assert result["password"] == "[REDACTED]"
+
+
+class TestListRedaction:
+    """List values containing dicts are recursed into (Fix #9)."""
+
+    def test_list_with_sensitive_dict_items_redacted(self) -> None:
+        """Dicts inside a list have their sensitive keys redacted."""
+        processor = make_redaction_processor()
+        result = processor(
+            None,
+            "info",
+            {"event": "ok", "users": [{"password": "s3cr3t", "name": "alice"}]},
+        )
+        assert result["users"][0]["password"] == "[REDACTED]"
+        assert result["users"][0]["name"] == "alice"
+
+    def test_list_with_non_dict_items_unchanged(self) -> None:
+        """Non-dict items inside a list are not modified."""
+        processor = make_redaction_processor()
+        result = processor(None, "info", {"event": "ok", "ids": [1, "two", None]})
+        assert result["ids"] == [1, "two", None]
+
+    def test_list_mixed_dict_and_primitive(self) -> None:
+        """List with both dicts and primitives: dicts redacted, primitives pass through."""
+        processor = make_redaction_processor()
+        result = processor(
+            None,
+            "info",
+            {"event": "ok", "items": [{"token": "abc"}, "plain", {"name": "x"}]},
+        )
+        assert result["items"][0]["token"] == "[REDACTED]"
+        assert result["items"][1] == "plain"
+        assert result["items"][2]["name"] == "x"
+
+
 class TestCircularReferenceHandling:
     """Redaction processor handles circular references safely."""
 

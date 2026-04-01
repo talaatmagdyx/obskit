@@ -193,14 +193,20 @@ class ObskitMiddleware:
                 raise
 
             finally:
-                # Catch early client disconnects (streaming responses where
-                # client closes before last body chunk).
-                if not ctx.metrics_recorded and status_code > 0:
-                    sc = status_code
-                    effective_op = operation
-                    if sc == 404 and not scope.get("route"):
-                        effective_op = "unmatched_route"
-                    self._core.end_request(ctx, sc, operation_override=effective_op)
+                if not ctx.metrics_recorded:
+                    if status_code > 0:
+                        # Catch early client disconnects (streaming responses
+                        # where client closes before last body chunk).
+                        sc = status_code
+                        effective_op = operation
+                        if sc == 404 and not scope.get("route"):
+                            effective_op = "unmatched_route"
+                        self._core.end_request(ctx, sc, operation_override=effective_op)
+                    elif scope["type"] == "websocket":
+                        # WebSocket connections never emit http.response.start
+                        # so status_code stays 0 — record with 101 (Switching
+                        # Protocols) so the request shows up in RED metrics.
+                        self._core.end_request(ctx, 101, operation_override=operation)
 
     @staticmethod
     def _get_client_ip(scope: Scope) -> str | None:

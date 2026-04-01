@@ -773,3 +773,84 @@ class TestObskitMiddleware:
             asyncio.get_event_loop().run_until_complete(run())
         # track_logging=True so finally block called logger.info("request_completed", ...)
         mock_logger.info.assert_called()
+
+    @patch("obskit.middleware.core.get_red_metrics")
+    def test_websocket_metrics_recorded_with_101(self, mock_get_red):
+        """finally block: websocket scope with status_code==0 → end_request called with 101."""
+        import asyncio
+
+        mock_red = MagicMock()
+        mock_get_red.return_value = mock_red
+
+        app = FastAPI()
+        mw = ObskitMiddleware(app, track_logging=False, track_tracing=False)
+
+        async def ws_app(scope, receive, send):
+            # WebSocket apps never call http.response.start — status_code stays 0
+            pass
+
+        mw.app = ws_app
+
+        async def fake_send(msg):
+            pass
+
+        async def fake_receive():
+            return {"type": "websocket.connect"}
+
+        async def run():
+            await mw(
+                {
+                    "type": "websocket",
+                    "path": "/ws",
+                    "headers": [],
+                    "query_string": b"",
+                },
+                fake_receive,
+                fake_send,
+            )
+
+        asyncio.get_event_loop().run_until_complete(run())
+        # end_request should be called with status 101 for WebSocket
+        mock_red.observe_request.assert_called_once()
+        call_kwargs = mock_red.observe_request.call_args.kwargs
+        assert call_kwargs["status"] == "success"
+
+    @patch("obskit.middleware.core.get_red_metrics")
+    def test_http_no_send_status_zero_no_metrics(self, mock_get_red):
+        """finally block: http scope, status_code==0, elif websocket is False → no metrics recorded."""
+        import asyncio
+
+        mock_red = MagicMock()
+        mock_get_red.return_value = mock_red
+
+        app = FastAPI()
+        mw = ObskitMiddleware(app, track_logging=False, track_tracing=False)
+
+        async def silent_http_app(scope, receive, send):
+            # HTTP app that never calls send — status_code stays 0
+            pass
+
+        mw.app = silent_http_app
+
+        async def fake_send(msg):
+            pass
+
+        async def fake_receive():
+            return {"type": "http.request", "body": b""}
+
+        async def run():
+            await mw(
+                {
+                    "type": "http",
+                    "path": "/silent",
+                    "method": "GET",
+                    "headers": [],
+                    "query_string": b"",
+                },
+                fake_receive,
+                fake_send,
+            )
+
+        asyncio.get_event_loop().run_until_complete(run())
+        # status_code==0 and not websocket → neither branch fires → no metrics
+        mock_red.observe_request.assert_not_called()

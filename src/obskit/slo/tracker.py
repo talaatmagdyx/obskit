@@ -178,10 +178,11 @@ class SLOTracker:
                 _total = self._total_counts[name]
                 _success = self._success_counts[name]
             else:
-                # Snapshot the deque *reference* only — O(1) under lock.
-                # The list copy happens outside the lock so writers are not blocked
-                # during an O(n) allocation.
-                buf = self._measurements[name]
+                # Copy the deque inside the lock to prevent RuntimeError from
+                # concurrent record_measurement() modifying the deque during
+                # list(). CPython's deque C-iterator raises RuntimeError if the
+                # deque is mutated mid-iteration, even under the GIL.
+                measurements = list(self._measurements[name])
 
         window_end = datetime.now(UTC)
         window_start = window_end - timedelta(seconds=target.window_seconds)
@@ -196,8 +197,7 @@ class SLOTracker:
             else:  # ERROR_RATE
                 current_value = (_total - _success) / _total
         else:
-            # LATENCY / THROUGHPUT: still need the full measurement list.
-            measurements = list(buf)
+            # measurements already copied under lock above.
             measurement_count = len(measurements)
             if not measurements:
                 return SLOStatus(
