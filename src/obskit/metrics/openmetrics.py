@@ -124,10 +124,11 @@ def generate_openmetrics(registry: Any | None = None) -> bytes:
 
             output_lines.append(f"{sample.name}{labels} {value}")
 
-    # OpenMetrics requires EOF marker
+    # OpenMetrics requires EOF marker followed by a trailing newline
+    # (spec section 4.1.2 — "\n".join() omits the final newline).
     output_lines.append("# EOF")
 
-    return "\n".join(output_lines).encode("utf-8")
+    return ("\n".join(output_lines) + "\n").encode("utf-8")
 
 
 def _get_openmetrics_type(metric: Any) -> str:
@@ -207,7 +208,9 @@ class OpenMetricsExemplar:
 
     def to_string(self) -> str:
         """Convert exemplar to OpenMetrics format string."""
-        label_str = ",".join(f'{k}="{v}"' for k, v in sorted(self.labels.items()))
+        # Use _format_labels() to escape backslash, double-quote, and newline
+        # characters — same escaping as regular metric labels.
+        label_str = _format_labels(self.labels).strip("{}")
         return f" # {{{label_str}}} {self.value} {self.timestamp}"
 
 
@@ -332,7 +335,7 @@ class OpenMetricsRegistry:
                 output_lines.append(line)
 
         output_lines.append("# EOF")
-        return "\n".join(output_lines).encode("utf-8")
+        return ("\n".join(output_lines) + "\n").encode("utf-8")
 
 
 def add_exemplar(

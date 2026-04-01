@@ -229,11 +229,21 @@ class SampledLogger:
 
         should_log, reason = self._should_log(level, event, duration, important, **kwargs)
 
+        # Single lock acquisition: increment per-level counter AND flush to
+        # the global stats dict atomically.  Two separate acquisitions left a
+        # window where get_sampling_stats() could observe a partially-updated
+        # state (local dict incremented but global dict not yet updated), and
+        # also risked RuntimeError if a new level key was inserted while
+        # get_stats() was iterating the dict without a lock.
         with _sampling_stats_lock:
             if should_log:
                 self._sampled_count[level] += 1
             else:
                 self._dropped_count[level] += 1
+            sampled = sum(self._sampled_count.values())
+            dropped = sum(self._dropped_count.values())
+            _sampling_stats[self.name]["sampled"] = sampled
+            _sampling_stats[self.name]["dropped"] = dropped
 
         if should_log:
             # Add sampling metadata
@@ -246,13 +256,6 @@ class SampledLogger:
         self._log_count += 1
         if self._log_count % 1000 == 0:
             self._cleanup_recent()
-
-        # Update global stats under lock to prevent torn reads in get_sampling_stats()
-        with _sampling_stats_lock:
-            sampled = sum(self._sampled_count.values())
-            dropped = sum(self._dropped_count.values())
-            _sampling_stats[self.name]["sampled"] = sampled
-            _sampling_stats[self.name]["dropped"] = dropped
 
     def debug(self, event: str, **kwargs):
         """Log debug message."""

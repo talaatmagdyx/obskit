@@ -187,7 +187,7 @@ class TestGenerateOpenMetrics:
     def test_ends_with_eof(self):
         registry = CollectorRegistry()
         result = generate_openmetrics(registry)
-        assert result.endswith(b"# EOF")
+        assert result.endswith(b"# EOF\n")
 
     def test_contains_gauge_metric(self):
         registry = CollectorRegistry()
@@ -224,7 +224,7 @@ class TestGenerateOpenMetrics:
         # Should not raise
         result = generate_openmetrics()
         assert isinstance(result, bytes)
-        assert result.endswith(b"# EOF")
+        assert result.endswith(b"# EOF\n")
 
     def test_contains_histogram_bucket_sample(self):
         """Line 130: histogram _bucket samples hit the elif branch."""
@@ -356,7 +356,7 @@ class TestOpenMetricsRegistry:
         prom_registry = CollectorRegistry()
         registry = OpenMetricsRegistry(prometheus_registry=prom_registry)
         result = registry.generate()
-        assert result.endswith(b"# EOF")
+        assert result.endswith(b"# EOF\n")
 
     def test_generate_includes_info_metrics(self):
         prom_registry = CollectorRegistry()

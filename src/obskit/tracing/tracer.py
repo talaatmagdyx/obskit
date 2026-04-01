@@ -90,7 +90,7 @@ def configure_tracing(
         # Development — print every span to stdout
         configure_tracing(debug=True)
     """
-    global _configured, _tracer
+    global _configured, _tracer, _batch_span_processor
 
     if not OPENTELEMETRY_AVAILABLE:  # pragma: no cover
         return False

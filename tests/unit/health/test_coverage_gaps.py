@@ -200,15 +200,15 @@ class TestCheckPostgres:
 class TestCheckRedis:
     @pytest.mark.asyncio
     async def test_check_redis_success(self):
-        """Lines 440-446: Success path with mocked aioredis."""
-        mock_redis = AsyncMock()
-        mock_redis.ping = AsyncMock(return_value=True)
-        mock_redis.close = AsyncMock()
+        """Success path with mocked redis.asyncio."""
+        mock_client = AsyncMock()
+        mock_client.ping = AsyncMock(return_value=True)
+        mock_client.aclose = AsyncMock()
 
-        mock_aioredis = MagicMock()
-        mock_aioredis.from_url = AsyncMock(return_value=mock_redis)
+        mock_redis_async = MagicMock()
+        mock_redis_async.Redis = MagicMock(return_value=mock_client)
 
-        with patch.dict(sys.modules, {"aioredis": mock_aioredis}):
+        with patch.dict(sys.modules, {"redis.asyncio": mock_redis_async}):
             result = await check_redis("localhost", 6379)
 
         assert result["healthy"] is True
@@ -216,11 +216,15 @@ class TestCheckRedis:
 
     @pytest.mark.asyncio
     async def test_check_redis_failure(self):
-        """Lines 447-448: Exception path."""
-        mock_aioredis = MagicMock()
-        mock_aioredis.from_url = AsyncMock(side_effect=Exception("Redis failed"))
+        """Exception path."""
+        mock_client = AsyncMock()
+        mock_client.ping = AsyncMock(side_effect=Exception("Redis failed"))
+        mock_client.aclose = AsyncMock()
 
-        with patch.dict(sys.modules, {"aioredis": mock_aioredis}):
+        mock_redis_async = MagicMock()
+        mock_redis_async.Redis = MagicMock(return_value=mock_client)
+
+        with patch.dict(sys.modules, {"redis.asyncio": mock_redis_async}):
             result = await check_redis("localhost")
 
         assert result["healthy"] is False
