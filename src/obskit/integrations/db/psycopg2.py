@@ -65,7 +65,7 @@ def instrument_psycopg2_connection(
     -------
     The instrumented connection.
     """
-    return Psycopg2Instrumentor().instrument_connection(  # type: ignore[no-untyped-call]
+    return Psycopg2Instrumentor().instrument_connection(
         connection,
         tracer_provider=tracer_provider,
     )
