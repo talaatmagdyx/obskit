@@ -1,6 +1,6 @@
 # Configuration Reference
 
-obskit v2.0.0 uses **Pydantic Settings** (`pydantic-settings`) for all configuration. Every setting can be supplied via environment variables, a `.env` file, or programmatic Python calls. Configuration is centralised in `ObskitSettings` and propagated automatically to every package — you configure once, and logging, metrics, tracing, health checks, and resilience all pick it up.
+obskit v2.0.0 uses **Pydantic Settings** (`pydantic-settings`) for all configuration. Every setting can be supplied via environment variables, a `.env` file, or programmatic Python calls. Configuration is centralised in `ObskitSettings` and propagated automatically to every package — you configure once, and logging, metrics, tracing, and health checks all pick it up.
 
 ---
 
@@ -79,7 +79,7 @@ from obskit.config import ObskitSettings, configure, get_settings, reset_setting
 | `log_format` | `str` | `"json"` | `OBSKIT_LOG_FORMAT` | `json` for production, `console` for development |
 | `log_include_timestamp` | `bool` | `True` | `OBSKIT_LOG_INCLUDE_TIMESTAMP` | Disable if your log aggregator stamps entries |
 | `log_sample_rate` | `float` | `1.0` | `OBSKIT_LOG_SAMPLE_RATE` | Fraction of log events to emit |
-| `logging_backend` | `str` | `"structlog"` | `OBSKIT_LOGGING_BACKEND` | `structlog` / `loguru` / `auto` |
+| `logging_backend` | `str` | `"structlog"` | `OBSKIT_LOGGING_BACKEND` | `structlog` / `auto` |
 
 ---
 
@@ -88,36 +88,6 @@ from obskit.config import ObskitSettings, configure, get_settings, reset_setting
 | Field | Type | Default | Env Var | Description |
 |---|---|---|---|---|
 | `health_check_timeout` | `float` | `5.0` | `OBSKIT_HEALTH_CHECK_TIMEOUT` | Per-check timeout in seconds |
-
----
-
-### Circuit Breaker
-
-| Field | Type | Default | Env Var | Description |
-|---|---|---|---|---|
-| `circuit_breaker_failure_threshold` | `int` | `5` | `OBSKIT_CIRCUIT_BREAKER_FAILURE_THRESHOLD` | Consecutive failures before circuit opens |
-| `circuit_breaker_recovery_timeout` | `float` | `30.0` | `OBSKIT_CIRCUIT_BREAKER_RECOVERY_TIMEOUT` | Seconds to wait before half-open probe |
-| `circuit_breaker_half_open_requests` | `int` | `3` | `OBSKIT_CIRCUIT_BREAKER_HALF_OPEN_REQUESTS` | Test requests allowed in half-open state |
-
----
-
-### Retry
-
-| Field | Type | Default | Env Var | Description |
-|---|---|---|---|---|
-| `retry_max_attempts` | `int` | `3` | `OBSKIT_RETRY_MAX_ATTEMPTS` | Total attempts including initial try |
-| `retry_base_delay` | `float` | `1.0` | `OBSKIT_RETRY_BASE_DELAY` | Base delay in seconds (exponential backoff) |
-| `retry_max_delay` | `float` | `60.0` | `OBSKIT_RETRY_MAX_DELAY` | Caps the exponential growth |
-| `retry_exponential_base` | `float` | `2.0` | `OBSKIT_RETRY_EXPONENTIAL_BASE` | Multiplier per attempt; `2.0` → 1 s, 2 s, 4 s… |
-
----
-
-### Rate Limiting
-
-| Field | Type | Default | Env Var | Description |
-|---|---|---|---|---|
-| `rate_limit_requests` | `int` | `100` | `OBSKIT_RATE_LIMIT_REQUESTS` | Requests allowed per window |
-| `rate_limit_window_seconds` | `float` | `60.0` | `OBSKIT_RATE_LIMIT_WINDOW_SECONDS` | Window duration in seconds |
 
 ---
 
@@ -353,15 +323,13 @@ Split configuration into a **ConfigMap** (non-sensitive) and a **Secret** (sensi
 trace_sample_rate: float = Field(default=1.0, ge=0.0, le=1.0)
 metrics_port: int = Field(default=9090, ge=1, le=65535)
 health_check_timeout: float = Field(default=5.0, ge=0.1)
-circuit_breaker_failure_threshold: int = Field(default=5, ge=1)
-retry_exponential_base: float = Field(default=2.0, ge=1.0)
 async_metric_queue_size: int = Field(default=10000, ge=100, le=1_000_000)
 
 # Enum validation
 log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]
 log_format: Literal["json", "console"]
-logging_backend: Literal["structlog", "loguru", "auto"]
-metrics_method: MetricsMethod  # Enum: red / golden / use / all
+logging_backend: Literal["structlog", "auto"]
+metrics_method: MetricsMethod  # Enum: red
 ```
 
 Pydantic raises `ValidationError` at startup if any value is out of range:
@@ -407,11 +375,6 @@ configure(
 
     # Health
     health_check_timeout=5.0,
-
-    # Resilience
-    circuit_breaker_failure_threshold=5,
-    circuit_breaker_recovery_timeout=30.0,
-    retry_max_attempts=3,
 )
 ```
 
@@ -442,9 +405,8 @@ flowchart TD
     OBS --> LOG["obskit.logging\nStructuredLogger"]
     OBS --> MET["obskit[prometheus]\nPrometheusMetrics"]
     OBS --> TRC["obskit[otlp]\nOTLPTracer"]
-    OBS --> HLT["obskit.health\nHealthChecker"]
-    OBS --> RES["obskit.resilience\nCircuitBreaker / Retry"]
-    OBS --> SLO["obskit.slo\nSLOTracker"]
+    OBS --> HLT["obskit[health]\nHealthChecker"]
+    OBS --> SLO["obskit[slo]\nSLOTracker"]
     OBS --> MW["obskit[fastapi|flask|django]\nMiddleware"]
 ```
 
@@ -512,11 +474,6 @@ def obskit_test_settings():
         metrics_enabled=False,
         log_level="WARNING",
         log_format="console",
-        # Fast circuit breaker for resilience tests
-        circuit_breaker_failure_threshold=2,
-        circuit_breaker_recovery_timeout=1.0,
-        retry_max_attempts=2,
-        retry_base_delay=0.0,
     )
     yield
     reset_settings()

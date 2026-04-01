@@ -41,8 +41,6 @@ threshold is blocked until the regression is resolved.
 | Decorator stack depth 3 | ≤ 150 µs | ≥ 6,000 |
 | `SLOTracker.record_measurement()` | ≤ 5 µs | ≥ 200,000 |
 | `SLOTracker.get_status()` (full window) | ≤ 20 µs | ≥ 50,000 |
-| `CircuitBreaker.__enter__` (CLOSED) | ≤ 2 µs | ≥ 500,000 |
-| `CircuitBreaker.__enter__` (OPEN) | ≤ 1 µs | ≥ 1,000,000 |
 | `logger.info()` | ≤ 20 µs | ≥ 50,000 |
 | Correlation ID set + get | ≤ 1 µs | ≥ 1,000,000 |
 | `REDMetrics.record_request()` | ≤ 5 µs | ≥ 200,000 |
@@ -55,7 +53,6 @@ threshold is blocked until the regression is resolved.
 |---|---|---|---|
 | `metrics_only` | ≤ 50 µs | ≥ 50,000 | 0% |
 | `logging_only` | ≤ 100 µs | ≥ 20,000 | 0% |
-| `circuit_breaker_only` | ≤ 10 µs | ≥ 200,000 | 0% |
 | `slo_only` | ≤ 20 µs | ≥ 100,000 | 0% |
 | `full_stack` | ≤ 200 µs | ≥ 10,000 | 0% |
 | `high_cardinality` (500 unique labels) | ≤ 500 µs | ≥ 1,000 | 0% |
@@ -86,8 +83,6 @@ Use these numbers to reason about overhead at your traffic level.
 | `trace_span()` enter | ~2–5 µs | OTel span creation + context push |
 | `trace_span()` exit (no error) | ~2–4 µs | Span end + attribute flush |
 | `async_trace_span()` enter | ~3–6 µs | Async overhead + OTel span creation |
-| `CircuitBreaker` enter (CLOSED) | ~1–2 µs | RLock + state check |
-| `CircuitBreaker` enter (OPEN) | < 1 µs | Fast-fail, no lock contention |
 | `SLOTracker.record_measurement()` | ~3–5 µs | Lock + list append + eviction check |
 | `CardinalityGuard.safe_label()` | ~1–2 µs (cached) | Dict lookup + counter check |
 | `CardinalityGuard.safe_label()` (new label) | ~5–10 µs | Lock + dict insert |
@@ -167,8 +162,6 @@ due to event loop scheduling, but enables higher concurrency without blocking.
 |---|---|---|---|
 | `trace_span()` (sync) | ~4 µs | Limited by threads | Django, Flask, Celery |
 | `async_trace_span()` (async) | ~6 µs | Unlimited (cooperative) | FastAPI, aiohttp, async workers |
-| `CircuitBreaker` (sync) | ~1–2 µs | Thread-safe (RLock) | Any sync code |
-| `CircuitBreaker` (async) | ~2–3 µs | Async-safe (asyncio.Lock) | Async frameworks |
 
 **Recommendation:** Use async APIs in async code and sync APIs in sync code.
 Mixing (e.g., calling async from sync) requires `asyncio.run()` and has ~50 µs
@@ -186,7 +179,6 @@ Approximate RSS increase per component at steady state (after 10,000 requests):
 | `obskit[prometheus]` | ~5–50 MB | Prometheus registry (scales with cardinality) |
 | `obskit[otlp]` | ~10 MB | OTel SDK + BatchSpanProcessor queue (2,048 spans) |
 | `obskit` health module | ~1 MB | HealthChecker state + check registry |
-| `obskit` resilience module | ~1 MB | CircuitBreaker state machines |
 | `obskit` slo module | ~2–20 MB | SLO measurement windows (scales with window size) |
 | `obskit[kafka]` / `obskit[rabbitmq]` | ~2 MB | Kafka/RabbitMQ consumer metrics |
 

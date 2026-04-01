@@ -8,10 +8,23 @@ must inherit from.
 
 from __future__ import annotations
 
-from abc import abstractmethod
+from abc import ABC, abstractmethod
 from typing import Any
 
-from obskit.interfaces.logging import LoggerInterface
+
+class LoggerInterface(ABC):
+    """Minimal logger interface (inlined from deleted interfaces/)."""
+
+    @abstractmethod
+    def debug(self, event: str, **kwargs: Any) -> None: ...
+    @abstractmethod
+    def info(self, event: str, **kwargs: Any) -> None: ...
+    @abstractmethod
+    def warning(self, event: str, **kwargs: Any) -> None: ...
+    @abstractmethod
+    def error(self, event: str, **kwargs: Any) -> None: ...
+    @abstractmethod
+    def critical(self, event: str, **kwargs: Any) -> None: ...
 
 
 class LoggerAdapter(LoggerInterface):

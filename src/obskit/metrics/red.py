@@ -170,8 +170,11 @@ References
 
 from __future__ import annotations
 
+import hashlib as _hashlib
 import logging as _logging
 import random
+import re as _re
+import threading
 import time
 from collections.abc import Generator
 from contextlib import contextmanager
@@ -179,7 +182,11 @@ from typing import Literal
 
 _logger = _logging.getLogger(__name__)
 
-from obskit.config import get_settings
+# Compiled once at module load — reused on every hot-path call to observe_request().
+# Validating labels against a freshly compiled regex per request would add ~200 ns
+# of overhead at millions of requests/second and waste CPU in the re module cache.
+_VALID_OPERATION_RE = _re.compile(r"^[a-zA-Z0-9_]+$")
+
 from obskit.metrics.registry import get_registry
 from obskit.metrics.types import Counter, Histogram, Summary
 
@@ -355,6 +362,7 @@ class REDMetrics:
             Example: 0.1 = sample 10% of operations.
         """
         # Get settings for defaults
+        from obskit.config import get_settings  # noqa: PLC0415
         settings = get_settings()
         registry = get_registry()
 
@@ -522,9 +530,6 @@ class REDMetrics:
         #      almost always dynamic values (user IDs, UUIDs, request paths).
         #   2. Truncate labels that exceed 128 chars with a stable hash suffix so
         #      two different oversized names never collapse to the same series.
-        import re as _re
-
-        _VALID_OPERATION_RE = _re.compile(r"^[a-zA-Z0-9_]+$")
         if not _VALID_OPERATION_RE.match(operation):
             # Operation contains characters that strongly suggest a dynamic value
             # (slashes, dots, hyphens, brackets, digits-only, etc.).  Normalise to
@@ -539,8 +544,6 @@ class REDMetrics:
             )
             operation = "invalid_operation"
         elif len(operation) > 128:
-            import hashlib as _hashlib
-
             _logger.warning(
                 "REDMetrics.observe_request: operation label is very long (%d chars). "
                 "This may indicate a high-cardinality label (e.g. user ID, request ID). "
@@ -687,8 +690,6 @@ class REDMetrics:
 # Module-Level Singleton
 # =============================================================================
 
-import threading
-
 # Global REDMetrics instance for the configured service
 _red_metrics: REDMetrics | None = None
 _red_metrics_lock = threading.Lock()
@@ -731,6 +732,7 @@ def get_red_metrics() -> REDMetrics:
     if _red_metrics is None:
         with _red_metrics_lock:
             if _red_metrics is None:  # pragma: no cover  # re-check inside lock
+                from obskit.config import get_settings  # noqa: PLC0415  # pragma: no cover
                 settings = get_settings()  # pragma: no cover
                 _red_metrics = REDMetrics(settings.service_name)  # pragma: no cover
 

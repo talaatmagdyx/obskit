@@ -415,3 +415,28 @@ class TestAddExemplarFunction:
             value=1.0,
             exemplar_labels={"span": "abc"},
         )
+
+
+class TestOpenMetricsExemplarKeyCap:
+    def test_exemplar_key_cap_rejects_new_keys_at_limit(self):
+        """add_exemplar silently drops new keys once 10,000 unique keys exist."""
+        prom_registry = CollectorRegistry()
+        registry = OpenMetricsRegistry(prometheus_registry=prom_registry)
+        # Fill to exactly 10,000 unique keys
+        for i in range(10_000):
+            registry.add_exemplar(
+                f"metric_{i}",
+                labels={},
+                value=float(i),
+                exemplar_labels={"trace_id": "abc"},
+            )
+        assert len(registry._exemplars) == 10_000
+        # Adding a brand-new key beyond the cap should be silently dropped
+        registry.add_exemplar(
+            "metric_overflow",
+            labels={},
+            value=1.0,
+            exemplar_labels={"trace_id": "abc"},
+        )
+        assert "metric_overflow{}" not in registry._exemplars
+        assert len(registry._exemplars) == 10_000

@@ -1,6 +1,6 @@
 # Your First Observable FastAPI App
 
-This tutorial walks you through building a production-ready **Order Service** from scratch — a realistic FastAPI application instrumented end-to-end with obskit v2.0.0. By the end you will have:
+This tutorial walks you through building a production-ready **Order Service** from scratch — a realistic FastAPI application instrumented end-to-end with obskit. By the end you will have:
 
 - Structured JSON logs with automatic trace correlation
 - Prometheus RED metrics at `/metrics`
@@ -52,7 +52,7 @@ order-service/
 === "requirements.txt"
 
     ```text
-    "obskit[prometheus,otlp,fastapi]==3.0.0"
+    "obskit[prometheus,otlp,fastapi]>=1.0.0"
 
     # Web framework
     fastapi==0.115.0
@@ -67,7 +67,7 @@ order-service/
 
     ```bash
     pip install \
-      "obskit[prometheus,otlp,fastapi]==3.0.0" \
+      "obskit[prometheus,otlp,fastapi]>=1.0.0" \
       "fastapi==0.115.0" \
       "uvicorn[standard]==0.30.0"
     ```
@@ -76,7 +76,7 @@ order-service/
 
     ```bash
     uv pip install \
-      "obskit[prometheus,otlp,fastapi]==3.0.0" \
+      "obskit[prometheus,otlp,fastapi]>=1.0.0" \
       "fastapi==0.115.0" \
       "uvicorn[standard]==0.30.0"
     ```
@@ -101,7 +101,7 @@ class Settings(BaseSettings):
     # Service identity (also read by obskit automatically)
     service_name: str = "order-service"
     environment: str = "development"
-    version: str = "2.0.0"
+    version: str = "4.0.0"
 
     # Database
     database_url: str = "postgresql+asyncpg://postgres:secret@localhost:5432/orders"
@@ -121,11 +121,11 @@ settings = Settings()
 ```dotenv title=".env (development)"
 SERVICE_NAME=order-service
 ENVIRONMENT=development
-VERSION=2.0.0
+VERSION=1.0.0
 
 OBSKIT_SERVICE_NAME=order-service
 OBSKIT_ENVIRONMENT=development
-OBSKIT_VERSION=2.0.0
+OBSKIT_VERSION=1.0.0
 
 OBSKIT_OTLP_ENDPOINT=http://localhost:4317
 OBSKIT_TRACE_SAMPLE_RATE=1.0
@@ -140,67 +140,125 @@ DATABASE_URL=postgresql+asyncpg://postgres:secret@localhost:5432/orders
 
 ## Step 4 — Set Up Observability
 
-!!! warning "Import order matters for tracing"
-    `setup_tracing()` **must** be called before FastAPI (and SQLAlchemy, Redis, httpx) are imported. obskit auto-patches those libraries at import time. Create `observability.py` and import it at the very top of `main.py`, before `from fastapi import FastAPI`.
+With obskit v1.0.0+, a single `configure_observability()` call replaces the separate `setup_tracing()`, `get_logger()`, and `REDMetrics` setup. The returned `Observability` object holds references to all configured components.
 
-```python title="app/observability.py"
-"""
-Centralised observability bootstrap.
+=== "v1.0.0+ (recommended)"
 
-Import this module at the TOP of main.py, before any framework imports.
-"""
-from __future__ import annotations
+    ```python title="app/observability.py"
+    """
+    Centralised observability bootstrap.
 
-import logging
+    Import this module at the TOP of main.py, before any framework imports.
+    """
+    from __future__ import annotations
 
-from obskit.logging import get_logger
-from obskit.metrics import observe_with_exemplar  # noqa: F401 — re-exported for convenience
-from obskit.metrics.red import REDMetrics
-from obskit.tracing import setup_tracing
+    from obskit import configure_observability
 
-from app.settings import settings
+    from app.settings import settings
 
-# ── 1. Tracing ──────────────────────────────────────────────────────────────
-# Must run before FastAPI / SQLAlchemy / Redis are imported.
-setup_tracing(
-    exporter_endpoint=settings.otlp_endpoint,
-    sample_rate=settings.trace_sample_rate,
-    # Auto-instrument everything detected in the environment
-    instrument=["fastapi", "sqlalchemy", "redis", "httpx"],
-    debug=(settings.environment == "development"),
-)
+    # One call configures tracing, logging, and metrics.
+    # Must run before FastAPI / SQLAlchemy / Redis are imported.
+    obs = configure_observability(
+        service_name=settings.service_name,
+        environment=settings.environment,
+        version=settings.version,
+        otlp_endpoint=settings.otlp_endpoint,
+        trace_sample_rate=settings.trace_sample_rate,
+        debug=(settings.environment == "development"),
+    )
 
-# ── 2. Logging ──────────────────────────────────────────────────────────────
-# get_logger() reads OBSKIT_LOG_LEVEL and OBSKIT_LOG_FORMAT automatically.
-log = get_logger(__name__)
-log.info(
-    "observability_initialized",
-    service=settings.service_name,
-    version=settings.version,
-    environment=settings.environment,
-    otlp_endpoint=settings.otlp_endpoint,
-)
+    # Convenience aliases — import these from this module wherever needed.
+    log = obs.logger
+    red = obs.metrics
 
-# ── 3. Metrics ──────────────────────────────────────────────────────────────
-# Singleton RED metrics — import `red` from this module wherever needed.
-red = REDMetrics(service=settings.service_name)
+    log.info(
+        "observability_initialized",
+        service=settings.service_name,
+        version=settings.version,
+        environment=settings.environment,
+        otlp_endpoint=settings.otlp_endpoint,
+    )
 
-# Also expose individual Prometheus instruments for fine-grained use
-from prometheus_client import Counter, Histogram  # noqa: E402
+    # Also expose individual Prometheus instruments for fine-grained use
+    from prometheus_client import Counter, Histogram  # noqa: E402
 
-ORDER_CREATED = Counter(
-    "orders_created_total",
-    "Number of orders successfully created",
-    ["payment_method"],
-)
+    ORDER_CREATED = Counter(
+        "orders_created_total",
+        "Number of orders successfully created",
+        ["payment_method"],
+    )
 
-ORDER_VALUE = Histogram(
-    "order_value_dollars",
-    "Distribution of order values in USD",
-    ["payment_method"],
-    buckets=[5, 10, 25, 50, 100, 250, 500, 1000],
-)
-```
+    ORDER_VALUE = Histogram(
+        "order_value_dollars",
+        "Distribution of order values in USD",
+        ["payment_method"],
+        buckets=[5, 10, 25, 50, 100, 250, 500, 1000],
+    )
+    ```
+
+=== "Individual modules (all versions)"
+
+    !!! warning "Import order matters for tracing"
+        `setup_tracing()` **must** be called before FastAPI (and SQLAlchemy, Redis, httpx) are imported. obskit auto-patches those libraries at import time. Create `observability.py` and import it at the very top of `main.py`, before `from fastapi import FastAPI`.
+
+    ```python title="app/observability.py"
+    """
+    Centralised observability bootstrap.
+
+    Import this module at the TOP of main.py, before any framework imports.
+    """
+    from __future__ import annotations
+
+    import logging
+
+    from obskit.logging import get_logger
+    from obskit.metrics import observe_with_exemplar  # noqa: F401 — re-exported for convenience
+    from obskit.metrics.red import REDMetrics
+    from obskit.tracing import setup_tracing
+
+    from app.settings import settings
+
+    # ── 1. Tracing ──────────────────────────────────────────────────────────────
+    # Must run before FastAPI / SQLAlchemy / Redis are imported.
+    setup_tracing(
+        exporter_endpoint=settings.otlp_endpoint,
+        sample_rate=settings.trace_sample_rate,
+        # Auto-instrument everything detected in the environment
+        instrument=["fastapi", "sqlalchemy", "redis", "httpx"],
+        debug=(settings.environment == "development"),
+    )
+
+    # ── 2. Logging ──────────────────────────────────────────────────────────────
+    # get_logger() reads OBSKIT_LOG_LEVEL and OBSKIT_LOG_FORMAT automatically.
+    log = get_logger(__name__)
+    log.info(
+        "observability_initialized",
+        service=settings.service_name,
+        version=settings.version,
+        environment=settings.environment,
+        otlp_endpoint=settings.otlp_endpoint,
+    )
+
+    # ── 3. Metrics ──────────────────────────────────────────────────────────────
+    # Singleton RED metrics — import `red` from this module wherever needed.
+    red = REDMetrics(service=settings.service_name)
+
+    # Also expose individual Prometheus instruments for fine-grained use
+    from prometheus_client import Counter, Histogram  # noqa: E402
+
+    ORDER_CREATED = Counter(
+        "orders_created_total",
+        "Number of orders successfully created",
+        ["payment_method"],
+    )
+
+    ORDER_VALUE = Histogram(
+        "order_value_dollars",
+        "Distribution of order values in USD",
+        ["payment_method"],
+        buckets=[5, 10, 25, 50, 100, 250, 500, 1000],
+    )
+    ```
 
 ---
 
@@ -393,101 +451,199 @@ async def _fetch_order(order_id: str) -> OrderResponse | None:
 
 ## Step 7 — Wire the FastAPI App
 
-```python title="app/main.py"
-"""
-Order Service — FastAPI entry point.
+=== "v1.0.0+ (recommended)"
 
-Import order is critical:
-  1. observability.py  (setup_tracing MUST run before FastAPI is imported)
-  2. fastapi
-  3. routers
-"""
-from __future__ import annotations
+    With the new API, `instrument_fastapi(app)` replaces the manual `app.add_middleware(ObskitMiddleware, ...)` call. It configures correlation IDs, request logging, and RED metrics middleware in one step.
 
-# ── MUST BE FIRST: boot tracing before any framework import ─────────────────
-import app.observability  # noqa: F401
+    ```python title="app/main.py"
+    """
+    Order Service — FastAPI entry point.
 
-# ── Framework ────────────────────────────────────────────────────────────────
-from contextlib import asynccontextmanager
+    Import order is critical:
+      1. observability.py  (configure_observability MUST run before FastAPI is imported)
+      2. fastapi
+      3. routers
+    """
+    from __future__ import annotations
 
-from fastapi import FastAPI
-from fastapi.responses import JSONResponse
-from prometheus_client import CONTENT_TYPE_LATEST, generate_latest
+    # ── MUST BE FIRST: boot observability before any framework import ────────────
+    import app.observability  # noqa: F401
 
-# ── obskit ───────────────────────────────────────────────────────────────────
-from obskit.logging import get_logger
-from obskit.middleware.fastapi import ObskitMiddleware
+    # ── Framework ────────────────────────────────────────────────────────────────
+    from contextlib import asynccontextmanager
 
-# ── App modules ──────────────────────────────────────────────────────────────
-from app.health import checker
-from app.routers import orders
-from app.settings import settings
+    from fastapi import FastAPI
+    from fastapi.responses import JSONResponse
+    from prometheus_client import CONTENT_TYPE_LATEST, generate_latest
 
-log = get_logger(__name__)
+    # ── obskit ───────────────────────────────────────────────────────────────────
+    from obskit import get_observability, instrument_fastapi
+
+    # ── App modules ──────────────────────────────────────────────────────────────
+    from app.health import checker
+    from app.routers import orders
+    from app.settings import settings
+
+    obs = get_observability()
 
 
-@asynccontextmanager
-async def lifespan(application: FastAPI):
-    """Application lifespan: startup and graceful shutdown."""
-    log.info(
-        "service_starting",
-        service=settings.service_name,
+    @asynccontextmanager
+    async def lifespan(application: FastAPI):
+        """Application lifespan: startup and graceful shutdown."""
+        obs.logger.info(
+            "service_starting",
+            service=settings.service_name,
+            version=settings.version,
+            environment=settings.environment,
+        )
+        yield
+        obs.logger.info("service_stopping", service=settings.service_name)
+        obs.shutdown()
+
+
+    # ── Application ──────────────────────────────────────────────────────────────
+    app = FastAPI(
+        title="Order Service",
+        description="Example service demonstrating obskit v1.0.0 full-stack observability",
         version=settings.version,
-        environment=settings.environment,
-    )
-    yield
-    log.info("service_stopping", service=settings.service_name)
-
-
-# ── Application ──────────────────────────────────────────────────────────────
-app = FastAPI(
-    title="Order Service",
-    description="Example service demonstrating obskit v2.0.0 full-stack observability",
-    version=settings.version,
-    lifespan=lifespan,
-)
-
-# ── Middleware (adds correlation ID, auto-logs all requests, records RED metrics) ──
-app.add_middleware(
-    ObskitMiddleware,
-    exclude_paths=["/health", "/metrics", "/docs", "/openapi.json"],
-    track_metrics=True,
-    track_logging=True,
-    track_tracing=True,
-)
-
-# ── Routers ──────────────────────────────────────────────────────────────────
-app.include_router(orders.router)
-
-
-# ── Observability endpoints ───────────────────────────────────────────────────
-@app.get("/health", tags=["ops"], include_in_schema=False)
-async def health_endpoint():
-    """Kubernetes health check — returns service + dependency status."""
-    result = await checker.check_health()
-    status_code = 200 if result.is_healthy else 503
-    return JSONResponse(content=result.to_dict(), status_code=status_code)
-
-
-@app.get("/metrics", tags=["ops"], include_in_schema=False)
-def metrics_endpoint():
-    """Prometheus scrape endpoint."""
-    return JSONResponse(
-        content=generate_latest().decode(),
-        media_type=CONTENT_TYPE_LATEST,
+        lifespan=lifespan,
     )
 
+    # ── Middleware (adds correlation ID, auto-logs all requests, records RED metrics) ──
+    instrument_fastapi(app)
 
-@app.get("/", tags=["ops"])
-async def root():
-    return {
-        "service": settings.service_name,
-        "version": settings.version,
-        "docs": "/docs",
-        "health": "/health",
-        "metrics": "/metrics",
-    }
-```
+    # ── Routers ──────────────────────────────────────────────────────────────────
+    app.include_router(orders.router)
+
+
+    # ── Observability endpoints ───────────────────────────────────────────────────
+    @app.get("/health", tags=["ops"], include_in_schema=False)
+    async def health_endpoint():
+        """Kubernetes health check — returns service + dependency status."""
+        result = await checker.check_health()
+        status_code = 200 if result.is_healthy else 503
+        return JSONResponse(content=result.to_dict(), status_code=status_code)
+
+
+    @app.get("/metrics", tags=["ops"], include_in_schema=False)
+    def metrics_endpoint():
+        """Prometheus scrape endpoint."""
+        return JSONResponse(
+            content=generate_latest().decode(),
+            media_type=CONTENT_TYPE_LATEST,
+        )
+
+
+    @app.get("/", tags=["ops"])
+    async def root():
+        return {
+            "service": settings.service_name,
+            "version": settings.version,
+            "docs": "/docs",
+            "health": "/health",
+            "metrics": "/metrics",
+        }
+    ```
+
+=== "Individual modules (all versions)"
+
+    Using `ObskitMiddleware` directly gives you full control over middleware options.
+
+    ```python title="app/main.py"
+    """
+    Order Service — FastAPI entry point.
+
+    Import order is critical:
+      1. observability.py  (setup_tracing MUST run before FastAPI is imported)
+      2. fastapi
+      3. routers
+    """
+    from __future__ import annotations
+
+    # ── MUST BE FIRST: boot tracing before any framework import ─────────────────
+    import app.observability  # noqa: F401
+
+    # ── Framework ────────────────────────────────────────────────────────────────
+    from contextlib import asynccontextmanager
+
+    from fastapi import FastAPI
+    from fastapi.responses import JSONResponse
+    from prometheus_client import CONTENT_TYPE_LATEST, generate_latest
+
+    # ── obskit ───────────────────────────────────────────────────────────────────
+    from obskit.logging import get_logger
+    from obskit.middleware.fastapi import ObskitMiddleware
+
+    # ── App modules ──────────────────────────────────────────────────────────────
+    from app.health import checker
+    from app.routers import orders
+    from app.settings import settings
+
+    log = get_logger(__name__)
+
+
+    @asynccontextmanager
+    async def lifespan(application: FastAPI):
+        """Application lifespan: startup and graceful shutdown."""
+        log.info(
+            "service_starting",
+            service=settings.service_name,
+            version=settings.version,
+            environment=settings.environment,
+        )
+        yield
+        log.info("service_stopping", service=settings.service_name)
+
+
+    # ── Application ──────────────────────────────────────────────────────────────
+    app = FastAPI(
+        title="Order Service",
+        description="Example service demonstrating obskit full-stack observability",
+        version=settings.version,
+        lifespan=lifespan,
+    )
+
+    # ── Middleware (adds correlation ID, auto-logs all requests, records RED metrics) ──
+    app.add_middleware(
+        ObskitMiddleware,
+        exclude_paths=["/health", "/metrics", "/docs", "/openapi.json"],
+        track_metrics=True,
+        track_logging=True,
+        track_tracing=True,
+    )
+
+    # ── Routers ──────────────────────────────────────────────────────────────────
+    app.include_router(orders.router)
+
+
+    # ── Observability endpoints ───────────────────────────────────────────────────
+    @app.get("/health", tags=["ops"], include_in_schema=False)
+    async def health_endpoint():
+        """Kubernetes health check — returns service + dependency status."""
+        result = await checker.check_health()
+        status_code = 200 if result.is_healthy else 503
+        return JSONResponse(content=result.to_dict(), status_code=status_code)
+
+
+    @app.get("/metrics", tags=["ops"], include_in_schema=False)
+    def metrics_endpoint():
+        """Prometheus scrape endpoint."""
+        return JSONResponse(
+            content=generate_latest().decode(),
+            media_type=CONTENT_TYPE_LATEST,
+        )
+
+
+    @app.get("/", tags=["ops"])
+    async def root():
+        return {
+            "service": settings.service_name,
+            "version": settings.version,
+            "docs": "/docs",
+            "health": "/health",
+            "metrics": "/metrics",
+        }
+    ```
 
 ---
 
@@ -506,7 +662,7 @@ services:
     environment:
       OBSKIT_SERVICE_NAME: order-service
       OBSKIT_ENVIRONMENT: production
-      OBSKIT_VERSION: "2.0.0"
+      OBSKIT_VERSION: "1.0.0"
       OBSKIT_OTLP_ENDPOINT: http://tempo:4317
       OBSKIT_TRACE_SAMPLE_RATE: "1.0"       # 100% sampling in dev
       OBSKIT_LOG_FORMAT: json
@@ -707,7 +863,7 @@ docker compose exec order-service python -m obskit.core.diagnose
     {
       "status": "healthy",
       "service": "order-service",
-      "version": "2.0.0",
+      "version": "4.0.0",
       "environment": "production",
       "trace_id": "4bf92f3577b34da6a3ce929d0e0e4736",
       "span_id": "00f067aa0ba902b7",
@@ -742,7 +898,7 @@ docker compose exec order-service python -m obskit.core.diagnose
     - Set `OBSKIT_TRACE_SAMPLE_RATE=1.0` in development so 100% of traces are exported
 
 !!! warning "No trace_id in logs"
-    `trace_id` is injected only when a span is active at log time. Ensure `setup_tracing()` is called before any logger is used, and that requests pass through the OTel middleware (added via `ObskitMiddleware`).
+    `trace_id` is injected only when a span is active at log time. Ensure `configure_observability()` (or `setup_tracing()`) is called before any logger is used, and that requests pass through the OTel middleware (added via `instrument_fastapi()` or `ObskitMiddleware`).
 
 !!! warning "Exemplars not showing in Grafana"
     - Prometheus must be started with `--enable-feature=exemplar-storage`
@@ -757,4 +913,3 @@ docker compose exec order-service python -m obskit.core.diagnose
 - [Trace Exemplars](../guides/trace-exemplars.md) — metric-to-trace drill-down in Grafana
 - [Docker Compose Stack](../guides/docker-compose.md) — full observability stack configuration
 - [SLO Tracking](../user-guide/slo.md) — error-budget burn-rate alerts
-- [Circuit Breaker](../user-guide/resilience.md) — protect downstream calls from cascading failures

@@ -316,8 +316,8 @@ class TestOTLPLogHandler:
     def test_export_batch_with_records(self):
         handler = self._create_handler()
         batch = [{"timestamp": "2024-01-01", "severity": "INFO", "body": "test"}]
-        # Should not raise
-        handler._export_batch(batch)
+        # _export_batch is a no-op; real export happens via _otel_handler in emit()
+        handler._export_batch(batch)  # Should not raise
         handler.close()
 
 

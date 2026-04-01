@@ -201,13 +201,6 @@ from obskit.health.checks import (
     create_memory_check,
 )
 from obskit.health.router import build_health_router
-from obskit.health.server import (
-    get_health_server,
-    is_health_server_running,
-    register_health_endpoint,
-    start_health_server,
-    stop_health_server,
-)
 from obskit.health.slo_check import (
     SLOReadinessCheck,
     add_slo_readiness_check,
@@ -255,14 +248,6 @@ __all__ = [
     "create_disk_check",
     # HTTP endpoint check
     "create_http_check",
-    # ==========================================================================
-    # HTTP Health Server
-    # ==========================================================================
-    "start_health_server",
-    "stop_health_server",
-    "register_health_endpoint",
-    "get_health_server",
-    "is_health_server_running",
     # ==========================================================================
     # SLO Health Checks
     # ==========================================================================

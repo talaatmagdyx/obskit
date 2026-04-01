@@ -8,6 +8,65 @@ The core of the obskit toolkit. Every module in obskit depends on the core for s
 pip install obskit
 ```
 
+## Unified Setup with `configure_observability()` (Recommended)
+
+*New in v1.0.0.* The preferred way to set up obskit is via `configure_observability()`, which returns a single `Observability` object with access to the tracer, metrics, logger, and configuration. The existing `configure()` / `get_settings()` API continues to work without deprecation warnings.
+
+```python
+from obskit import configure_observability
+
+obs = configure_observability(
+    service_name="order-service",
+    environment="production",
+    version="2.0.0",
+    otlp_endpoint="http://tempo:4317",
+    trace_sample_rate=0.1,
+    log_level="INFO",
+)
+
+# Access components directly from the returned object
+obs.logger.info("service_started", version="2.0.0")
+obs.metrics.observe_request(operation="startup", duration_seconds=0.01, status="success")
+tracer = obs.tracer
+config = obs.config
+
+# Graceful shutdown (flushes spans, metrics, logs)
+obs.shutdown()
+```
+
+### Retrieving the global instance
+
+After calling `configure_observability()`, you can retrieve the instance from anywhere:
+
+```python
+from obskit import get_observability
+
+obs = get_observability()  # returns the Observability instance
+obs.logger.info("handling_request")
+```
+
+To reset the global instance (useful in tests):
+
+```python
+from obskit import reset_observability
+
+reset_observability()
+```
+
+### `ObservabilityConfig`
+
+`ObservabilityConfig` is a frozen dataclass that groups all configuration into a single immutable object. It is available as `obs.config` after calling `configure_observability()`:
+
+```python
+obs = configure_observability(service_name="my-api", environment="staging")
+print(obs.config.service_name)   # "my-api"
+print(obs.config.environment)    # "staging"
+```
+
+`ObservabilityConfig` is read-only (frozen) and is useful for passing configuration to subsystems without exposing the full settings machinery.
+
+---
+
 ## Package contents
 
 | Module | Purpose |
@@ -16,12 +75,14 @@ pip install obskit
 | `obskit.core.diagnose` | Environment diagnostics CLI and API |
 | `obskit.core.errors` | Structured exception hierarchy |
 | `obskit.errors` | Observable error responses (HTTP-friendly) |
-| `obskit.correlation` | Correlation / request / session ID management |
 | `obskit.interfaces` | Abstract base classes (protocols) for metrics and logging backends |
 
 ---
 
-## ObskitSettings
+## ObskitSettings (Direct Configuration)
+
+!!! note
+    For most applications, [`configure_observability()`](#unified-setup-with-configure_observability-recommended) above is the preferred setup method. `ObskitSettings` and `configure()` remain fully supported for advanced use cases and backward compatibility.
 
 `obskit.config.ObskitSettings` is a [Pydantic Settings](https://docs.pydantic.dev/latest/concepts/pydantic_settings/) model that reads configuration from environment variables (prefixed `OBSKIT_`), a `.env` file, and programmatic overrides — in that order of priority.
 
@@ -72,7 +133,6 @@ settings = ObskitSettings(
 | `OBSKIT_METRICS_ENABLED` | `metrics_enabled` | `bool` | `True` | Enable Prometheus metrics |
 | `OBSKIT_METRICS_PORT` | `metrics_port` | `int` | `9090` | Metrics HTTP server port |
 | `OBSKIT_METRICS_PATH` | `metrics_path` | `str` | `"/metrics"` | Scrape endpoint path |
-| `OBSKIT_METRICS_METHOD` | `metrics_method` | `str` | `"red"` | Methodology: `red`, `golden`, `use`, or `all` |
 | `OBSKIT_USE_HISTOGRAM` | `use_histogram` | `bool` | `True` | Use histograms for latency |
 | `OBSKIT_USE_SUMMARY` | `use_summary` | `bool` | `False` | Use summaries for exact percentiles |
 
@@ -83,7 +143,7 @@ settings = ObskitSettings(
 | `OBSKIT_LOG_LEVEL` | `log_level` | `str` | `"INFO"` | Minimum level: `DEBUG`, `INFO`, `WARNING`, `ERROR`, `CRITICAL` |
 | `OBSKIT_LOG_FORMAT` | `log_format` | `str` | `"json"` | Output format: `json` (production) or `console` (development) |
 | `OBSKIT_LOG_INCLUDE_TIMESTAMP` | `log_include_timestamp` | `bool` | `True` | Include ISO 8601 timestamp |
-| `OBSKIT_LOGGING_BACKEND` | `logging_backend` | `str` | `"structlog"` | Backend: `structlog`, `loguru`, or `auto` |
+| `OBSKIT_LOGGING_BACKEND` | `logging_backend` | `str` | `"structlog"` | Backend: `structlog` or `auto` |
 | `OBSKIT_LOG_SAMPLE_RATE` | `log_sample_rate` | `float` | `1.0` | Log sampling rate 0.0–1.0 |
 
 ### Health checks
@@ -91,30 +151,6 @@ settings = ObskitSettings(
 | Env var | Field | Type | Default | Description |
 |---|---|---|---|---|
 | `OBSKIT_HEALTH_CHECK_TIMEOUT` | `health_check_timeout` | `float` | `5.0` | Per-check timeout in seconds |
-
-### Circuit breaker
-
-| Env var | Field | Type | Default | Description |
-|---|---|---|---|---|
-| `OBSKIT_CIRCUIT_BREAKER_FAILURE_THRESHOLD` | `circuit_breaker_failure_threshold` | `int` | `5` | Failures before opening |
-| `OBSKIT_CIRCUIT_BREAKER_RECOVERY_TIMEOUT` | `circuit_breaker_recovery_timeout` | `float` | `30.0` | Seconds before half-open test |
-| `OBSKIT_CIRCUIT_BREAKER_HALF_OPEN_REQUESTS` | `circuit_breaker_half_open_requests` | `int` | `3` | Test requests in half-open state |
-
-### Retry
-
-| Env var | Field | Type | Default | Description |
-|---|---|---|---|---|
-| `OBSKIT_RETRY_MAX_ATTEMPTS` | `retry_max_attempts` | `int` | `3` | Maximum attempts (including first try) |
-| `OBSKIT_RETRY_BASE_DELAY` | `retry_base_delay` | `float` | `1.0` | Base delay in seconds |
-| `OBSKIT_RETRY_MAX_DELAY` | `retry_max_delay` | `float` | `60.0` | Maximum delay cap in seconds |
-| `OBSKIT_RETRY_EXPONENTIAL_BASE` | `retry_exponential_base` | `float` | `2.0` | Exponential backoff base |
-
-### Rate limiting
-
-| Env var | Field | Type | Default | Description |
-|---|---|---|---|---|
-| `OBSKIT_RATE_LIMIT_REQUESTS` | `rate_limit_requests` | `int` | `100` | Requests per window |
-| `OBSKIT_RATE_LIMIT_WINDOW_SECONDS` | `rate_limit_window_seconds` | `float` | `60.0` | Window size in seconds |
 
 ### Configuration helpers
 
@@ -229,7 +265,7 @@ obskit environment diagnostics
 ────────────────────────────────────────────────────────────────────────
 Component                    Version      Status
 ────────────────────────────────────────────────────────────────────────
-obskit                       3.0.0        ✅ installed
+obskit                       1.0.0        ✅ installed
   └─ pydantic-settings        2.1.0        ✅
   └─ structlog                24.1.0       ✅
   └─ trace-correlation                     ✅ active
@@ -275,12 +311,6 @@ except ObskitError as e:
 | `ConfigurationError` | `OBSKIT_CONFIG_ERROR` | Configuration loading or validation error |
 | `ConfigFileNotFoundError` | `OBSKIT_CONFIG_FILE_NOT_FOUND` | Configuration file not found |
 | `ConfigValidationError` | `OBSKIT_CONFIG_VALIDATION_ERROR` | Configuration validation failure |
-| `CircuitBreakerError` | `OBSKIT_CIRCUIT_ERROR` | Circuit breaker base error |
-| `CircuitOpenError` | `OBSKIT_CIRCUIT_OPEN` | Call attempted on open circuit |
-| `CircuitHalfOpenError` | `OBSKIT_CIRCUIT_HALF_OPEN` | Half-open quota exceeded |
-| `RetryError` | `OBSKIT_RETRY_EXHAUSTED` | All retry attempts exhausted |
-| `RateLimitError` | `OBSKIT_RATE_LIMIT_ERROR` | Rate limiting base error |
-| `RateLimitExceeded` | `OBSKIT_RATE_LIMIT_EXCEEDED` | Rate limit exceeded |
 | `HealthCheckError` | `OBSKIT_HEALTH_ERROR` | Health check base error |
 | `HealthCheckTimeoutError` | `OBSKIT_HEALTH_TIMEOUT` | Health check timed out |
 | `HealthCheckFailedError` | `OBSKIT_HEALTH_FAILED` | Health check returned failure |
@@ -296,29 +326,21 @@ except ObskitError as e:
 
 ```python
 from obskit.core.errors import (
-    CircuitOpenError,
-    RetryError,
-    RateLimitExceeded,
+    HealthCheckTimeoutError,
+    SLOBudgetExhaustedError,
 )
 
-# CircuitOpenError carries recovery timing
+# HealthCheckTimeoutError
 try:
-    async with breaker:
-        await downstream_api()
-except CircuitOpenError as e:
-    print(e.breaker_name)       # "payment_api"
-    print(e.time_until_retry)   # 25.3 (seconds)
+    result = await checker.check_health()
+except HealthCheckTimeoutError as e:
+    print(e.code)     # "OBSKIT_HEALTH_TIMEOUT"
 
-# RetryError carries attempt metadata
-except RetryError as e:
-    print(e.attempts)           # 3
-    print(e.last_exception)     # <TimeoutError ...>
-
-# RateLimitExceeded carries limit details
-except RateLimitExceeded as e:
-    print(e.limit)              # 100
-    print(e.window_seconds)     # 60.0
-    print(e.retry_after)        # 12.5 (seconds)
+# SLOBudgetExhaustedError
+try:
+    tracker.check_budget("api_availability")
+except SLOBudgetExhaustedError as e:
+    print(e.code)     # "OBSKIT_SLO_BUDGET_EXHAUSTED"
 ```
 
 ### Error code lookup
@@ -343,9 +365,7 @@ from obskit.errors import (
     NotFoundError,
     AuthenticationError,
     AuthorizationError,
-    RateLimitError,
     ServiceUnavailableError,
-    CircuitOpenError,
     ErrorResponse,
     create_error_response,
     format_exception,
@@ -367,94 +387,6 @@ response = ErrorResponse(
     message="Invalid email",
     details={"field": "email"},
 )
-```
-
----
-
-## obskit.correlation
-
-Thread-safe and async-safe correlation context management using Python `contextvars`. Correlation IDs propagate automatically across async boundaries without any manual plumbing.
-
-### Core functions
-
-```python
-from obskit.correlation import (
-    generate_correlation_id,
-    get_correlation_id,
-    set_correlation_id,
-    get_request_id,
-    set_request_id,
-    get_session_id,
-    set_session_id,
-    get_tenant_id,
-    set_tenant_id,
-    get_user_id,
-    set_user_id,
-    get_full_context,
-)
-
-# Generate a new UUID4 correlation ID
-cid = generate_correlation_id()   # "f47ac10b-58cc-4372-a567-0e02b2c3d479"
-
-# Store in context (returns a contextvars.Token for restoration)
-token = set_correlation_id(cid)
-
-# Retrieve from anywhere in the call stack (including async tasks)
-current = get_correlation_id()    # "f47ac10b-..."
-
-# Retrieve the full context dict (all non-None values)
-ctx = get_full_context()
-# {"correlation_id": "...", "request_id": "...", "tenant_id": "..."}
-```
-
-### CorrelationManager — context manager API
-
-```python
-from obskit.correlation import CorrelationManager
-
-# Start a new request context (correlation_id auto-generated)
-with CorrelationManager.new_context(
-    request_id="req-001",
-    tenant_id="acme-corp",
-    user_id="user-42",
-):
-    # All logs / metrics inside here carry these IDs automatically
-    await process_order(order)
-
-# Capture and restore context (useful for task queues / thread pools)
-ctx = CorrelationManager.capture()
-
-async def background_task():
-    with CorrelationManager.restore(ctx):
-        await send_notification()
-
-# HTTP header propagation
-outgoing_headers = CorrelationManager.propagate_to_headers()
-# {"X-Correlation-ID": "...", "X-Tenant-ID": "...", "X-Request-ID": "..."}
-
-# Extract from incoming request headers
-ctx = CorrelationManager.extract_from_headers(request.headers)
-```
-
-### @with_correlation decorator
-
-```python
-from obskit.correlation import with_correlation
-
-@with_correlation(generate_if_missing=True)
-async def handle_request(request):
-    # correlation_id is always available here
-    cid = get_correlation_id()
-    ...
-```
-
-### create_correlated_task
-
-```python
-from obskit.correlation import create_correlated_task
-
-# asyncio task that inherits the current correlation context
-task = create_correlated_task(my_async_function())
 ```
 
 ---
@@ -542,4 +474,4 @@ class MyLogger(LoggerInterface):
 ```
 
 !!! tip "Built-in adapters"
-    `obskit` ships structlog and loguru adapters that implement `LoggerInterface` out of the box. You only need to implement it yourself when integrating a completely custom logging backend.
+    `obskit` ships a structlog adapter that implements `LoggerInterface` out of the box. You only need to implement it yourself when integrating a completely custom logging backend.

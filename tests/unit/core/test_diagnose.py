@@ -11,6 +11,7 @@ import pytest
 from obskit.core.diagnose import (
     IntegrationInfo,
     PackageInfo,
+    _check_otlp_reachable,
     _import_available,
     _import_version,
     _pkg_version,
@@ -335,23 +336,104 @@ class TestCheckFunctionsSubImportErrors:
         # "(unavailable)" != "(not configured)" → available=True, but detail shows the fallback
         assert endpoint_info.detail == "(unavailable)"
 
-    def test_check_health_checker_import_error(self) -> None:
-        """Lines 173-174: except ImportError when importing health.checker."""
+    def test_check_health_tracing_integration_present(self) -> None:
+        """health-tracing integration is always present in _check_health output (based on opentelemetry)."""
         from obskit.core.diagnose import _check_health
 
-        key = "obskit.health.checker"
-        saved = sys.modules.get(key, ...)
-        sys.modules[key] = None  # type: ignore[assignment]
-        try:
-            result = _check_health()
-        finally:
-            if saved is ...:
-                del sys.modules[key]
-            else:
-                sys.modules[key] = saved  # type: ignore[assignment]
+        result = _check_health()
 
-        # No health-tracing integration added when the import fails
-        assert all(i.label != "health-tracing" for i in result.integrations)
+        # health-tracing integration is always added based on opentelemetry availability
+        labels = [i.label for i in result.integrations]
+        assert "health-tracing" in labels
+
+
+# ---------------------------------------------------------------------------
+# _check_otlp_reachable
+# ---------------------------------------------------------------------------
+
+
+class TestCheckOtlpReachable:
+    def test_reachable_returns_true_and_detail(self) -> None:
+        """Successful TCP connection returns (True, '<host>:<port> reachable ✓')."""
+        mock_cm = MagicMock()
+        mock_cm.__enter__ = MagicMock(return_value=mock_cm)
+        mock_cm.__exit__ = MagicMock(return_value=False)
+        with patch("socket.create_connection", return_value=mock_cm):
+            reachable, detail = _check_otlp_reachable("http://localhost:4317")
+        assert reachable is True
+        assert "reachable ✓" in detail
+        assert "localhost:4317" in detail
+
+    def test_unreachable_returns_false_and_detail(self) -> None:
+        """Failed TCP connection returns (False, '<host>:<port> unreachable — ...')."""
+        exc = OSError()
+        exc.strerror = "Connection refused"
+        with patch("socket.create_connection", side_effect=exc):
+            reachable, detail = _check_otlp_reachable("http://localhost:4317")
+        assert reachable is False
+        assert "unreachable" in detail
+        assert "Connection refused" in detail
+        assert "localhost:4317" in detail
+
+    def test_default_port_used_when_missing(self) -> None:
+        """Endpoint without explicit port defaults to 4317."""
+        mock_cm = MagicMock()
+        mock_cm.__enter__ = MagicMock(return_value=mock_cm)
+        mock_cm.__exit__ = MagicMock(return_value=False)
+        with patch("socket.create_connection", return_value=mock_cm) as mock_conn:
+            reachable, detail = _check_otlp_reachable("http://tempo")
+        assert reachable is True
+        # Verify port 4317 was used
+        call_args = mock_conn.call_args[0][0]
+        assert call_args[1] == 4317
+
+
+# ---------------------------------------------------------------------------
+# _check_tracing otlp-reachable integration
+# ---------------------------------------------------------------------------
+
+
+class TestCheckTracingOtlpReachable:
+    def test_otlp_reachable_included_when_endpoint_configured(self) -> None:
+        """otlp-reachable integration appears when endpoint is configured."""
+        from obskit.core.diagnose import _check_tracing
+
+        mock_settings = MagicMock()
+        mock_settings.otlp_endpoint = "http://tempo:4317"
+
+        mock_cm = MagicMock()
+        mock_cm.__enter__ = MagicMock(return_value=mock_cm)
+        mock_cm.__exit__ = MagicMock(return_value=False)
+
+        with patch("obskit.config.get_settings", return_value=mock_settings):
+            with patch("socket.create_connection", return_value=mock_cm):
+                result = _check_tracing()
+
+        labels = [i.label for i in result.integrations]
+        assert "otlp-reachable" in labels
+
+    def test_otlp_reachable_not_included_when_endpoint_not_configured(self) -> None:
+        """otlp-reachable integration is absent when endpoint is '(not configured)'."""
+        from obskit.core.diagnose import _check_tracing
+
+        mock_settings = MagicMock()
+        mock_settings.otlp_endpoint = None  # results in "(not configured)"
+
+        with patch("obskit.config.get_settings", return_value=mock_settings):
+            result = _check_tracing()
+
+        labels = [i.label for i in result.integrations]
+        assert "otlp-reachable" not in labels
+
+    def test_otlp_reachable_not_included_when_settings_unavailable(self) -> None:
+        """otlp-reachable integration is absent when get_settings() raises."""
+        from obskit.core.diagnose import _check_tracing
+
+        with patch("obskit.config.get_settings", side_effect=RuntimeError("cfg error")):
+            result = _check_tracing()
+
+        labels = [i.label for i in result.integrations]
+        assert "otlp-reachable" not in labels
 
 
 # ---------------------------------------------------------------------------

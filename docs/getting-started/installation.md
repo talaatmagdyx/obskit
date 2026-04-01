@@ -13,7 +13,7 @@ obskit is a **single package** with optional extras. The core package always ins
 | OS | Linux, macOS, Windows | Linux (production) |
 
 !!! warning "Python 3.10 and below are not supported"
-    obskit uses `tomllib` (stdlib in 3.11), `ExceptionGroup` syntax, and `typing` features that require Python 3.11 or later. If you are on 3.10, stay on obskit v1.x until you can upgrade your runtime.
+    obskit uses `tomllib` (stdlib in 3.11), `ExceptionGroup` syntax, and `typing` features that require Python 3.11 or later. If you are on 3.10, stay on an older Python version until you can upgrade your runtime.
 
 ---
 
@@ -27,24 +27,82 @@ The bare install includes the always-on essentials: `structlog`, `PyYAML`, and `
 pip install obskit
 ```
 
-### Installing with Extras
+## Installation
 
-Add one or more extras to unlock heavier integrations. Only the dependencies you request are pulled in.
+### Core
 
-| Extra | What it adds | Install |
-|-------|-------------|---------|
-| `prometheus` | `prometheus-client` | `pip install "obskit[prometheus]"` |
-| `otlp` | `opentelemetry-api`, `opentelemetry-sdk`, OTLP exporter | `pip install "obskit[otlp]"` |
-| `loguru` | Loguru adapter for obskit logging | `pip install "obskit[loguru]"` |
-| `fastapi` | `fastapi`, `starlette` middleware | `pip install "obskit[fastapi]"` |
-| `flask` | `flask`, `werkzeug` middleware | `pip install "obskit[flask]"` |
-| `django` | `django` middleware | `pip install "obskit[django]"` |
-| `sqlalchemy` | SQLAlchemy 2.0 query tracking | `pip install "obskit[sqlalchemy]"` |
-| `kafka` | `kafka-python` instrumentation | `pip install "obskit[kafka]"` |
-| `rabbitmq` | `pika` instrumentation | `pip install "obskit[rabbitmq]"` |
-| `redis` | `redis` instrumentation | `pip install "obskit[redis]"` |
-| `httpx` | `httpx` instrumentation | `pip install "obskit[httpx]"` |
-| `all` | Every extra above | `pip install "obskit[all]"` |
+```bash
+pip install obskit
+```
+
+Core includes: structured logging, RED metrics, distributed tracing (OTel), FastAPI/Flask/Django middleware.
+
+### Observability backends
+
+```bash
+pip install obskit[prometheus]   # Prometheus /metrics endpoint
+pip install obskit[otlp]         # OpenTelemetry OTLP export (tracing + metrics)
+```
+
+### Framework middleware
+
+```bash
+pip install obskit[fastapi]
+pip install obskit[flask]
+pip install obskit[django]
+```
+
+### SLO tracking
+
+```bash
+pip install obskit[slo]              # SLO tracker only
+pip install obskit[slo-prometheus]   # + Prometheus burn-rate metrics
+pip install obskit[slo-all]          # everything SLO
+```
+
+### Health checks
+
+```bash
+pip install obskit[health]           # health checker + router
+pip install obskit[health-http]      # + HTTP reachability check
+pip install obskit[health-all]       # everything health
+```
+
+### Database integrations
+
+```bash
+pip install obskit[sqlalchemy]       # SQLAlchemy OTel auto-instrumentation
+pip install obskit[psycopg2]         # psycopg2 OTel auto-instrumentation (sync)
+pip install obskit[psycopg3]         # psycopg3 OTel auto-instrumentation (sync + async)
+pip install obskit[db]               # all three DB drivers
+```
+
+### Message queue integrations
+
+```bash
+pip install obskit[kafka]            # Kafka consumer instrumentation
+pip install obskit[rabbitmq]         # RabbitMQ consumer instrumentation
+```
+
+### gRPC
+
+```bash
+pip install obskit[grpc]             # gRPC server/client middleware
+```
+
+### All integrations
+
+```bash
+pip install obskit[integrations]     # db + kafka + rabbitmq + grpc
+```
+
+### Everything
+
+```bash
+pip install obskit[all]
+```
+
+### Typical Microservice Examples (combined extras)
 
 Multiple extras can be combined in a single install command by separating them with commas.
 
@@ -112,13 +170,13 @@ CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
 ### Example `requirements.txt`
 
 ```text
-"obskit[prometheus,otlp,fastapi]==3.3.0"
+"obskit[prometheus,otlp,fastapi]==1.0.0"
 fastapi==0.115.0
 uvicorn[standard]==0.30.0
 ```
 
 !!! tip "Pin exact versions in production"
-    Use `pip-compile` (from `pip-tools`) or `uv lock` to generate a fully-resolved lockfile. Pinning obskit to `==3.0.0` prevents accidental upgrades from breaking your observability config.
+    Use `pip-compile` (from `pip-tools`) or `uv lock` to generate a fully-resolved lockfile. Pinning obskit to `==1.0.0` prevents accidental upgrades from breaking your observability config.
 
 ### Multi-Stage Build (smaller image)
 
@@ -167,11 +225,11 @@ python -m obskit.core.diagnose
 Expected output (all extras installed, OTLP reachable):
 
 ```
-obskit v3.3.0 — Diagnostic Report
+obskit v1.0.0 — Diagnostic Report
 ══════════════════════════════════════════════════════════════
   Component          Status
   ─────────────────────────────────────────────────────────
-  obskit             3.3.0     OK
+  obskit             1.0.0     OK
   prometheus         OK
   otlp               OK
   fastapi            OK
@@ -280,7 +338,7 @@ obskit reads its configuration exclusively from environment variables (no config
 # .env (local development)
 OBSKIT_SERVICE_NAME=order-service
 OBSKIT_ENVIRONMENT=development
-OBSKIT_VERSION=3.3.0
+OBSKIT_VERSION=1.0.0
 
 OBSKIT_OTLP_ENDPOINT=http://localhost:4317
 OBSKIT_TRACE_SAMPLE_RATE=1.0
@@ -295,7 +353,7 @@ OBSKIT_METRICS_PORT=9090
 # .env.production
 OBSKIT_SERVICE_NAME=order-service
 OBSKIT_ENVIRONMENT=production
-OBSKIT_VERSION=3.3.0
+OBSKIT_VERSION=1.0.0
 
 OBSKIT_OTLP_ENDPOINT=http://otel-collector.monitoring.svc.cluster.local:4317
 OBSKIT_OTLP_INSECURE=false
@@ -311,7 +369,6 @@ OBSKIT_METRICS_PORT=9090
 
 ## Upgrade from v1
 
-If you are upgrading an existing v1 project, see the [Migration Guide](migration.md) for a complete step-by-step walkthrough including import mapping, configuration changes, and a rollback strategy.
 
 ---
 

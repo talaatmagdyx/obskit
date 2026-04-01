@@ -30,8 +30,8 @@ Histogram observation (0.045 s)
 
 | Package | Minimum version | Role |
 |---------|-----------------|------|
-| `obskit[prometheus]` | 3.0.0 | `observe_with_exemplar()` / `get_trace_exemplar()` |
-| `obskit[otlp]` | 3.0.0 | Active OTel span context |
+| `obskit[prometheus]` | 1.0.0 | `observe_with_exemplar()` / `get_trace_exemplar()` |
+| `obskit[otlp]` | 1.0.0 | Active OTel span context |
 | `prometheus_client` | 0.16.0 | Exemplar storage and OpenMetrics exposition |
 | `opentelemetry-sdk` | 1.20.0 | OTel span context |
 
@@ -115,13 +115,15 @@ from fastapi import FastAPI, Request, Response
 from prometheus_client import Histogram, generate_latest, CONTENT_TYPE_LATEST
 from opentelemetry import trace
 
+from obskit import configure_observability, instrument_fastapi
 from obskit.logging import get_logger
 from obskit.metrics import observe_with_exemplar, is_exemplar_available
-from obskit.middleware.fastapi import ObservabilityMiddleware
-from obskit.tracing import setup_tracing
 
-# ── Initialise tracing ────────────────────────────────────────────────────────
-setup_tracing(service_name="order-service", exporter_endpoint="http://localhost:4317")
+# ── Initialise observability ─────────────────────────────────────────────────
+configure_observability(
+    service_name="order-service",
+    otlp_endpoint="http://localhost:4317",
+)
 
 # ── Define metrics ────────────────────────────────────────────────────────────
 REQUEST_DURATION = Histogram(
@@ -141,7 +143,7 @@ log = get_logger("order_service")
 
 # ── Application ───────────────────────────────────────────────────────────────
 app = FastAPI()
-app.add_middleware(ObservabilityMiddleware, service_name="order-service")
+instrument_fastapi(app)
 
 
 @app.middleware("http")

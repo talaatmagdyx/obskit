@@ -431,18 +431,18 @@ def inject_trace_context(headers: dict[str, str] | None = None) -> dict[str, str
     return headers
 
 
-_W3C_TRACEPARENT_RE = None  # Compiled on first use
+import re as _re
+
+# W3C traceparent: version(2)-traceId(32)-parentId(16)-flags(2).
+# Compiled once at module load — the lazy approach had a race where two
+# threads could both see None and both create a separate Pattern object.
+_W3C_TRACEPARENT_RE = _re.compile(
+    r"^[0-9a-fA-F]{2}-[0-9a-fA-F]{32}-[0-9a-fA-F]{16}-[0-9a-fA-F]{2}$"
+)
 
 
 def _get_traceparent_re() -> Any:
-    """Return compiled W3C traceparent regex (lazy, avoids import-time cost)."""
-    global _W3C_TRACEPARENT_RE
-    if _W3C_TRACEPARENT_RE is None:
-        import re
-
-        _W3C_TRACEPARENT_RE = re.compile(
-            r"^[0-9a-fA-F]{2}-[0-9a-fA-F]{32}-[0-9a-fA-F]{16}-[0-9a-fA-F]{2}$"
-        )
+    """Return compiled W3C traceparent regex."""
     return _W3C_TRACEPARENT_RE
 
 

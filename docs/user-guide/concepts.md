@@ -213,57 +213,6 @@ Google's Site Reliability Engineering book defines **four golden signals** that 
 !!! note "RED vs Golden Signals"
     RED and Golden Signals overlap significantly. The key addition in Golden Signals is **Saturation** — a leading indicator. Saturation often predicts problems before they manifest as latency or errors.
 
-### obskit GoldenSignals
-
-```python
-from obskit.metrics.golden import GoldenSignals
-
-gs = GoldenSignals(service="recommendation-engine")
-
-# Record request outcome
-gs.record_request(endpoint="/recommend", duration=0.054, success=True)
-
-# Record saturation (e.g., from a background loop)
-gs.record_saturation(
-    resource="worker_pool",
-    utilization=0.87,   # 87% workers busy
-)
-```
-
----
-
-## The USE Method
-
-USE stands for **Utilization, Saturation, Errors**. It was designed by Brendan Gregg for **infrastructure resources** (CPUs, disks, network interfaces, thread pools, connection pools).
-
-| Signal      | Definition                                                          |
-|-------------|---------------------------------------------------------------------|
-| Utilization | Average time a resource is busy (percentage)                        |
-| Saturation  | Degree to which the resource has extra work queued (queue depth)    |
-| Errors      | Count of error events (disk I/O errors, packet drops, etc.)        |
-
-!!! info "When to use USE vs RED"
-    - **RED** for services that handle requests (APIs, gRPCs)
-    - **USE** for resources those services depend on (databases, caches, thread pools, CPUs)
-
-    Apply **both** and you get a complete picture: RED shows user-facing impact, USE explains the root cause.
-
-### obskit USEMetrics
-
-```python
-from obskit.metrics.use import USEMetrics
-
-use = USEMetrics(resource="db_connection_pool", namespace="myapp")
-
-# Periodically (e.g., every 15 seconds):
-pool_stats = get_pool_stats()
-use.record(
-    utilization=pool_stats.active / pool_stats.total,
-    saturation=pool_stats.waiting,
-    errors=pool_stats.connection_errors_since_last,
-)
-```
-
 ---
 
 ## SLOs and Error Budgets
@@ -365,11 +314,12 @@ gantt
 Tracing every request at scale is expensive. obskit supports **adaptive sampling** via OpenTelemetry's `TraceIdRatioBased` sampler, optionally combined with `ParentBased` to honour upstream sampling decisions.
 
 ```python
-from obskit.tracing import setup_tracing
+from obskit import configure_observability
 
-setup_tracing(
-    exporter_endpoint="http://tempo:4317",
-    sample_rate=0.1,    # Sample 10% of traces
+configure_observability(
+    service_name="my-service",
+    otlp_endpoint="http://tempo:4317",
+    trace_sample_rate=0.1,    # Sample 10% of traces
 )
 ```
 
@@ -425,56 +375,6 @@ obskit follows the **OpenTelemetry Semantic Conventions** for log field names:
 
 ---
 
-## Circuit Breakers
-
-### The Cascading Failure Problem
-
-Imagine Service A calls Service B. Service B starts responding slowly (perhaps its database is under load). Service A's threads start accumulating, each waiting for B to respond. Eventually A runs out of threads and starts refusing requests. Now all services upstream of A are also failing — a cascading failure.
-
-```mermaid
-graph LR
-    A[Service A] -->|calls| B[Service B]
-    B -->|calls| DB[(Database)]
-    DB -.->|slow!| B
-    B -.->|backed up| A
-    A -.->|threads exhausted| A
-    A -.->|cascades| Upstream[Upstream Services]
-```
-
-### Circuit Breaker Pattern
-
-A circuit breaker wraps calls to a dependency. It tracks failure rates and, when they exceed a threshold, **opens** the circuit — immediately failing fast instead of waiting for the dependency to time out.
-
-```
-CLOSED → (failure threshold exceeded) → OPEN
-OPEN   → (timeout elapsed)            → HALF-OPEN
-HALF-OPEN → (probe succeeds)          → CLOSED
-HALF-OPEN → (probe fails)             → OPEN
-```
-
-**States:**
-- **Closed**: Normal operation. All calls pass through.
-- **Open**: Dependency is failing. Calls fail immediately (no network call).
-- **Half-Open**: Testing if the dependency has recovered. One probe call allowed.
-
-```python
-from obskit.resilience import CircuitBreaker
-
-cb = CircuitBreaker(
-    name="payment-gateway",
-    failure_threshold=5,
-    recovery_timeout=30.0,
-)
-
-@cb
-async def call_payment_gateway(amount: int):
-    return await gateway.charge(amount)
-```
-
-See the [Resilience guide](resilience.md) for retry strategies and rate limiting.
-
----
-
 ## PII Redaction
 
 ### Compliance Requirements
@@ -509,14 +409,7 @@ In a SaaS system, a single deployment serves multiple tenants. Observability mus
 - **Per-tenant logs**: Filter all logs for a specific tenant to debug their issue without noise from others.
 - **Per-tenant traces**: Trace a specific tenant's request flow.
 
-obskit propagates tenant IDs via W3C Baggage (a mechanism for propagating key-value context alongside trace context) and exposes `TenantMetrics` for isolated metric collection.
-
-```python
-from obskit.metrics.tenant import TenantMetrics
-
-tenant_metrics = TenantMetrics(service="api")
-tenant_metrics.record_request(tenant_id="tenant_abc", endpoint="/api/data", duration=0.023)
-```
+obskit propagates tenant IDs via W3C Baggage (a mechanism for propagating key-value context alongside trace context).
 
 ```mermaid
 graph TD
@@ -571,11 +464,10 @@ obskit makes this workflow possible out of the box — trace IDs are automatical
 
 | Topic | Guide |
 |---|---|
-| Collecting metrics (RED, USE, Golden Signals) | [Metrics](metrics.md) |
+| Collecting metrics (RED method) | [Metrics](metrics.md) |
 | Distributed tracing with OpenTelemetry | [Tracing](tracing.md) |
 | Structured logging with trace correlation | [Logging](logging.md) |
 | Kubernetes health probes | [Health Checks](health-checks.md) |
-| Circuit breakers and retry | [Resilience](resilience.md) |
 | SLOs and error budgets | [SLO Tracking](slo.md) |
 | GDPR-compliant PII redaction | [PII Redaction](pii.md) |
 | Per-tenant observability | [Multi-Tenancy](multi-tenancy.md) |

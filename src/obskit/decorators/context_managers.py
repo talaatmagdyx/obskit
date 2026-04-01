@@ -42,7 +42,7 @@ from contextlib import asynccontextmanager, contextmanager, nullcontext
 from typing import Any
 
 from obskit.core.context import async_correlation_context, get_correlation_id
-from obskit.decorators.ht_runtime import get_ht_pipeline
+from obskit.decorators._ht_pipeline import get_ht_pipeline
 from obskit.logging import get_logger, log_error, log_operation, log_performance
 from obskit.metrics.red import get_red_metrics
 

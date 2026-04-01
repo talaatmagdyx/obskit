@@ -28,7 +28,6 @@ Metrics (Prometheus):
     - ``OBSKIT_METRICS_ENABLED``: Enable Prometheus metrics (default: true)
     - ``OBSKIT_METRICS_PORT``: Metrics HTTP server port (default: 9090)
     - ``OBSKIT_METRICS_PATH``: Metrics endpoint path (default: "/metrics")
-    - ``OBSKIT_METRICS_METHOD``: Metrics methodology (red/golden/use/all, default: "red")
     - ``OBSKIT_USE_HISTOGRAM``: Use histograms for latency (default: true)
     - ``OBSKIT_USE_SUMMARY``: Use summaries for percentiles (default: false)
 
@@ -39,21 +38,6 @@ Logging:
 
 Health Checks:
     - ``OBSKIT_HEALTH_CHECK_TIMEOUT``: Timeout in seconds (default: 5.0)
-
-Circuit Breaker:
-    - ``OBSKIT_CIRCUIT_BREAKER_FAILURE_THRESHOLD``: Failures before open (default: 5)
-    - ``OBSKIT_CIRCUIT_BREAKER_RECOVERY_TIMEOUT``: Recovery wait seconds (default: 30.0)
-    - ``OBSKIT_CIRCUIT_BREAKER_HALF_OPEN_REQUESTS``: Test requests (default: 3)
-
-Retry:
-    - ``OBSKIT_RETRY_MAX_ATTEMPTS``: Maximum retry attempts (default: 3)
-    - ``OBSKIT_RETRY_BASE_DELAY``: Base delay in seconds (default: 1.0)
-    - ``OBSKIT_RETRY_MAX_DELAY``: Maximum delay in seconds (default: 60.0)
-    - ``OBSKIT_RETRY_EXPONENTIAL_BASE``: Exponential base (default: 2.0)
-
-Rate Limiting:
-    - ``OBSKIT_RATE_LIMIT_REQUESTS``: Requests per window (default: 100)
-    - ``OBSKIT_RATE_LIMIT_WINDOW_SECONDS``: Window size in seconds (default: 60.0)
 
 Example - Environment Variables
 -------------------------------
@@ -110,22 +94,13 @@ from __future__ import annotations
 
 import threading
 import warnings
-from enum import StrEnum
-from typing import Any, Literal
+from typing import TYPE_CHECKING, Literal
+
+if TYPE_CHECKING:  # pragma: no cover
+    from obskit.core.observability import Observability
 
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
-
-
-# Define MetricsMethod locally to avoid circular imports
-# (obskit.core.types triggers obskit/__init__.py which causes import cycle)
-class MetricsMethod(StrEnum):
-    """Metrics methodology enumeration."""
-
-    RED = "red"
-    GOLDEN = "golden"
-    USE = "use"
-    ALL = "all"
 
 
 class ObskitSettings(BaseSettings):
@@ -352,17 +327,6 @@ class ObskitSettings(BaseSettings):
         ),
     )
 
-    metrics_method: MetricsMethod = Field(
-        default=MetricsMethod.RED,
-        description=(
-            "Metrics methodology to use. Options: "
-            "- red: Rate, Errors, Duration (service metrics) "
-            "- golden: Four Golden Signals (service + saturation) "
-            "- use: Utilization, Saturation, Errors (infrastructure) "
-            "- all: All methodologies"
-        ),
-    )
-
     use_histogram: bool = Field(
         default=True,
         description=(
@@ -432,109 +396,6 @@ class ObskitSettings(BaseSettings):
     )
 
     # =========================================================================
-    # Circuit Breaker Configuration
-    # Configure circuit breaker defaults for resilience
-    # =========================================================================
-
-    circuit_breaker_failure_threshold: int = Field(
-        default=5,
-        ge=1,
-        description=(
-            "Number of consecutive failures before circuit opens. "
-            "Lower values = faster failure detection but more false positives. "
-            "Higher values = slower detection but fewer false positives."
-        ),
-    )
-
-    circuit_breaker_recovery_timeout: float = Field(
-        default=30.0,
-        ge=1.0,
-        description=(
-            "Seconds to wait before testing recovery (half-open state). "
-            "Set based on expected recovery time of downstream services. "
-            "Too short = unnecessary load on recovering service. "
-            "Too long = extended outage time."
-        ),
-    )
-
-    circuit_breaker_half_open_requests: int = Field(
-        default=3,
-        ge=1,
-        description=(
-            "Number of test requests allowed in half-open state. "
-            "These requests test if the downstream service has recovered. "
-            "If all succeed, circuit closes. If any fail, circuit opens."
-        ),
-    )
-
-    # =========================================================================
-    # Retry Configuration
-    # Configure retry behavior with exponential backoff
-    # =========================================================================
-
-    retry_max_attempts: int = Field(
-        default=3,
-        ge=1,
-        description=(
-            "Maximum number of retry attempts (including first try). "
-            "Total attempts = retry_max_attempts. "
-            "Example: 3 means try once, retry twice if failed."
-        ),
-    )
-
-    retry_base_delay: float = Field(
-        default=1.0,
-        ge=0.0,
-        description=(
-            "Base delay in seconds for exponential backoff. "
-            "Actual delay = base_delay * (exponential_base ^ attempt). "
-            "With jitter, delay is randomized between 0 and calculated value."
-        ),
-    )
-
-    retry_max_delay: float = Field(
-        default=60.0,
-        ge=0.0,
-        description=(
-            "Maximum delay in seconds between retries. "
-            "Caps the exponential backoff to prevent excessively long waits."
-        ),
-    )
-
-    retry_exponential_base: float = Field(
-        default=2.0,
-        ge=1.0,
-        description=(
-            "Base for exponential backoff calculation. "
-            "With base=2: delays are 1s, 2s, 4s, 8s, 16s... "
-            "With base=3: delays are 1s, 3s, 9s, 27s..."
-        ),
-    )
-
-    # =========================================================================
-    # Rate Limiting Configuration
-    # Configure default rate limiting behavior
-    # =========================================================================
-
-    rate_limit_requests: int = Field(
-        default=100,
-        ge=1,
-        description=(
-            "Default maximum requests allowed per time window. "
-            "Adjust based on your service's capacity."
-        ),
-    )
-
-    rate_limit_window_seconds: float = Field(
-        default=60.0,
-        ge=1.0,
-        description=(
-            "Default time window for rate limiting in seconds. "
-            "Example: 100 requests per 60 seconds = ~1.67 requests/second."
-        ),
-    )
-
-    # =========================================================================
     # Metrics Sampling Configuration
     # Configure sampling for high-frequency operations
     # =========================================================================
@@ -570,116 +431,13 @@ class ObskitSettings(BaseSettings):
         ),
     )
 
-    # =========================================================================
-    # Security Configuration
-    # Configure security features
-    # =========================================================================
-
-    metrics_auth_enabled: bool = Field(
-        default=False,
-        description=(
-            "Enable authentication for metrics endpoint. "
-            "When enabled, metrics endpoint requires authentication token."
-        ),
-    )
-
-    metrics_auth_token: str = Field(
-        default="",
-        repr=False,
-        description=(
-            "Authentication token for metrics endpoint. "
-            "Required if metrics_auth_enabled=True. "
-            "Set via environment variable for security."
-        ),
-        json_schema_extra={"secret": True},
-    )
-
-    # =========================================================================
-    # Logging Backend Configuration
-    # =========================================================================
-
-    logging_backend: Literal["structlog", "loguru", "auto"] = Field(
-        default="structlog",
-        description=(
-            "Logging backend to use. Options: "
-            "- structlog: Default, recommended for production "
-            "- loguru: Alternative backend with rich features "
-            "- auto: Auto-detect, prefer structlog if available"
-        ),
-    )
-
-    # =========================================================================
-    # Internal Queue Configuration
-    # Configure internal queue sizes for async operations
-    # =========================================================================
-
-    async_metric_queue_size: int = Field(
-        default=10000,
-        ge=100,
-        le=1000000,
-        description=(
-            "Maximum size of async metric recording queue. "
-            "When queue is full, metrics are dropped with warning. "
-            "Larger values use more memory but handle bursts better. "
-            "Default: 10000 (suitable for most services)."
-        ),
-    )
-
-    # =========================================================================
-    # Self-Monitoring Configuration
-    # Configure obskit's internal metrics and monitoring
-    # =========================================================================
-
-    enable_self_metrics: bool = Field(
-        default=True,
-        description=(
-            "Enable obskit's internal metrics (queue depth, errors, etc.). "
-            "Useful for monitoring obskit's own health and performance."
-        ),
-    )
-
-    # =========================================================================
-    # Rate Limiting for Metrics Endpoint
-    # =========================================================================
-
-    metrics_rate_limit_enabled: bool = Field(
-        default=False,
-        description=(
-            "Enable rate limiting for metrics endpoint. "
-            "Helps prevent DoS attacks on the metrics endpoint."
-        ),
-    )
-
-    metrics_rate_limit_requests: int = Field(
-        default=60,
-        ge=1,
-        description=(
-            "Maximum requests per minute to metrics endpoint. "
-            "Only applies if metrics_rate_limit_enabled=True."
-        ),
-    )
-
-    # Names of fields whose values must be masked in any serialised output.
-    # Extend this tuple when adding new secret fields to ObskitSettings.
-    _SECRET_FIELDS: tuple[str, ...] = ("metrics_auth_token",)
-
-    def model_dump(self, **kwargs: Any) -> dict[str, Any]:
-        """Return settings as a dict, with secret fields replaced by ``[REDACTED]``.
-
-        This prevents credentials leaking when the settings object is passed to
-        ``logger.info("config_loaded", settings=settings.model_dump())`` or
-        similar patterns.
-        """
-        data: dict[str, Any] = super().model_dump(**kwargs)
-        for field in self._SECRET_FIELDS:
-            if data.get(field):
-                data[field] = "[REDACTED]"
-        return data
-
     def __str__(self) -> str:
-        """String representation with secrets redacted."""
-        safe = self.model_dump()
-        return f"ObskitSettings({safe})"
+        """String representation showing key fields."""
+        return (
+            f"ObskitSettings(service_name={self.service_name!r}, "
+            f"environment={self.environment!r}, "
+            f"version={self.version!r})"
+        )
 
 
 # =============================================================================
@@ -703,35 +461,16 @@ def get_settings() -> ObskitSettings:
     ObskitSettings
         The current configuration settings.
 
-    Example
-    -------
-    >>> from obskit.config import get_settings
-    >>>
-    >>> settings = get_settings()
-    >>> print(f"Service: {settings.service_name}")
-    >>> print(f"Environment: {settings.environment}")
-    >>> print(f"Log Level: {settings.log_level}")
-
-    Notes
-    -----
-    If you need to change settings after initialization, call configure()
-    again with the new values. This will replace the existing settings.
-
     Thread Safety
     -------------
     This function is thread-safe using double-checked locking pattern.
     """
     global _settings
 
-    # Double-checked locking for construction; lock also covers the return read
-    # so a concurrent configure() replacement is never observed half-written.
-    # This pattern is correct and intentional for CPython (GIL ensures atomicity
-    # of the outer `if _settings is None` check for the common fast-path case).
     if _settings is None:
         with _settings_lock:
             if _settings is None:  # pragma: no cover  # re-check inside lock
                 _settings = ObskitSettings()  # pragma: no cover
-            return _settings
 
     return _settings
 
@@ -740,91 +479,17 @@ def configure(*, strict: bool = False, **kwargs: object) -> ObskitSettings:
     """
     Configure obskit settings programmatically.
 
-    This function should be called once at application startup to configure
-    observability settings. It can also be called again to update settings,
-    though this is not recommended in production.
-
     Parameters
     ----------
     strict : bool, default=False
-        When True, raise ``ValueError`` if any configuration validation errors
-        are detected (e.g. conflicting options, missing required fields for an
-        enabled feature).  When False (default) errors are logged as warnings
-        and execution continues — useful during development.  Set to ``True``
-        in production to catch misconfiguration at startup rather than
-        at runtime.
+        When True, raise on configuration errors.
     **kwargs : object
         Configuration values matching ObskitSettings fields.
-        See ObskitSettings class for available options.
 
     Returns
     -------
     ObskitSettings
         The configured settings instance.
-
-    Example - Basic Configuration
-    -----------------------------
-    >>> from obskit import configure
-    >>>
-    >>> configure(
-    ...     service_name="order-service",
-    ...     environment="production",
-    ...     log_level="INFO",
-    ... )
-
-    Example - Full Configuration
-    ----------------------------
-    >>> from obskit import configure
-    >>>
-    >>> configure(
-    ...     # Service identification
-    ...     service_name="order-service",
-    ...     environment="production",
-    ...     version="1.2.3",
-    ...
-    ...     # Tracing
-    ...     tracing_enabled=True,
-    ...     otlp_endpoint="http://jaeger:4317",
-    ...     trace_sample_rate=0.1,  # Sample 10% of traces
-    ...
-    ...     # Metrics
-    ...     metrics_enabled=True,
-    ...     metrics_port=9090,
-    ...
-    ...     # Logging
-    ...     log_level="INFO",
-    ...     log_format="json",
-    ...
-    ...     # Resilience
-    ...     circuit_breaker_failure_threshold=5,
-    ...     retry_max_attempts=3,
-    ... )
-
-    Example - FastAPI Integration
-    -----------------------------
-    >>> from fastapi import FastAPI
-    >>> from obskit import configure
-    >>>
-    >>> app = FastAPI()
-    >>>
-    >>> @app.on_event("startup")
-    ... async def startup():
-    ...     configure(
-    ...         service_name="my-api",
-    ...         environment="production",
-    ...     )
-
-    Notes
-    -----
-    - Call this early in your application startup, before using any obskit features
-    - Programmatic configuration (kwargs passed here) takes precedence over
-      environment variables and .env files (init args > env vars > defaults)
-    - The settings are global and shared across your application
-
-    See Also
-    --------
-    get_settings : Get the current settings instance
-    reset_settings : Reset settings to defaults (for testing)
     """
     global _settings
 
@@ -837,12 +502,8 @@ def configure(*, strict: bool = False, **kwargs: object) -> ObskitSettings:
         )
 
     with _settings_lock:
-        # Create new settings with provided values
-        # Type ignore because we're passing dynamic kwargs
         _settings = ObskitSettings(**kwargs)  # type: ignore[arg-type]
 
-    # Validate config and surface any issues at startup via stdlib logging
-    # so operators see them regardless of structlog configuration state.
     import logging as _std_logging
 
     _cfg_logger = _std_logging.getLogger("obskit.config")
@@ -856,6 +517,40 @@ def configure(*, strict: bool = False, **kwargs: object) -> ObskitSettings:
             )
 
     return _settings
+
+
+def configure_observability(*, strict: bool = False, **kwargs: object) -> Observability:
+    """Configure obskit and return an :class:`~obskit.core.observability.Observability` handle.
+
+    This is the **recommended** way to initialise obskit.  It creates an
+    :class:`ObskitSettings` (preserving env-var loading), converts it to an
+    immutable :class:`~obskit.core.observability_config.ObservabilityConfig`,
+    wraps it in an :class:`~obskit.core.observability.Observability` facade,
+    and stores both globally so that ``get_settings()`` and
+    ``get_observability()`` both work during the transition period.
+
+    Parameters
+    ----------
+    strict : bool, default=False
+        Raise on configuration errors (same semantics as :func:`configure`).
+    **kwargs : object
+        Any :class:`ObskitSettings` field as keyword argument.
+
+    Returns
+    -------
+    Observability
+        The runtime handle exposing ``.tracer``, ``.metrics``, ``.logger``,
+        ``.config`` and ``.shutdown()``.
+    """
+    from obskit.core.observability import Observability, _set_observability
+    from obskit.core.observability_config import ObservabilityConfig
+
+    settings = configure(strict=strict, **kwargs)
+
+    config = ObservabilityConfig.from_settings(settings)
+    obs = Observability(config)
+    _set_observability(obs)
+    return obs
 
 
 def reset_settings() -> None:
@@ -929,7 +624,7 @@ def validate_config() -> tuple[bool, list[str]]:
             f"obskit: environment '{settings.environment}' is not one of the conventional "
             f"values {sorted(_standard_envs)}. This is informational only and will not "
             "affect functionality.",
-            stacklevel=3,
+            stacklevel=2,
         )
 
     # Validate tracing configuration
@@ -946,25 +641,16 @@ def validate_config() -> tuple[bool, list[str]]:
                 "otlp_insecure is True in production environment. Consider using TLS for security."
             )
 
-    # Validate metrics configuration
-    if settings.metrics_enabled:
-        if settings.metrics_port < 1 or settings.metrics_port > 65535:  # pragma: no cover
+        if (
+            settings.environment == "production"
+            and settings.otlp_endpoint == "http://localhost:4317"
+        ):
             errors.append(
-                f"metrics_port {settings.metrics_port} is not a valid port number (1-65535)"
+                "otlp_endpoint is the default 'http://localhost:4317' in production. "
+                "Set OBSKIT_OTLP_ENDPOINT to your collector address."
             )
 
-    # Validate log level
-    if settings.log_level not in [
-        "DEBUG",
-        "INFO",
-        "WARNING",
-        "ERROR",
-        "CRITICAL",
-    ]:  # pragma: no cover
-        errors.append(f"log_level '{settings.log_level}' is not a valid log level")
-
-    # Validate trace sample rate
-    if settings.trace_sample_rate < 0.0 or settings.trace_sample_rate > 1.0:  # pragma: no cover
-        errors.append(f"trace_sample_rate {settings.trace_sample_rate} must be between 0.0 and 1.0")
+    # NOTE: metrics_port bounds, log_level literal values, and trace_sample_rate range are
+    # all enforced by Pydantic at ObskitSettings construction time. No runtime checks needed.
 
     return (len(errors) == 0, errors)

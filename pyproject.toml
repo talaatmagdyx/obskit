@@ -1,6 +1,6 @@
 [project]
 name = "obskit"
-version = "3.3.0"
+version = "1.1.0"
 description = "Production-ready observability toolkit for Python microservices"
 readme = "README.md"
 license = "MIT"
@@ -36,7 +36,8 @@ Changelog = "https://github.com/talaatmagdyx/obskit/blob/main/CHANGELOG.md"
 Documentation = "https://talaatmagdyx.github.io/obskit/"
 
 [project.optional-dependencies]
-# Metrics backends
+
+# ── Observability backends ─────────────────────────────────────────────────
 prometheus = ["prometheus-client>=0.19.0,<1.0.0"]
 otlp = [
     "opentelemetry-api>=1.20.0,<2.0.0",
@@ -44,34 +45,47 @@ otlp = [
     "opentelemetry-exporter-otlp>=1.20.0,<2.0.0",
     "opentelemetry-exporter-otlp-proto-grpc>=1.20.0,<2.0.0",
 ]
-# Logging extras
-loguru = ["loguru>=0.7.0,<1.0.0"]
-# Web framework middleware
+
+# ── Framework middleware ───────────────────────────────────────────────────
 fastapi = ["fastapi>=0.100.0,<1.0.0", "starlette>=0.27.0,<1.0.0"]
-flask = ["flask>=2.0.0,<4.0.0", "werkzeug>=2.0.0,<4.0.0"]
-django = ["django>=4.0.0,<6.0.0"]
-# Database
-sqlalchemy = ["sqlalchemy>=2.0.0,<3.0.0"]
-# Message queues
-kafka = ["kafka-python>=2.0.0,<3.0.0"]
-rabbitmq = ["pika>=1.3.0,<2.0.0"]
-# Health check extras
-redis = ["redis>=5.0.0,<8.0.0"]
-httpx = ["httpx>=0.25.0,<1.0.0"]
-# OpenTelemetry auto-instrumentation
-otel-fastapi  = ["opentelemetry-instrumentation-fastapi>=0.41b0"]
-otel-sqlalchemy = ["opentelemetry-instrumentation-sqlalchemy>=0.41b0"]
-otel-redis    = ["opentelemetry-instrumentation-redis>=0.41b0"]
-otel-httpx    = ["opentelemetry-instrumentation-httpx>=0.41b0"]
-otel-celery   = ["opentelemetry-instrumentation-celery>=0.41b0"]
-otel-django   = ["opentelemetry-instrumentation-django>=0.41b0"]
-otel-requests = ["opentelemetry-instrumentation-requests>=0.41b0"]
-otel-grpc     = ["opentelemetry-instrumentation-grpc>=0.41b0"]
-otel-aiopika  = ["opentelemetry-instrumentation-aio-pika>=0.41b0"]
-# Kitchen-sink: everything
-all = [
-    "obskit[prometheus,otlp,loguru,fastapi,flask,django,sqlalchemy,kafka,rabbitmq,redis,httpx]",
+flask   = ["flask>=2.0.0,<4.0.0", "werkzeug>=2.0.0,<4.0.0"]
+django  = ["django>=4.0.0,<6.0.0"]
+
+# ── SLO tracking ──────────────────────────────────────────────────────────
+slo            = []
+slo-prometheus = ["prometheus-client>=0.19.0,<1.0.0"]
+slo-all        = ["obskit[slo,slo-prometheus]"]
+
+# ── Health checks ─────────────────────────────────────────────────────────
+health      = []
+health-http = ["httpx>=0.25.0,<1.0.0"]
+health-all  = ["obskit[health,health-http]"]
+
+# ── Database integrations ─────────────────────────────────────────────────
+sqlalchemy = [
+    "sqlalchemy>=2.0.0,<3.0.0",
+    "opentelemetry-instrumentation-sqlalchemy>=0.41b0",
 ]
+psycopg2 = [
+    "psycopg2-binary>=2.7.3.1",
+    "opentelemetry-instrumentation-psycopg2>=0.41b0",
+]
+psycopg3 = [
+    "psycopg>=3.1.0",
+    "opentelemetry-instrumentation-psycopg>=0.41b0",
+]
+db = ["obskit[sqlalchemy,psycopg2,psycopg3]"]
+
+# ── Queue integrations ────────────────────────────────────────────────────
+kafka    = ["kafka-python>=2.0.0,<3.0.0"]
+rabbitmq = ["pika>=1.3.0,<2.0.0"]
+
+# ── gRPC ──────────────────────────────────────────────────────────────────
+grpc = ["grpcio>=1.50.0,<2.0.0"]
+
+# ── Bundles ───────────────────────────────────────────────────────────────
+integrations = ["obskit[db,kafka,rabbitmq,grpc]"]
+all          = ["obskit[prometheus,otlp,fastapi,flask,django,slo-all,health-all,integrations]"]
 
 [build-system]
 requires = ["setuptools>=61.0"]
@@ -136,6 +150,11 @@ dev = [
 testpaths = ["tests/unit"]
 asyncio_mode = "auto"
 addopts = "-v --cov=src/obskit --cov-report=term-missing --import-mode=importlib"
+markers = [
+    "core: core obskit functionality",
+    "extended: extended modules (no external deps, niche features)",
+    "experimental: experimental modules (API may change between minor releases)",
+]
 
 [tool.coverage.run]
 source = ["src/obskit"]
@@ -165,36 +184,9 @@ ignore_missing_imports = true
 
 [[tool.mypy.overrides]]
 module = [
-    "obskit.testing.mocks",
-    "obskit.testing.testcase",
-    "obskit.testing.context",
-    "obskit.cache",
-    "obskit.cost",
-    "obskit.business",
-    "obskit.batch",
-    "obskit.shutdown",
-    "obskit.mixin",
     "obskit.middleware.base",
-    "obskit.errors.responses",
-    "obskit.correlation",
-    "obskit.validation",
-    "obskit.adaptive_sampling",
-    "obskit.audit",
-    "obskit.breakdown",
-    "obskit.debug.replay",
-    "obskit.executor",
     "obskit.logging.sampling",
-    "obskit.pools",
-    "obskit.annotations",
-    "obskit.autoscaling",
-    "obskit.dependency_graph",
-    "obskit.fingerprint",
-    "obskit.hot_path",
-    "obskit.memory",
     "obskit.metrics.cardinality",
-    "obskit.metrics.self_metrics",
-    "obskit.metrics.tenant",
-    "obskit.quota",
 ]
 # Progressive type-safety: require explicit annotations but allow untyped calls
 # (softer than ignore_errors=true, stricter than nothing — tackle module-by-module)

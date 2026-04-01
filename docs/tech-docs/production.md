@@ -1,6 +1,6 @@
 # Production Readiness Checklist
 
-Use this checklist before every production deployment of a service instrumented with obskit v2.0.0. Each section maps to a specific obskit package and the decisions you must make before going live.
+Use this checklist before every production deployment of a service instrumented with obskit v1.0.0. Each section maps to a specific obskit package and the decisions you must make before going live.
 
 ---
 
@@ -9,28 +9,28 @@ Use this checklist before every production deployment of a service instrumented 
 - [ ] `OBSKIT_SERVICE_NAME` set to a meaningful, unique name (not `"unknown"`)
 - [ ] `OBSKIT_ENVIRONMENT=production` set explicitly
 - [ ] `OBSKIT_VERSION` injected from CI/CD (git tag or image tag)
-- [ ] `configure()` called **before** any import that triggers `get_settings()`
-- [ ] `validate_config()` called at startup; fails fast if invalid
+- [ ] `configure_observability()` (v1.0.0+) or `configure()` called **before** any other obskit import
+- [ ] Configuration validated at startup; fails fast if invalid
 - [ ] No secrets in ConfigMaps — all sensitive values in Kubernetes Secrets or Vault
 - [ ] `.env` file excluded from Docker image (`COPY` excludes it or `.dockerignore` entry)
 
 ```python
 # main.py — configuration at the top, before other obskit imports
 import os
-from obskit import configure
-from obskit.config import validate_config
+from obskit import configure_observability
 
-configure(
+# v1.0.0+: single call configures logging, tracing, and metrics
+obs = configure_observability(
     service_name=os.environ["SERVICE_NAME"],
     environment=os.environ["DEPLOY_ENV"],
     version=os.environ["APP_VERSION"],
 )
 
-is_valid, errors = validate_config()
-if not is_valid:
-    for e in errors:
-        print(f"[STARTUP ERROR] {e}", flush=True)
-    raise SystemExit(1)
+# Legacy approach (still supported):
+# from obskit import configure
+# from obskit.config import validate_config
+# configure(service_name=..., environment=..., version=...)
+# is_valid, errors = validate_config()
 ```
 
 ---
@@ -40,21 +40,24 @@ if not is_valid:
 - [ ] `OBSKIT_LOG_FORMAT=json` — structured JSON for all production deployments
 - [ ] `OBSKIT_LOG_LEVEL=INFO` — avoid `DEBUG` in production (high volume, potential PII leakage)
 - [ ] `OBSKIT_LOG_INCLUDE_TIMESTAMP=true` unless your log aggregator adds its own
-- [ ] PII scrubbing processor attached to structlog pipeline
+- [x] PII scrubbing — **automatic** — the default `get_logger()` pipeline includes `make_redaction_processor()` which redacts `password`, `token`, `secret`, `api_key`, `authorization`, `card_number`, and 15+ other sensitive field names before any output is written. No setup required.
 - [ ] Log sampling rate set (`OBSKIT_LOG_SAMPLE_RATE`) for high-frequency paths
 - [ ] Log aggregator (Loki, Elasticsearch) confirmed to parse the JSON format
 - [ ] Correlation fields (`trace_id`, `span_id`) appear in log events from traced requests
 
 ```python
-from obskit.logging.factory import configure_logging
-configure_logging()   # sets up the full processor chain
+from obskit import configure_observability
+
+obs = configure_observability(service_name="my-service", log_format="json")
 
 # Verify trace injection works
-from obskit.logging import get_logger
-logger = get_logger(__name__)
-logger.info("startup complete", phase="init")
+log = obs.logger
+log.info("startup complete", phase="init")
 # JSON output should include: trace_id, span_id, service, environment, version
 ```
+
+!!! warning "OTLP log export"
+    Use `configure_otlp_logging()` for sending structured logs to an OTLP collector. The `OTLPLogHandler` class is a Python `logging.Handler` adapter that also exports via the same OTel pipeline when added to `logging.getLogger()`.
 
 ---
 
@@ -92,7 +95,7 @@ CardinalityGuard(
 - [ ] `OBSKIT_OTLP_ENDPOINT` points to a reachable collector (Tempo, Jaeger, Collector)
 - [ ] `OBSKIT_OTLP_INSECURE=false` — TLS enforced in production
 - [ ] Sample rate configured for traffic volume (see sampling strategy below)
-- [ ] `setup_tracing()` called before any request handler runs
+- [ ] `configure_observability()` (or legacy `setup_tracing()`) called before any request handler runs
 - [ ] W3C `traceparent` header propagated through all HTTP calls (verify with curl)
 - [ ] Span attributes do not contain PII (db.statement sanitised, request body excluded)
 - [ ] Tempo / Jaeger UI shows complete traces end-to-end
@@ -122,27 +125,18 @@ checker.add_check(HTTPCheck("payment-api", "https://api.payments.com/health",
 
 ---
 
-## 6. Resilience
+## 6. External Calls
 
-- [ ] Circuit breakers configured for all external calls
-- [ ] Retry policy tuned per dependency (idempotent calls only)
-- [ ] Rate limiter in place for write endpoints
-- [ ] Fallback responses defined for circuit-open state
-- [ ] Circuit breaker state exported as metrics (for alerting on repeated opens)
 - [ ] Timeout set on every HTTP client call (never use default unlimited timeout)
+- [ ] Retry logic implemented for idempotent operations
+- [ ] Fallback responses defined for dependency failures
 
 ```python
-from obskit.resilience import CircuitBreaker, with_retry
+import httpx
+from obskit.logging import get_logger
 
-cb = CircuitBreaker(
-    name="payment-api",
-    failure_threshold=5,
-    recovery_timeout=30.0,
-    half_open_requests=3,
-)
+log = get_logger(__name__)
 
-@with_retry(max_attempts=3, base_delay=1.0, max_delay=30.0)
-@cb
 async def charge_card(amount: float) -> dict:
     async with httpx.AsyncClient(timeout=10.0) as client:
         resp = await client.post("https://payments.acme.com/charge", json={"amount": amount})
@@ -284,7 +278,7 @@ groups:
 
 ## Graceful Shutdown
 
-obskit registers shutdown hooks automatically when you call `setup_tracing()` and `start_metrics_server()`. For custom cleanup:
+obskit registers shutdown hooks automatically when you call `configure_observability()` (or the legacy `setup_tracing()` and `start_metrics_server()`). For custom cleanup:
 
 ```python
 import signal
@@ -349,7 +343,7 @@ kubectl get pods -n production -l app=order-service
 # All pods should show 2/2 Running with READY state
 
 # 5. Confirm Grafana dashboards return to baseline
-# Check: error rate, p99 latency, circuit breaker state
+# Check: error rate, p99 latency, SLO burn rate
 ```
 
 ---
@@ -397,14 +391,15 @@ groups:
         annotations:
           summary: "Service health check failing"
 
-      # Circuit breaker opened
-      - alert: CircuitBreakerOpen
-        expr: circuit_breaker_state{state="open"} == 1
-        for: 0m
+      # SLO burn rate high
+      - alert: SLOBurnRateHigh
+        expr: |
+          slo_error_budget_remaining{service="order-service"} < 0.1
+        for: 5m
         labels:
           severity: warning
         annotations:
-          summary: "Circuit breaker {{ $labels.name }} is open"
+          summary: "SLO error budget below 10% for {{ $labels.service }}"
 ```
 
 ---

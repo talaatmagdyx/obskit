@@ -2,6 +2,21 @@
 
 obskit wraps the OpenTelemetry Python SDK to give you a simple, opinionated tracing setup with minimal configuration. You get distributed tracing, auto-instrumentation for popular frameworks, and seamless correlation with logs and metrics.
 
+!!! tip "Unified setup (v1.0.0+)"
+    For most applications, use `configure_observability()` to set up tracing along with logging and metrics:
+
+    ```python
+    from obskit import configure_observability
+
+    obs = configure_observability(
+        service_name="my-service",
+        otlp_endpoint="http://tempo:4317",
+        trace_sample_rate=0.1,
+    )
+    ```
+
+    The per-module `setup_tracing()` API documented below remains fully supported for advanced use cases.
+
 ---
 
 ## Quick Start

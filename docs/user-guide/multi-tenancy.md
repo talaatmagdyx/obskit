@@ -32,58 +32,6 @@ flowchart LR
 
 ---
 
-## Per-Tenant Metrics with TenantMetrics
-
-```python
-from obskit.metrics.tenant import TenantMetrics
-
-tenant_metrics = TenantMetrics(
-    service="api",
-    namespace="myapp",
-    max_tenants=1000,      # Cardinality guard — reject unknown tenant IDs above this count
-)
-```
-
-### Recording requests
-
-```python
-tenant_metrics.record_request(
-    tenant_id="acme",
-    endpoint="/api/reports",
-    method="GET",
-    duration=0.087,
-    status_code=200,
-)
-```
-
-Generated Prometheus metrics:
-
-```text
-myapp_tenant_requests_total{service="api", tenant_id="acme", endpoint="/api/reports", method="GET", status_code="200"} 1423
-myapp_tenant_request_duration_seconds_bucket{service="api", tenant_id="acme", endpoint="/api/reports", le="0.1"} 1389
-myapp_tenant_errors_total{service="api", tenant_id="acme", endpoint="/api/reports", error_type="DatabaseTimeout"} 2
-```
-
-### Cardinality protection
-
-`max_tenants` prevents a cardinality explosion if unknown or invalid tenant IDs are submitted. Requests from unrecognised tenant IDs are recorded under the label `tenant_id="__overflow__"` and a warning is logged:
-
-```python
-tenant_metrics = TenantMetrics(service="api", max_tenants=500)
-
-tenant_metrics.record_request(tenant_id="legitimate_tenant", ...)  # OK
-tenant_metrics.record_request(tenant_id="<script>xss</script>", ...)
-# → recorded as tenant_id="__overflow__", warning logged
-```
-
-Monitor overflow:
-
-```promql
-sum(rate(myapp_tenant_requests_total{tenant_id="__overflow__"}[5m])) > 0
-```
-
----
-
 ## Tenant ID Propagation via W3C Baggage
 
 ### Extracting tenant ID in middleware
@@ -167,7 +115,6 @@ def get_current_tenant() -> str:
 
 # Use in any handler:
 tenant_id = get_current_tenant()
-tenant_metrics.record_request(tenant_id=tenant_id, ...)
 ```
 
 ---

@@ -2,6 +2,9 @@
 
 Personal Identifiable Information (PII) must never appear in logs, metric labels, or trace attributes. obskit provides automatic PII detection and redaction in its logging pipeline so compliance is the default, not an afterthought.
 
+!!! tip "Unified setup (v1.0.0+)"
+    Use `configure_observability()` to set up all observability (including PII-safe logging) in one call. The per-module `configure_logging()` API shown below remains fully supported.
+
 ---
 
 ## Why PII Matters
@@ -168,41 +171,30 @@ PII_PATTERNS = {
 Always write tests to verify that PII redaction works as configured:
 
 ```python
+import json
 import pytest
-from obskit.testing import ObskitTestCase
-from obskit.logging import configure_logging, get_logger
+import structlog
+from obskit.logging.redaction import make_redaction_processor, DEFAULT_SENSITIVE_FIELDS
 
 
-class TestPIIRedaction(ObskitTestCase):
-    def setup_method(self):
-        configure_logging(
-            pii_fields=["email", "password"],
-            pii_patterns=[r"\b\d{4}[- ]?\d{4}[- ]?\d{4}[- ]?\d{4}\b"],
-        )
-        self.log = get_logger("test")
+def test_email_field_is_redacted():
+    processor = make_redaction_processor(fields={"email", "password"})
+    event = processor(None, "info", {"event": "test.event", "email": "alice@example.com", "user_id": "u_123"})
+    assert event["email"] == "[REDACTED]"
+    assert event["user_id"] == "u_123"  # Non-PII field preserved
 
-    def test_email_field_is_redacted(self, caplog):
-        self.log.info("test.event", email="alice@example.com", user_id="u_123")
-        record = self.get_last_log_record()
-        assert record["email"] == "[REDACTED]"
-        assert record["user_id"] == "u_123"   # Non-PII field preserved
 
-    def test_password_field_is_redacted(self, caplog):
-        self.log.info("test.event", password="hunter2")
-        record = self.get_last_log_record()
-        assert record["password"] == "[REDACTED]"
+def test_password_field_is_redacted():
+    processor = make_redaction_processor(fields={"email", "password"})
+    event = processor(None, "info", {"event": "test.event", "password": "hunter2"})
+    assert event["password"] == "[REDACTED]"
 
-    def test_credit_card_pattern_in_message(self, caplog):
-        self.log.warning("payment.debug", message="Card 4111 1111 1111 1111 declined")
-        record = self.get_last_log_record()
-        assert "4111 1111 1111 1111" not in record["message"]
-        assert "[REDACTED]" in record["message"]
 
-    def test_non_pii_field_is_preserved(self, caplog):
-        self.log.info("test.event", amount=9900, currency="USD")
-        record = self.get_last_log_record()
-        assert record["amount"] == 9900
-        assert record["currency"] == "USD"
+def test_non_pii_field_is_preserved():
+    processor = make_redaction_processor(fields=DEFAULT_SENSITIVE_FIELDS)
+    event = processor(None, "info", {"event": "test.event", "amount": 9900, "currency": "USD"})
+    assert event["amount"] == 9900
+    assert event["currency"] == "USD"
 ```
 
 ---

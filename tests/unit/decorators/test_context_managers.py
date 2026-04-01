@@ -5,7 +5,7 @@ from unittest.mock import patch
 import pytest
 
 from obskit.decorators.context_managers import observe, observe_sync
-from obskit.decorators.ht_runtime import get_ht_pipeline, reset_ht_pipeline
+from obskit.decorators._ht_pipeline import get_ht_pipeline, reset_ht_pipeline
 
 # =============================================================================
 # Async context manager — observe()
@@ -54,20 +54,18 @@ class TestObserve:
 
     @pytest.mark.asyncio
     async def test_high_throughput_success_buffers_metric(self):
-        """HT path records a success count in the aggregator."""
+        """HT path enqueues a log record in the ring buffer on success."""
         async with observe(operation="ht_cm_success", high_throughput=True):
             pass  # NOSONAR
-        counts = get_ht_pipeline()._agg.get_pending_counts()
-        assert counts.get(("ht_cm_success", "success"), 0) == 1
+        assert get_ht_pipeline()._ring.qsize >= 1
 
     @pytest.mark.asyncio
     async def test_high_throughput_failure_buffers_metric(self):
-        """HT path records a failure count when an exception occurs."""
+        """HT path enqueues a log record in the ring buffer on failure."""
         with pytest.raises(RuntimeError):
             async with observe(operation="ht_cm_fail", high_throughput=True):
                 raise RuntimeError("fail")
-        counts = get_ht_pipeline()._agg.get_pending_counts()
-        assert counts.get(("ht_cm_fail", "failure"), 0) == 1
+        assert get_ht_pipeline()._ring.qsize >= 1
 
     @pytest.mark.asyncio
     async def test_high_throughput_enqueues_log_record(self):
@@ -88,10 +86,9 @@ class TestObserve:
             async with observe(operation="skipped", high_throughput=True, sample_rate=0.1):
                 ran.append(1)
         assert ran == [1]
-        # Pipeline was never started
+        # Pipeline was never started → _ring is None
         pipeline = get_ht_pipeline()
-        counts = pipeline._agg.get_pending_counts() if pipeline._agg is not None else {}
-        assert counts.get(("skipped", "success"), 0) == 0
+        assert pipeline._ring is None
 
     @pytest.mark.asyncio
     async def test_sample_rate_gate_runs_pipeline(self):
@@ -99,8 +96,7 @@ class TestObserve:
         with patch("obskit.decorators.context_managers.random.random", return_value=0.05):
             async with observe(operation="sampled_in", high_throughput=True, sample_rate=0.1):
                 pass  # NOSONAR
-        counts = get_ht_pipeline()._agg.get_pending_counts()
-        assert counts.get(("sampled_in", "success"), 0) == 1
+        assert get_ht_pipeline()._ring.qsize >= 1
 
     # ------------------------------------------------------------------
     # Used as an async decorator
@@ -130,15 +126,14 @@ class TestObserve:
 
     @pytest.mark.asyncio
     async def test_as_async_decorator_buffers_metric(self):
-        """@observe decorator records metric in HT aggregator."""
+        """@observe decorator enqueues log record in ring buffer."""
 
         @observe(operation="dec_async_metric", high_throughput=True)
         async def fn():
             return 1
 
         await fn()
-        counts = get_ht_pipeline()._agg.get_pending_counts()
-        assert counts.get(("dec_async_metric", "success"), 0) == 1
+        assert get_ht_pipeline()._ring.qsize >= 1
 
     # ------------------------------------------------------------------
     # Standard path (non-HT)
@@ -252,19 +247,17 @@ class TestObserveSync:
     # ------------------------------------------------------------------
 
     def test_high_throughput_success_buffers_metric(self):
-        """HT path records a success count in the aggregator."""
+        """HT path enqueues a log record in the ring buffer on success."""
         with observe_sync(operation="sync_ht_cm_success", high_throughput=True):
             pass  # NOSONAR
-        counts = get_ht_pipeline()._agg.get_pending_counts()
-        assert counts.get(("sync_ht_cm_success", "success"), 0) == 1
+        assert get_ht_pipeline()._ring.qsize >= 1
 
     def test_high_throughput_failure_buffers_metric(self):
-        """HT path records a failure count when an exception occurs."""
+        """HT path enqueues a log record in the ring buffer on failure."""
         with pytest.raises(RuntimeError):
             with observe_sync(operation="sync_ht_cm_fail", high_throughput=True):
                 raise RuntimeError("sync_fail")
-        counts = get_ht_pipeline()._agg.get_pending_counts()
-        assert counts.get(("sync_ht_cm_fail", "failure"), 0) == 1
+        assert get_ht_pipeline()._ring.qsize >= 1
 
     def test_high_throughput_enqueues_log_record(self):
         """HT path puts a log record in the ring buffer."""
@@ -283,17 +276,16 @@ class TestObserveSync:
             with observe_sync(operation="sync_skipped", high_throughput=True, sample_rate=0.1):
                 ran.append(1)
         assert ran == [1]
+        # Pipeline was never started → _ring is None
         pipeline = get_ht_pipeline()
-        counts = pipeline._agg.get_pending_counts() if pipeline._agg is not None else {}
-        assert counts.get(("sync_skipped", "success"), 0) == 0
+        assert pipeline._ring is None
 
     def test_sample_rate_gate_runs_pipeline(self):
         """When random() < sample_rate the HT pipeline runs."""
         with patch("obskit.decorators.context_managers.random.random", return_value=0.05):
             with observe_sync(operation="sync_sampled_in", high_throughput=True, sample_rate=0.1):
                 pass  # NOSONAR
-        counts = get_ht_pipeline()._agg.get_pending_counts()
-        assert counts.get(("sync_sampled_in", "success"), 0) == 1
+        assert get_ht_pipeline()._ring.qsize >= 1
 
     # ------------------------------------------------------------------
     # Used as a sync decorator
@@ -320,15 +312,14 @@ class TestObserveSync:
             fn()
 
     def test_as_sync_decorator_buffers_metric(self):
-        """@observe_sync decorator records metric in HT aggregator."""
+        """@observe_sync decorator enqueues log record in ring buffer."""
 
         @observe_sync(operation="dec_sync_metric", high_throughput=True)
         def fn():
             return 1
 
         fn()
-        counts = get_ht_pipeline()._agg.get_pending_counts()
-        assert counts.get(("dec_sync_metric", "success"), 0) == 1
+        assert get_ht_pipeline()._ring.qsize >= 1
 
     def test_as_sync_decorator_multiple_calls(self):
         """Decorated function can be called multiple times correctly."""
@@ -341,8 +332,7 @@ class TestObserveSync:
 
         assert fn() == 1
         assert fn() == 2
-        counts = get_ht_pipeline()._agg.get_pending_counts()
-        assert counts.get(("dec_sync_multi", "success"), 0) == 2
+        assert get_ht_pipeline()._ring.qsize >= 2
 
     # ------------------------------------------------------------------
     # Standard path (non-HT)

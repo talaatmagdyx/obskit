@@ -33,7 +33,7 @@ class TestObskitDjangoMiddleware:
 
     @patch("obskit.middleware.django.DJANGO_AVAILABLE", True)
     @patch("obskit.middleware.django.settings")
-    @patch("obskit.middleware.django.get_red_metrics")
+    @patch("obskit.middleware.core.get_red_metrics")
     def test_init(self, mock_get_red_metrics, mock_settings):
         """Test middleware initialization."""
         from obskit.middleware.django import ObskitDjangoMiddleware
@@ -46,13 +46,13 @@ class TestObskitDjangoMiddleware:
         middleware = ObskitDjangoMiddleware(mock_get_response)
 
         assert middleware.get_response == mock_get_response
-        assert middleware.track_metrics is True
-        assert middleware.track_logging is True
-        assert middleware.track_tracing is True
+        assert middleware._core.track_metrics is True
+        assert middleware._core.track_logging is True
+        assert middleware._core.track_tracing is True
 
     @patch("obskit.middleware.django.DJANGO_AVAILABLE", True)
     @patch("obskit.middleware.django.settings")
-    @patch("obskit.middleware.django.get_red_metrics")
+    @patch("obskit.middleware.core.get_red_metrics")
     def test_init_with_custom_settings(self, mock_get_red_metrics, mock_settings):
         """Test initialization with custom settings."""
         from obskit.middleware.django import ObskitDjangoMiddleware
@@ -67,14 +67,14 @@ class TestObskitDjangoMiddleware:
 
         middleware = ObskitDjangoMiddleware(mock_get_response)
 
-        assert middleware.exclude_paths == ["/api/health/"]
-        assert middleware.track_metrics is False
-        assert middleware.track_logging is False
-        assert middleware.track_tracing is False
+        assert middleware._core.exclude_paths == ["/api/health/"]
+        assert middleware._core.track_metrics is False
+        assert middleware._core.track_logging is False
+        assert middleware._core.track_tracing is False
 
     @patch("obskit.middleware.django.DJANGO_AVAILABLE", True)
     @patch("obskit.middleware.django.settings")
-    @patch("obskit.middleware.django.get_red_metrics")
+    @patch("obskit.middleware.core.get_red_metrics")
     def test_should_exclude(self, mock_get_red_metrics, mock_settings):
         """Test path exclusion logic."""
         from obskit.middleware.django import ObskitDjangoMiddleware
@@ -84,14 +84,14 @@ class TestObskitDjangoMiddleware:
 
         middleware = ObskitDjangoMiddleware(mock_get_response)
 
-        assert middleware._should_exclude("/health/") is True
-        assert middleware._should_exclude("/metrics/") is True
-        assert middleware._should_exclude("/api/orders") is False
+        assert middleware._core.should_exclude("/health/") is True
+        assert middleware._core.should_exclude("/metrics/") is True
+        assert middleware._core.should_exclude("/api/orders") is False
 
     @patch("obskit.middleware.django.DJANGO_AVAILABLE", True)
     @patch("obskit.middleware.django.settings")
-    @patch("obskit.middleware.django.get_red_metrics")
-    @patch("obskit.middleware.django.set_correlation_id")
+    @patch("obskit.middleware.core.get_red_metrics")
+    @patch("obskit.middleware.core.set_correlation_id")
     def test_call_sets_correlation_id(self, mock_set_corr_id, mock_get_red_metrics, mock_settings):
         """Test that calling middleware sets correlation ID."""
         from obskit.middleware.django import ObskitDjangoMiddleware
@@ -116,7 +116,7 @@ class TestObskitDjangoMiddleware:
 
     @patch("obskit.middleware.django.DJANGO_AVAILABLE", True)
     @patch("obskit.middleware.django.settings")
-    @patch("obskit.middleware.django.get_red_metrics")
+    @patch("obskit.middleware.core.get_red_metrics")
     def test_call_excluded_path(self, mock_get_red_metrics, mock_settings):
         """Test that excluded paths are skipped."""
         from obskit.middleware.django import ObskitDjangoMiddleware
@@ -137,7 +137,7 @@ class TestObskitDjangoMiddleware:
 
     @patch("obskit.middleware.django.DJANGO_AVAILABLE", True)
     @patch("obskit.middleware.django.settings")
-    @patch("obskit.middleware.django.get_red_metrics")
+    @patch("obskit.middleware.core.get_red_metrics")
     def test_call_records_metrics(self, mock_get_red_metrics, mock_settings):
         """Test that metrics are recorded."""
         from obskit.middleware.django import ObskitDjangoMiddleware
@@ -165,7 +165,7 @@ class TestObskitDjangoMiddleware:
 
     @patch("obskit.middleware.django.DJANGO_AVAILABLE", True)
     @patch("obskit.middleware.django.settings")
-    @patch("obskit.middleware.django.get_red_metrics")
+    @patch("obskit.middleware.core.get_red_metrics")
     def test_call_adds_correlation_header(self, mock_get_red_metrics, mock_settings):
         """Test correlation ID is added to response headers."""
         from obskit.middleware.django import ObskitDjangoMiddleware
@@ -190,7 +190,7 @@ class TestObskitDjangoMiddleware:
 
     @patch("obskit.middleware.django.DJANGO_AVAILABLE", True)
     @patch("obskit.middleware.django.settings")
-    @patch("obskit.middleware.django.get_red_metrics")
+    @patch("obskit.middleware.core.get_red_metrics")
     def test_call_handles_exception(self, mock_get_red_metrics, mock_settings):
         """Test exception handling."""
         from obskit.middleware.django import ObskitDjangoMiddleware
@@ -221,7 +221,7 @@ class TestObskitDjangoMiddleware:
 
     @patch("obskit.middleware.django.DJANGO_AVAILABLE", True)
     @patch("obskit.middleware.django.settings")
-    @patch("obskit.middleware.django.get_red_metrics")
+    @patch("obskit.middleware.core.get_red_metrics")
     def test_get_client_ip_from_x_forwarded_for(self, mock_get_red_metrics, mock_settings):
         """Test getting client IP from X-Forwarded-For."""
         from obskit.middleware.django import ObskitDjangoMiddleware
@@ -239,7 +239,7 @@ class TestObskitDjangoMiddleware:
 
     @patch("obskit.middleware.django.DJANGO_AVAILABLE", True)
     @patch("obskit.middleware.django.settings")
-    @patch("obskit.middleware.django.get_red_metrics")
+    @patch("obskit.middleware.core.get_red_metrics")
     def test_get_client_ip_from_x_real_ip(self, mock_get_red_metrics, mock_settings):
         """Test getting client IP from X-Real-IP."""
         from obskit.middleware.django import ObskitDjangoMiddleware
@@ -257,7 +257,7 @@ class TestObskitDjangoMiddleware:
 
     @patch("obskit.middleware.django.DJANGO_AVAILABLE", True)
     @patch("obskit.middleware.django.settings")
-    @patch("obskit.middleware.django.get_red_metrics")
+    @patch("obskit.middleware.core.get_red_metrics")
     def test_process_exception(self, mock_get_red_metrics, mock_settings):
         """Test process_exception hook."""
         from obskit.middleware.django import ObskitDjangoMiddleware
@@ -272,8 +272,8 @@ class TestObskitDjangoMiddleware:
 
     @patch("obskit.middleware.django.DJANGO_AVAILABLE", True)
     @patch("obskit.middleware.django.settings")
-    @patch("obskit.middleware.django.get_red_metrics")
-    @patch("obskit.middleware.django.inject_trace_context")
+    @patch("obskit.middleware.core.get_red_metrics")
+    @patch("obskit.middleware.core.inject_trace_context")
     def test_injects_trace_headers(self, mock_inject, mock_get_red_metrics, mock_settings):
         """Test middleware injects trace headers into response."""
         from obskit.middleware.django import ObskitDjangoMiddleware
@@ -300,7 +300,7 @@ class TestObskitDjangoMiddleware:
         mock_request.META = {"REMOTE_ADDR": "127.0.0.1"}
 
         middleware = ObskitDjangoMiddleware(mock_get_response)
-        middleware.track_tracing = True  # Set directly
+        middleware._core.track_tracing = True  # Set directly
         middleware(mock_request)
 
         mock_inject.assert_called()
@@ -313,7 +313,7 @@ class TestGetObskitMiddleware:
 
     @patch("obskit.middleware.django.DJANGO_AVAILABLE", True)
     @patch("obskit.middleware.django.settings")
-    @patch("obskit.middleware.django.get_red_metrics")
+    @patch("obskit.middleware.core.get_red_metrics")
     def test_creates_configured_middleware(self, mock_get_red_metrics, mock_settings):
         """Test factory creates configured middleware."""
         from obskit.middleware.django import ObskitDjangoMiddleware, get_obskit_middleware
@@ -330,12 +330,12 @@ class TestGetObskitMiddleware:
         mock_get_response = MagicMock()
         middleware = MiddlewareClass(mock_get_response)
 
-        assert middleware.exclude_paths == ["/custom/"]
-        assert middleware.track_metrics is False
+        assert middleware._core.exclude_paths == ["/custom/"]
+        assert middleware._core.track_metrics is False
 
     @patch("obskit.middleware.django.DJANGO_AVAILABLE", True)
     @patch("obskit.middleware.django.settings")
-    @patch("obskit.middleware.django.get_red_metrics")
+    @patch("obskit.middleware.core.get_red_metrics")
     def test_factory_with_all_options(self, mock_get_red_metrics, mock_settings):
         """Test factory with all options."""
         from obskit.middleware.django import get_obskit_middleware
@@ -354,14 +354,14 @@ class TestGetObskitMiddleware:
         mock_get_response = MagicMock()
         middleware = MiddlewareClass(mock_get_response)
 
-        assert middleware.exclude_paths == ["/api/health/", "/api/ready/"]
-        assert middleware.track_metrics is True
-        assert middleware.track_logging is False
-        assert middleware.track_tracing is False
+        assert middleware._core.exclude_paths == ["/api/health/", "/api/ready/"]
+        assert middleware._core.track_metrics is True
+        assert middleware._core.track_logging is False
+        assert middleware._core.track_tracing is False
 
     @patch("obskit.middleware.django.DJANGO_AVAILABLE", True)
     @patch("obskit.middleware.django.settings")
-    @patch("obskit.middleware.django.get_red_metrics")
+    @patch("obskit.middleware.core.get_red_metrics")
     def test_factory_enables_metrics(self, mock_get_red_metrics, mock_settings):
         """Test factory enables metrics when track_metrics is True."""
         from obskit.middleware.django import get_obskit_middleware
@@ -376,83 +376,13 @@ class TestGetObskitMiddleware:
         mock_get_response = MagicMock()
         middleware = MiddlewareClass(mock_get_response)
 
-        assert middleware.track_metrics is True
-        assert middleware.red_metrics is not None
+        assert middleware._core.track_metrics is True
+        assert middleware._core.red_metrics is not None
 
 
 @pytest.mark.skipif(not DJANGO_AVAILABLE, reason="Django not installed")
 class TestMiddlewareLogging:
-    """Tests for logging methods."""
-
-    @patch("obskit.middleware.django.DJANGO_AVAILABLE", True)
-    @patch("obskit.middleware.django.settings")
-    @patch("obskit.middleware.django.get_red_metrics")
-    @patch("obskit.middleware.django.logger")
-    def test_log_request_start(self, mock_logger, mock_get_red_metrics, mock_settings):
-        """Test _log_request_start method."""
-        from obskit.middleware.django import ObskitDjangoMiddleware
-
-        mock_settings.OBSKIT = {}
-        mock_get_response = MagicMock()
-
-        mock_request = MagicMock()
-        mock_request.method = "POST"
-        mock_request.path = "/api/orders"
-        mock_request.META = {}
-        mock_request.user.is_authenticated = True
-        mock_request.user.id = 123
-
-        middleware = ObskitDjangoMiddleware(mock_get_response)
-        middleware._log_request_start(mock_request, "create_order", "corr-123")
-
-        mock_logger.info.assert_called_once()
-
-    @patch("obskit.middleware.django.DJANGO_AVAILABLE", True)
-    @patch("obskit.middleware.django.settings")
-    @patch("obskit.middleware.django.get_red_metrics")
-    @patch("obskit.middleware.django.logger")
-    def test_log_request_complete(self, mock_logger, mock_get_red_metrics, mock_settings):
-        """Test _log_request_complete method."""
-        from obskit.middleware.django import ObskitDjangoMiddleware
-
-        mock_settings.OBSKIT = {}
-        mock_get_response = MagicMock()
-
-        mock_request = MagicMock()
-        mock_request.method = "GET"
-        mock_request.path = "/api/orders"
-
-        mock_response = MagicMock()
-        mock_response.status_code = 200
-
-        middleware = ObskitDjangoMiddleware(mock_get_response)
-        middleware._log_request_complete(
-            mock_request, mock_response, "get_orders", 45.5, "corr-123"
-        )
-
-        mock_logger.info.assert_called_once()
-
-    @patch("obskit.middleware.django.DJANGO_AVAILABLE", True)
-    @patch("obskit.middleware.django.settings")
-    @patch("obskit.middleware.django.get_red_metrics")
-    @patch("obskit.middleware.django.logger")
-    def test_log_request_error(self, mock_logger, mock_get_red_metrics, mock_settings):
-        """Test _log_request_error method."""
-        from obskit.middleware.django import ObskitDjangoMiddleware
-
-        mock_settings.OBSKIT = {}
-        mock_get_response = MagicMock()
-
-        mock_request = MagicMock()
-        mock_request.method = "POST"
-        mock_request.path = "/api/orders"
-
-        middleware = ObskitDjangoMiddleware(mock_get_response)
-        middleware._log_request_error(
-            mock_request, ValueError("test error"), "create_order", 12.5, "corr-123"
-        )
-
-        mock_logger.error.assert_called_once()
+    """Tests for logging — now handled by MiddlewareCore (tested in test_core.py)."""
 
 
 @pytest.mark.skipif(not DJANGO_AVAILABLE, reason="Django not installed")
@@ -461,7 +391,7 @@ class TestMiddlewareOperationName:
 
     @patch("obskit.middleware.django.DJANGO_AVAILABLE", True)
     @patch("obskit.middleware.django.settings")
-    @patch("obskit.middleware.django.get_red_metrics")
+    @patch("obskit.middleware.core.get_red_metrics")
     def test_get_operation_name_fallback(self, mock_get_red_metrics, mock_settings):
         """Test _get_operation_name falls back to path."""
         from obskit.middleware.django import ObskitDjangoMiddleware
@@ -483,7 +413,7 @@ class TestMiddlewareOperationName:
 
     @patch("obskit.middleware.django.DJANGO_AVAILABLE", True)
     @patch("obskit.middleware.django.settings")
-    @patch("obskit.middleware.django.get_red_metrics")
+    @patch("obskit.middleware.core.get_red_metrics")
     def test_get_operation_name_empty_path(self, mock_get_red_metrics, mock_settings):
         """Test _get_operation_name with root path."""
         from obskit.middleware.django import ObskitDjangoMiddleware
@@ -504,7 +434,7 @@ class TestMiddlewareOperationName:
 
     @patch("obskit.middleware.django.DJANGO_AVAILABLE", True)
     @patch("obskit.middleware.django.settings")
-    @patch("obskit.middleware.django.get_red_metrics")
+    @patch("obskit.middleware.core.get_red_metrics")
     def test_get_operation_name_from_url_name(self, mock_get_red_metrics, mock_settings):
         """Test _get_operation_name uses URL name when available."""
         from obskit.middleware.django import ObskitDjangoMiddleware
@@ -530,7 +460,7 @@ class TestMiddlewareOperationName:
 
     @patch("obskit.middleware.django.DJANGO_AVAILABLE", True)
     @patch("obskit.middleware.django.settings")
-    @patch("obskit.middleware.django.get_red_metrics")
+    @patch("obskit.middleware.core.get_red_metrics")
     def test_get_operation_name_from_view_name(self, mock_get_red_metrics, mock_settings):
         """Test _get_operation_name uses view name as fallback."""
         from obskit.middleware.django import ObskitDjangoMiddleware
@@ -560,7 +490,7 @@ class TestMiddlewareClientIP:
 
     @patch("obskit.middleware.django.DJANGO_AVAILABLE", True)
     @patch("obskit.middleware.django.settings")
-    @patch("obskit.middleware.django.get_red_metrics")
+    @patch("obskit.middleware.core.get_red_metrics")
     def test_get_client_ip_from_remote_addr(self, mock_get_red_metrics, mock_settings):
         """Test getting client IP from REMOTE_ADDR."""
         from obskit.middleware.django import ObskitDjangoMiddleware
@@ -578,7 +508,7 @@ class TestMiddlewareClientIP:
 
     @patch("obskit.middleware.django.DJANGO_AVAILABLE", True)
     @patch("obskit.middleware.django.settings")
-    @patch("obskit.middleware.django.get_red_metrics")
+    @patch("obskit.middleware.core.get_red_metrics")
     def test_get_client_ip_none(self, mock_get_red_metrics, mock_settings):
         """Test getting client IP when none available."""
         from obskit.middleware.django import ObskitDjangoMiddleware
@@ -596,7 +526,7 @@ class TestMiddlewareClientIP:
 
     @patch("obskit.middleware.django.DJANGO_AVAILABLE", True)
     @patch("obskit.middleware.django.settings")
-    @patch("obskit.middleware.django.get_red_metrics")
+    @patch("obskit.middleware.core.get_red_metrics")
     def test_get_client_ip_empty_forwarded_for(self, mock_get_red_metrics, mock_settings):
         """Test X-Forwarded-For with empty first IP."""
         from obskit.middleware.django import ObskitDjangoMiddleware
@@ -620,9 +550,9 @@ class TestMiddlewareTracing:
 
     @patch("obskit.middleware.django.DJANGO_AVAILABLE", True)
     @patch("obskit.middleware.django.settings")
-    @patch("obskit.middleware.django.get_red_metrics")
-    @patch("obskit.middleware.django.inject_trace_context")
-    @patch("obskit.middleware.django.extract_trace_context")
+    @patch("obskit.middleware.core.get_red_metrics")
+    @patch("obskit.middleware.core.inject_trace_context")
+    @patch("obskit.middleware.core.extract_trace_context")
     def test_injects_trace_context(
         self, mock_extract, mock_inject, mock_get_red_metrics, mock_settings
     ):
@@ -656,7 +586,7 @@ class TestMiddlewareExceptionBranches:
 
     @patch("obskit.middleware.django.DJANGO_AVAILABLE", True)
     @patch("obskit.middleware.django.settings")
-    @patch("obskit.middleware.django.get_red_metrics")
+    @patch("obskit.middleware.core.get_red_metrics")
     def test_exception_no_metrics(self, mock_get_red_metrics, mock_settings):
         """Test exception path with track_metrics=False (branch 240->249 False)."""
         from obskit.middleware.django import ObskitDjangoMiddleware
@@ -690,8 +620,8 @@ class TestMiddlewareExceptionBranches:
 
     @patch("obskit.middleware.django.DJANGO_AVAILABLE", True)
     @patch("obskit.middleware.django.settings")
-    @patch("obskit.middleware.django.get_red_metrics")
-    @patch("obskit.middleware.django.logger")
+    @patch("obskit.middleware.core.get_red_metrics")
+    @patch("obskit.middleware.core._core_logger")
     def test_exception_no_logging(self, mock_logger, mock_get_red_metrics, mock_settings):
         """Test exception path with track_logging=False (branch 249->253 False)."""
         from obskit.middleware.django import ObskitDjangoMiddleware

@@ -81,16 +81,13 @@ nav:
     - Installation: getting-started/installation.md
     - Quick Start: getting-started/quickstart.md
     - Your First App: getting-started/first-app.md
-    - Migrating from v1: getting-started/migration.md
 
   - User Guide:
     - Observability Concepts: user-guide/concepts.md
-    - Metrics (RED / Golden / USE): user-guide/metrics.md
+    - Metrics (RED): user-guide/metrics.md
     - Distributed Tracing: user-guide/tracing.md
     - Structured Logging: user-guide/logging.md
     - Health Checks: user-guide/health-checks.md
-    - Alert Rules: user-guide/alerts.md
-    - Resilience Patterns: user-guide/resilience.md
     - SLO Tracking: user-guide/slo.md
     - PII Redaction: user-guide/pii.md
     - Multi-Tenancy: user-guide/multi-tenancy.md
@@ -101,17 +98,14 @@ nav:
     - obskit-metrics: packages/metrics.md
     - obskit-tracing: packages/tracing.md
     - obskit-health: packages/health.md
-    - obskit-alerts: packages/alerts.md
-    - obskit-resilience: packages/resilience.md
     - obskit-slo: packages/slo.md
-    - obskit-queue: packages/queue.md
-    - obskit-db: packages/db.md
-    - Advanced Modules: packages/advanced.md
-    - Utility Modules: packages/utilities.md
     - Middleware:
       - FastAPI: packages/middleware-fastapi.md
       - Flask: packages/middleware-flask.md
       - Django: packages/middleware-django.md
+    - Integrations:
+      - Database: packages/db.md
+      - Queue: packages/queue.md
       - gRPC: packages/middleware-grpc.md
 
   - Guides:
@@ -134,7 +128,6 @@ nav:
     - Production Checklist: tech-docs/production.md
 
   - Migration:
-    - v1.x → v2.0.0: migration/from-v1.md
     - From prometheus-client: migration/from-prometheus.md
     - From OpenTelemetry: migration/from-opentelemetry.md
     - From structlog: migration/from-structlog.md

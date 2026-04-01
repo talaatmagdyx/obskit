@@ -31,24 +31,16 @@ Enums provide type-safe options with IDE autocomplete:
 
 .. code-block:: python
 
-    from obskit.core.types import MetricsMethod, Status
+    from obskit.core.types import Status
 
     # Type-safe status
     status: Status = Status.SUCCESS
-
-    # Type-safe metrics method selection
-    method: MetricsMethod = MetricsMethod.RED
 """
 
 from __future__ import annotations
 
 from enum import StrEnum
-from typing import Literal, NewType
-
-# MetricsMethod lives in config.py (the lowest-level module with no obskit
-# imports) to avoid a circular import: config → core → __init__ → config.
-# Re-export it here so `from obskit.core.types import MetricsMethod` still works.
-from obskit.config import MetricsMethod as MetricsMethod
+from typing import Literal, NewType  # noqa: F401
 
 # =============================================================================
 # Type Aliases
@@ -115,12 +107,6 @@ class Status(StrEnum):
 # Literal type for status (alternative to enum)
 StatusLiteral = Literal["success", "failure"]
 
-
-# =============================================================================
-# Metrics Method Types
-# =============================================================================
-# MetricsMethod is imported from config.py at the top of this file.
-# See the import statement above for the rationale.
 
 # =============================================================================
 # Log Level Types

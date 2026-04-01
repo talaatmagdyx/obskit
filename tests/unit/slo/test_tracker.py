@@ -1,5 +1,6 @@
 """Tests for obskit.slo.tracker module."""
 
+from collections import deque
 from datetime import UTC, datetime, timedelta, timezone
 
 import pytest
@@ -120,7 +121,7 @@ class TestSLOTracker:
             value=1.0,
             success=True,
         )
-        tracker._measurements["test_slo"] = [old_measurement]
+        tracker._measurements["test_slo"] = deque([old_measurement])
 
         # Record new measurement
         tracker.record_measurement("test_slo", 1.0, success=True)
@@ -386,6 +387,97 @@ class TestSLOTracker:
         # 2% used, 3% remaining of 5% budget
         assert status.error_budget_remaining > 0
         assert status.error_budget_burn_rate < 1.0
+
+    def test_record_measurement_evicts_non_counter_type(self):
+        """Evicting an expired LATENCY measurement skips counter logic (157->155 branch)."""
+        tracker = SLOTracker()
+        tracker.register_slo(
+            "lat", SLOType.LATENCY, target_value=0.5, window_seconds=1, percentile=95
+        )
+        # Inject an expired measurement directly.
+        old = SLOMeasurement(
+            timestamp=datetime.now(UTC) - timedelta(seconds=5),
+            value=0.1,
+            success=True,
+        )
+        tracker._measurements["lat"].append(old)
+        # record_measurement triggers the eviction loop; _is_counter=False so
+        # the counter decrement branch is NOT taken.
+        tracker.record_measurement("lat", 0.2, success=True)
+        assert len(tracker._measurements["lat"]) == 1
+
+    def test_record_measurement_evicts_failed_counter(self):
+        """Evicting an expired success=False measurement decrements success_counts (159 branch)."""
+        tracker = SLOTracker()
+        tracker.register_slo("avail", SLOType.AVAILABILITY, target_value=0.99, window_seconds=1)
+        # Inject an expired failed measurement.
+        old = SLOMeasurement(
+            timestamp=datetime.now(UTC) - timedelta(seconds=5),
+            value=0.0,
+            success=False,
+        )
+        tracker._measurements["avail"].append(old)
+        # Manually sync counter to reflect the injected measurement.
+        tracker._total_counts["avail"] = 1
+        tracker._success_counts["avail"] = 0
+        # Trigger eviction; evicted.success is False so success_count stays at 0.
+        tracker.record_measurement("avail", 1.0, success=True)
+        assert tracker._total_counts["avail"] == 1
+        assert tracker._success_counts["avail"] == 1
+
+    def test_get_status_latency_empty(self):
+        """LATENCY get_status with no measurements returns the default SLOStatus (line 203)."""
+        tracker = SLOTracker()
+        tracker.register_slo("lat_empty", SLOType.LATENCY, target_value=0.5, percentile=95)
+        status = tracker.get_status("lat_empty")
+        assert status is not None
+        assert status.current_value == pytest.approx(0.0)
+        assert status.measurement_count == 0
+
+    def test_get_status_throughput_zero_timespan(self):
+        """Throughput with ≥2 measurements at identical timestamps returns 0.0."""
+        tracker = SLOTracker()
+        tracker.register_slo("t", SLOType.THROUGHPUT, target_value=10.0)
+        now = datetime.now(UTC)
+        for _ in range(2):
+            tracker._measurements["t"].append(
+                SLOMeasurement(timestamp=now, value=1.0, success=True)
+            )
+        status = tracker.get_status("t")
+        assert status.current_value == pytest.approx(0.0)
+
+    def test_get_status_error_rate_empty(self):
+        """Error rate SLO with no measurements returns 0.0 via counter fast path."""
+        tracker = SLOTracker()
+        tracker.register_slo("err", SLOType.ERROR_RATE, target_value=0.05)
+        status = tracker.get_status("err")
+        assert status is not None
+        assert status.current_value == pytest.approx(0.0)
+        assert status.measurement_count == 0
+
+    def test_latency_reservoir_sampling_for_large_windows(self):
+        """Latency SLO with >10 000 measurements triggers reservoir sampling (lines 221-223)."""
+        from datetime import UTC, datetime
+        from obskit.slo.types import SLOMeasurement
+
+        tracker = SLOTracker()
+        tracker.register_slo(
+            name="lat_slo",
+            slo_type=SLOType.LATENCY,
+            target_value=1.0,
+            percentile=95,
+            window_seconds=86400,
+        )
+        now = datetime.now(UTC)
+        # Inject 10 001 measurements directly to bypass the window eviction loop.
+        buf = tracker._measurements["lat_slo"]
+        for i in range(10_001):
+            buf.append(SLOMeasurement(timestamp=now, value=float(i) / 10_001, success=True))
+
+        status = tracker.get_status("lat_slo")
+        # Result is approximate but must be a valid float in [0, 1].
+        assert isinstance(status.current_value, float)
+        assert 0.0 <= status.current_value <= 1.0
 
 
 class TestGlobalFunctions:

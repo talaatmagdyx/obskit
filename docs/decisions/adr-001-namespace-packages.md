@@ -6,7 +6,7 @@
 
 ## Context
 
-obskit v1 was a single-package monolith (`pip install obskit`). In an earlier revision (v2.0), it was split into 16 separate namespace packages (`obskit-core`, `obskit-logging`, `obskit-metrics`, etc.) using PEP 420 implicit namespace packages so that `from obskit.logging import get_logger` would work regardless of which sub-packages were installed.
+The original obskit was a single-package monolith (`pip install obskit`). In an earlier revision (an earlier revision), it was split into 16 separate namespace packages (`obskit-core`, `obskit-logging`, `obskit-metrics`, etc.) using PEP 420 implicit namespace packages so that `from obskit.logging import get_logger` would work regardless of which sub-packages were installed.
 
 While the namespace approach preserved backward-compatible imports, it introduced significant operational complexity:
 
@@ -37,9 +37,9 @@ Consolidate all 16 packages back into a single `obskit` package with optional ex
   pip install "obskit[sqlalchemy]"               # + sqlalchemy 2.0
   pip install "obskit[kafka]"                    # + kafka-python
   pip install "obskit[rabbitmq]"                 # + pika
-  pip install "obskit[redis]"                    # + redis
-  pip install "obskit[httpx]"                    # + httpx
-  pip install "obskit[loguru]"                   # + loguru
+  pip install "obskit[grpc]"                     # + grpcio
+  pip install "obskit[health]"                   # health checker + router
+  pip install "obskit[slo]"                      # SLO tracker
   pip install "obskit[all]"                      # every extra above
   ```
 

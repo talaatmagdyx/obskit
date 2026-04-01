@@ -416,21 +416,19 @@ class TestExtractTraceContextCoverage:
         )
         # No exception is the assertion — result may be None or context depending on OTel install
 
-    def test_lazy_regex_compilation(self) -> None:
-        """_get_traceparent_re() compiles on first call and reuses on second."""
+    def test_module_level_regex_compilation(self) -> None:
+        """_W3C_TRACEPARENT_RE is compiled at module load; invalid traceparents return None."""
         import obskit.tracing.tracer as tracer_mod
 
-        # Reset the cached regex to force re-compilation
-        original = tracer_mod._W3C_TRACEPARENT_RE
-        tracer_mod._W3C_TRACEPARENT_RE = None
-        try:
-            result = extract_trace_context({"traceparent": "not-valid"})
-            # Second call — uses cached regex
-            result2 = extract_trace_context({"traceparent": "also-not-valid"})
-            assert result is None
-            assert result2 is None
-        finally:
-            tracer_mod._W3C_TRACEPARENT_RE = original
+        # Verify the module-level regex is compiled and functional
+        assert tracer_mod._W3C_TRACEPARENT_RE is not None
+        assert tracer_mod._W3C_TRACEPARENT_RE.match("not-valid") is None
+
+        # Both calls use the same module-level compiled regex
+        result = extract_trace_context({"traceparent": "not-valid"})
+        result2 = extract_trace_context({"traceparent": "also-not-valid"})
+        assert result is None
+        assert result2 is None
 
 
 # ---------------------------------------------------------------------------

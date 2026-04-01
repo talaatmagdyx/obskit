@@ -198,50 +198,16 @@ class TestGenerateLatest:
             assert isinstance(result, bytes)
 
 
-class TestStartHttpServerWithAuth:
-    """Tests for start_http_server with authentication."""
+class TestStopHttpServerEdgeCases:
+    """Additional edge case tests for stop_http_server."""
 
     def setup_method(self):
         """Reset state before each test."""
         stop_http_server()
-        reset_registry()
 
     def teardown_method(self):
-        """Stop server after each test."""
+        """Clean up after test."""
         stop_http_server()
-        reset_registry()
-
-    @patch("obskit.metrics.registry.get_settings")
-    @patch("obskit.metrics.auth.create_authenticated_handler")
-    @patch("http.server.HTTPServer")
-    def test_start_server_with_auth(self, mock_http_server, mock_create_handler, mock_settings):
-        """Test starting HTTP server with authentication enabled."""
-        from obskit.metrics import registry
-
-        # Setup mock settings
-        mock_settings_obj = MagicMock()
-        mock_settings_obj.metrics_port = 9090
-        mock_settings_obj.metrics_auth_enabled = True
-        mock_settings_obj.metrics_auth_token = "secret-token"
-        mock_settings.return_value = mock_settings_obj
-
-        # Setup mock handler
-        mock_handler = MagicMock()
-        mock_create_handler.return_value = mock_handler
-
-        # Setup mock server
-        mock_server_instance = MagicMock()
-        mock_http_server.return_value = mock_server_instance
-
-        # Reset module state
-        registry._http_server_started = False
-        registry._http_server = None
-        registry._http_server_thread = None
-
-        result = start_http_server()
-
-        assert result is True
-        mock_create_handler.assert_called_once_with("secret-token")
 
     @patch("obskit.metrics.registry._http_server")
     @patch("obskit.metrics.registry._http_server_thread")

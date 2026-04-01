@@ -71,6 +71,23 @@ def _import_version(module: str, attr: str = "__version__") -> str | None:
         return None
 
 
+def _check_otlp_reachable(endpoint: str) -> tuple[bool, str]:
+    """TCP-connect to the OTLP endpoint. Returns (reachable, detail_string)."""
+    import socket  # noqa: PLC0415
+    import urllib.parse  # noqa: PLC0415
+
+    try:
+        parsed = urllib.parse.urlparse(endpoint)
+        host = parsed.hostname or "localhost"
+        port = parsed.port or 4317
+        with socket.create_connection((host, port), timeout=2.0):
+            return True, f"{host}:{port} reachable ✓"
+    except OSError as exc:
+        return False, f"{host}:{port} unreachable — {exc.strerror}"
+    except Exception as exc:  # pragma: no cover
+        return False, f"check failed: {exc}"
+
+
 # ---------------------------------------------------------------------------
 # Per-package checks
 # ---------------------------------------------------------------------------
@@ -167,6 +184,12 @@ def _check_tracing() -> PackageInfo:
         integrations.append(
             IntegrationInfo("otlp-endpoint", bool(endpoint != "(not configured)"), endpoint)
         )
+        # Probe TCP reachability of the configured endpoint
+        if endpoint not in {"(not configured)", "(unavailable)"}:
+            reachable, detail = _check_otlp_reachable(endpoint)
+            integrations.append(
+                IntegrationInfo("otlp-reachable", reachable, detail)
+            )
     return PackageInfo(
         name="obskit-tracing", installed=ver is not None, version=ver, integrations=integrations
     )
@@ -177,19 +200,20 @@ def _check_health() -> PackageInfo:
     integrations: list[IntegrationInfo] = []
     if ver is not None:
         try:
-            from obskit.health.checker import _OTEL_AVAILABLE
+            import opentelemetry  # noqa: F401
 
-            integrations.append(
-                IntegrationInfo(
-                    "health-tracing",
-                    _OTEL_AVAILABLE,
-                    "trace_id in /health responses"
-                    if _OTEL_AVAILABLE
-                    else "needs obskit-tracing[opentelemetry]",
-                )
-            )
+            _OTEL_AVAILABLE = True
         except ImportError:
-            pass  # NOSONAR
+            _OTEL_AVAILABLE = False
+        integrations.append(
+            IntegrationInfo(
+                "health-tracing",
+                _OTEL_AVAILABLE,
+                "trace_id in /health responses"
+                if _OTEL_AVAILABLE
+                else "needs obskit-tracing[opentelemetry]",
+            )
+        )
     return PackageInfo(
         name="obskit-health", installed=ver is not None, version=ver, integrations=integrations
     )

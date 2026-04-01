@@ -106,3 +106,51 @@ class TestOTLPBranchCoverage:
 
         # Verify join was not called
         mock_thread.join.assert_not_called()
+
+    def test_init_skips_otel_pipeline_when_unavailable(self):
+        """Branch 324->356: when OTEL/OTLP flags are False, skip the pipeline setup block."""
+        from obskit.logging import otlp as otlp_mod
+        from obskit.logging.otlp import OTLPLogHandler
+
+        with (
+            patch.object(otlp_mod, "OTEL_LOGGING_AVAILABLE", False),
+            patch.object(otlp_mod, "OTLP_EXPORTER_AVAILABLE", False),
+        ):
+            handler = OTLPLogHandler(
+                endpoint="http://localhost:4317",
+                service_name="test-svc",
+            )
+
+        assert handler._otel_handler is None
+        assert handler._logger_provider is None
+        handler.close()
+
+    def test_emit_with_no_otel_handler(self):
+        """Branch 420->426: _otel_handler is None so delegation is skipped."""
+        from obskit.logging.otlp import OTLPLogHandler
+
+        handler = OTLPLogHandler(endpoint="http://localhost:4317", service_name="test-svc")
+        # Force handler to None to cover the False branch of the otel_handler check
+        handler._otel_handler = None
+
+        record = logging.LogRecord(
+            name="test",
+            level=logging.INFO,
+            pathname="",
+            lineno=0,
+            msg="test without otel handler",
+            args=(),
+            exc_info=None,
+        )
+        handler.emit(record)
+        handler.close()
+
+    def test_close_with_no_logger_provider(self):
+        """Branch 493->499: _logger_provider is None so shutdown is skipped."""
+        from obskit.logging.otlp import OTLPLogHandler
+
+        handler = OTLPLogHandler(endpoint="http://localhost:4317", service_name="test-svc")
+        # Force provider to None to cover the False branch
+        handler._logger_provider = None
+        # Should not raise
+        handler.close()

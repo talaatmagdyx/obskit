@@ -84,80 +84,6 @@ Every request is timed and recorded with zero boilerplate.
 
 ---
 
-## Golden Signals
-
-Google's SRE book identifies four signals sufficient to understand any user-facing service. obskit provides a `GoldenSignals` collector that aligns with this framework.
-
-```python
-from obskit.metrics.golden import GoldenSignals
-
-gs = GoldenSignals(service="recommendation-engine", namespace="myapp")
-```
-
-### Latency
-
-```python
-gs.record_latency(endpoint="/recommend", duration=0.054, success=True)
-gs.record_latency(endpoint="/recommend", duration=8.012, success=False)  # Error latency tracked separately
-```
-
-!!! warning "Track error latency separately"
-    Mixing slow error responses (e.g., 30-second timeouts) with fast success responses in a single histogram distorts your SLO latency percentiles. obskit's `GoldenSignals` tracks them in separate histograms automatically.
-
-### Traffic
-
-```python
-gs.record_traffic(endpoint="/recommend")
-```
-
-### Errors
-
-```python
-gs.record_error(endpoint="/recommend", error_type="ModelLoadError")
-```
-
-### Saturation
-
-```python
-# Call this from a background monitoring loop, e.g., every 15 seconds
-gs.record_saturation(resource="thread_pool", utilization=0.73)
-gs.record_saturation(resource="gpu_memory",  utilization=0.95)  # Near saturation!
-```
-
-!!! tip "Saturation as a leading indicator"
-    Saturation often rises before latency degrades. Set an alert at 80% utilisation to give yourself time to scale before users notice.
-
----
-
-## USE Method
-
-The **Utilization–Saturation–Errors** method targets infrastructure resources: CPU, disk, connection pools, thread pools.
-
-```python
-from obskit.metrics.use import USEMetrics
-
-db_pool = USEMetrics(resource="postgres_pool", namespace="myapp")
-
-# Run this in a background task every 30 seconds
-async def collect_pool_metrics():
-    stats = await pool.get_stats()
-    db_pool.record(
-        utilization=stats.active_connections / stats.max_connections,
-        saturation=stats.waiting_connections,
-        errors=stats.connection_errors,
-    )
-```
-
-Generated metrics:
-
-| Metric name | Type | Labels |
-|---|---|---|
-| `myapp_resource_utilization_ratio` | Gauge | `resource` |
-| `myapp_resource_saturation_queue_depth` | Gauge | `resource` |
-| `myapp_resource_errors_total` | Counter | `resource` |
-
----
-
 ## prometheus_client Integration
 
 obskit is built on `prometheus_client` and exposes the full API. You can mix obskit collectors with raw Prometheus primitives in the same registry.
@@ -351,32 +277,6 @@ counter.labels(path=request.route.path).inc()  # /users/{user_id} — fixed card
 
 ---
 
-## Multi-Tenant Metrics
-
-`TenantMetrics` adds a `tenant_id` label to all metrics while enforcing cardinality limits per tenant.
-
-```python
-from obskit.metrics.tenant import TenantMetrics
-
-tenant_metrics = TenantMetrics(
-    service="api",
-    namespace="myapp",
-    max_tenants=500,   # Prevent cardinality explosion from rogue/invalid tenant IDs
-)
-
-tenant_metrics.record_request(
-    tenant_id="tenant_abc",
-    endpoint="/api/data",
-    duration=0.023,
-    status_code=200,
-)
-```
-
-!!! warning "Multi-tenant cardinality"
-    If you have 500 tenants × 20 endpoints × 4 methods, that is 40,000 series just for the request counter. Set `max_tenants` conservatively and monitor `obskit_tenant_metrics_dropped_total` to detect overflow.
-
----
-
 ## OTLP Export
 
 In addition to Prometheus scraping, obskit can push metrics to any OTLP-compatible backend (Grafana Mimir, Tempo, Victoria Metrics, etc.):
@@ -396,26 +296,6 @@ configure_otlp_metrics(
 ```
 
 The OTLP exporter runs in a background thread and does not block your application.
-
----
-
-## Prometheus Push Gateway
-
-For batch jobs and scripts that do not run continuously:
-
-```python
-from obskit.metrics.pushgateway import push_metrics
-
-# At the end of your batch job:
-push_metrics(
-    gateway_url="http://pushgateway:9091",
-    job_name="nightly_billing_run",
-    labels={"environment": "production"},
-)
-```
-
-!!! warning "Push Gateway is for batch jobs only"
-    Do not use the Push Gateway for long-running services. Staleness detection does not work correctly and metrics will linger after the service is gone. Use standard scraping for services.
 
 ---
 
@@ -451,7 +331,6 @@ myapp_errors_total{endpoint="/charge",error_type="PaymentGatewayTimeout",method=
 Beyond technical signals, track business-level metrics that reflect the health of your product:
 
 ```python
-from obskit.metrics.golden import GoldenSignals
 from prometheus_client import Counter, Gauge
 
 # Revenue processed

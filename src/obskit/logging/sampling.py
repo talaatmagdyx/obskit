@@ -142,7 +142,7 @@ class SampledLogger:
         }
         return rates.get(level, 1.0)
 
-    def _get_dedupe_key(self, level: str, event: str, **kwargs) -> str:
+    def _get_dedupe_key(self, level: str, event: str, **kwargs: Any) -> str:
         """Generate deduplication key for a log."""
         # Include level, event, and key kwargs in dedupe key
         key_parts = [level, event]
@@ -163,7 +163,7 @@ class SampledLogger:
         event: str,
         duration_seconds: float | None = None,
         important: bool = False,
-        **kwargs,
+        **kwargs: Any,
     ) -> tuple[bool, str]:
         """
         Determine if a log should be emitted.
@@ -187,29 +187,27 @@ class SampledLogger:
         if duration_seconds and duration_seconds >= self.config.slow_threshold_seconds:
             return True, "slow_operation"
 
-        # Check occurrence count and deduplication — protect shared dicts with lock
+        # Single lock acquisition covers occurrence counting, dedup check,
+        # sampling decision, and last-logged update atomically.  This avoids
+        # the double-lock pattern (two separate acquisitions) that doubled lock
+        # pressure on the hot path and left a TOCTOU window between them.
         dedupe_key = self._get_dedupe_key(level, event, **kwargs)
+        now = time.time()
+        sample_rate = self._get_sample_rate(level, event)
         with self._dedup_lock:
             self._occurrence_counts[dedupe_key] += 1
             count = self._occurrence_counts[dedupe_key]
 
-        if count <= self.config.always_log_first_n:
-            return True, "first_occurrences"
+            if count <= self.config.always_log_first_n:
+                return True, "first_occurrences"
 
-        # Check deduplication
-        now = time.time()
-        with self._dedup_lock:
             last_logged = self._recent_logs.get(dedupe_key)
             if last_logged is not None and now - last_logged < self.config.dedupe_window_seconds:
                 return False, "deduplicated"
 
-        # Apply sample rate
-        sample_rate = self._get_sample_rate(level, event)
-        if random.random() > sample_rate:
-            return False, "sampled_out"
+            if random.random() > sample_rate:
+                return False, "sampled_out"
 
-        # Log it
-        with self._dedup_lock:
             self._recent_logs[dedupe_key] = now
         return True, "sampled_in"
 

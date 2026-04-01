@@ -1,6 +1,6 @@
 # Kubernetes Deployment Guide
 
-This guide covers a production-grade Kubernetes deployment of a service instrumented with obskit v2.0.0. It includes manifests for ConfigMaps, Secrets, Deployments, Services, HPA, RBAC, and Prometheus ServiceMonitors.
+This guide covers a production-grade Kubernetes deployment of a service instrumented with obskit v1.0.0. It includes manifests for ConfigMaps, Secrets, Deployments, Services, HPA, RBAC, and Prometheus ServiceMonitors.
 
 ---
 

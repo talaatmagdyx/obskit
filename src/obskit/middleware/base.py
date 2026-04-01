@@ -16,11 +16,24 @@ Example
 from __future__ import annotations
 
 import uuid
+from contextvars import ContextVar
 from typing import Any
 
 from obskit.core import get_correlation_id, set_correlation_id
 from obskit.logging import get_logger
-from obskit.metrics.tenant import get_tenant_id, set_tenant_id
+
+# Simple context var for tenant_id propagation
+_tenant_id: ContextVar[str | None] = ContextVar("_tenant_id", default=None)
+
+
+def get_tenant_id() -> str | None:
+    """Get the current tenant ID from context."""
+    return _tenant_id.get()
+
+
+def set_tenant_id(tenant_id: str | None) -> None:
+    """Set the current tenant ID in context."""
+    _tenant_id.set(tenant_id)
 
 logger = get_logger("obskit.middleware")
 

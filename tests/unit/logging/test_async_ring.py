@@ -2,6 +2,7 @@
 
 import threading
 import time
+from unittest.mock import patch
 
 from obskit.logging.async_ring import AsyncLogRing
 
@@ -128,3 +129,15 @@ class TestAsyncLogRing:
         ring = AsyncLogRing(maxsize=10)
         ring.enqueue({"event": "orphan"})
         ring.stop()  # should not raise
+
+    def test_drop_warning_logged_every_1000(self):
+        """A stdlib warning is emitted on every 1000th dropped record."""
+        import logging
+
+        ring = AsyncLogRing(maxsize=1)
+        ring.enqueue({"event": "fill"})  # fills the single slot
+        with patch("obskit.logging.async_ring._ring_logger") as mock_log:
+            for _ in range(1000):
+                ring.enqueue({"event": "drop"})
+            assert ring.dropped == 1000
+            mock_log.warning.assert_called_once()

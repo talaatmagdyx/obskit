@@ -10,7 +10,34 @@ pip install "obskit[flask]"
 
 ---
 
-## ObskitFlaskMiddleware
+## Quick Setup with `instrument_flask()` (Recommended)
+
+*New in v1.0.0.* The simplest way to add observability to a Flask app is `instrument_flask()`. It applies `ObskitFlaskMiddleware` and wires up tracing in a single call:
+
+```python
+from flask import Flask
+from obskit import configure_observability, instrument_flask
+
+obs = configure_observability(
+    service_name="order-service",
+    environment="production",
+    version="2.0.0",
+    otlp_endpoint="http://tempo:4317",
+)
+
+app = Flask(__name__)
+instrument_flask(app)
+
+@app.route("/orders")
+def get_orders():
+    return {"orders": []}
+```
+
+`instrument_flask(app)` is equivalent to manually creating `ObskitFlaskMiddleware(app)`. For fine-grained control over middleware parameters (e.g. `exclude_paths`, `track_metrics`), use the direct approach below.
+
+---
+
+## Direct Setup with `ObskitFlaskMiddleware`
 
 ### What it provides per request
 

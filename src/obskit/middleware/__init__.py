@@ -1,5 +1,4 @@
-# Merge namespace contributions from sub-packages (obskit-core provides base.py,
-# obskit-middleware-* provide fastapi.py / flask.py / django.py / grpc.py).
+# Merge namespace contributions from sub-packages.
 from pkgutil import extend_path
 
 __path__ = extend_path(__path__, __name__)
@@ -10,55 +9,42 @@ Request Context Middleware
 
 Middleware for automatic context propagation in web frameworks.
 
-Supports:
-- ASGI (FastAPI, Starlette, etc.)
-- WSGI (Flask, Django, etc.)
+Recommended usage (v1.0.0+)::
 
-Example
--------
->>> # FastAPI
->>> from fastapi import FastAPI
->>> from obskit.middleware import ASGIMiddleware
->>>
->>> app = FastAPI()
->>> app.add_middleware(ASGIMiddleware, service_name="my-service")
->>>
->>> # Flask
->>> from flask import Flask
->>> from obskit.middleware import WSGIMiddleware
->>>
->>> app = Flask(__name__)
->>> app.wsgi_app = WSGIMiddleware(app.wsgi_app, service_name="my-service")
->>>
->>> # Extract/inject context manually
->>> from obskit.middleware import extract_context_from_headers, inject_context_to_headers
->>>
->>> context = extract_context_from_headers(request.headers)
->>> outgoing_headers = inject_context_to_headers()
+    from obskit import instrument_fastapi, instrument_flask, instrument_django
+
+    instrument_fastapi(app)   # FastAPI / Starlette
+    instrument_flask(app)     # Flask
+    instrument_django()       # Django
+
+Direct usage::
+
+    from obskit.middleware.fastapi import ObskitMiddleware
+    from obskit.middleware.flask import ObskitFlaskMiddleware
+    from obskit.middleware.django import ObskitDjangoMiddleware
+
+Low-level utilities::
+
+    from obskit.middleware.base import extract_context_from_headers, inject_context_to_headers
 """
 
 from obskit.middleware.base import (
     CORRELATION_ID_HEADERS,
     TENANT_ID_HEADERS,
-    ASGIMiddleware,
     BaseMiddleware,
-    WSGIMiddleware,
     extract_context_from_headers,
     inject_context_to_headers,
 )
-
-# Alias for convenience
-ObskitMiddleware = ASGIMiddleware
+from obskit.middleware.core import MiddlewareCore, RequestContext
 
 __all__ = [
-    # Functions
+    # Shared core
+    "MiddlewareCore",
+    "RequestContext",
+    # Legacy base utilities
     "extract_context_from_headers",
     "inject_context_to_headers",
-    # Middleware classes
     "BaseMiddleware",
-    "ASGIMiddleware",
-    "WSGIMiddleware",
-    "ObskitMiddleware",
     # Constants
     "CORRELATION_ID_HEADERS",
     "TENANT_ID_HEADERS",

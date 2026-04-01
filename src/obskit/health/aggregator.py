@@ -167,6 +167,10 @@ class DependencyHealthAggregator:
         ] = {}  # name -> (check_func, type)
         self._cached_health: dict[str, DependencyHealth] = {}
         self._last_aggregated: AggregatedHealth | None = None
+        # Per-dependency asyncio locks prevent concurrent check() calls from
+        # both seeing a stale cache entry and both running the check, then
+        # racing to update _cached_health (TOCTOU).
+        self._check_locks: dict[str, asyncio.Lock] = {}
 
     def add_dependency(
         self,
@@ -187,6 +191,7 @@ class DependencyHealthAggregator:
             timeout_seconds: Custom timeout for this dependency
         """
         self._dependencies[name] = (check_func, type, timeout_seconds)
+        self._check_locks[name] = asyncio.Lock()
 
         if critical:
             self.critical_dependencies.add(name)
@@ -201,8 +206,8 @@ class DependencyHealthAggregator:
         if name in self._dependencies:
             del self._dependencies[name]
             self.critical_dependencies.discard(name)
-            if name in self._cached_health:
-                del self._cached_health[name]
+            self._cached_health.pop(name, None)
+            self._check_locks.pop(name, None)
 
     async def check(self, name: str, use_cache: bool = True) -> DependencyHealth:
         """
@@ -223,12 +228,28 @@ class DependencyHealthAggregator:
                 error="Dependency not registered",
             )
 
-        # Check cache
-        if use_cache and name in self._cached_health:
-            cached = self._cached_health[name]
-            if time.time() - cached.last_check < self.cache_seconds:
-                return cached
+        # Serialise concurrent checks for the same dependency so only one
+        # coroutine runs the actual check while others wait and then read the
+        # freshly-populated cache (prevents the TOCTOU double-check race).
+        lock = self._check_locks.get(name)
+        if lock is None:  # pragma: no cover
+            # Dependency was registered without a lock (shouldn't happen, but
+            # guard defensively so we never crash).
+            lock = asyncio.Lock()
+            self._check_locks[name] = lock
 
+        async with lock:
+            # Re-check cache inside the lock — a concurrent caller may have
+            # already refreshed it while we were waiting to acquire the lock.
+            if use_cache and name in self._cached_health:
+                cached = self._cached_health[name]
+                if time.time() - cached.last_check < self.cache_seconds:
+                    return cached
+
+            return await self._run_check(name)
+
+    async def _run_check(self, name: str) -> DependencyHealth:
+        """Execute the health check function (called with per-dependency lock held)."""
         check_func, dep_type, custom_timeout = self._dependencies[name]
         timeout = custom_timeout or self.timeout_seconds
 
@@ -243,7 +264,7 @@ class DependencyHealthAggregator:
                 result = await asyncio.wait_for(check_func(), timeout=timeout)
             else:
                 # Run sync function in executor
-                loop = asyncio.get_event_loop()
+                loop = asyncio.get_running_loop()
                 result = await asyncio.wait_for(
                     loop.run_in_executor(None, check_func), timeout=timeout
                 )

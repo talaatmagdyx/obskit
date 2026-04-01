@@ -60,39 +60,6 @@ class TestObskitSettings:
         assert settings.metrics_port == 8080
         assert settings.metrics_path == "/custom-metrics"
 
-    def test_circuit_breaker_settings(self):
-        """Test circuit breaker configuration."""
-        settings = ObskitSettings(
-            circuit_breaker_failure_threshold=10,
-            circuit_breaker_recovery_timeout=60.0,
-            circuit_breaker_half_open_requests=5,
-        )
-        assert settings.circuit_breaker_failure_threshold == 10
-        assert settings.circuit_breaker_recovery_timeout == pytest.approx(60.0)
-        assert settings.circuit_breaker_half_open_requests == 5
-
-    def test_retry_settings(self):
-        """Test retry configuration."""
-        settings = ObskitSettings(
-            retry_max_attempts=5,
-            retry_base_delay=2.0,
-            retry_max_delay=120.0,
-            retry_exponential_base=3.0,
-        )
-        assert settings.retry_max_attempts == 5
-        assert settings.retry_base_delay == pytest.approx(2.0)
-        assert settings.retry_max_delay == pytest.approx(120.0)
-        assert settings.retry_exponential_base == pytest.approx(3.0)
-
-    def test_rate_limit_settings(self):
-        """Test rate limiting configuration."""
-        settings = ObskitSettings(
-            rate_limit_requests=50,
-            rate_limit_window_seconds=30.0,
-        )
-        assert settings.rate_limit_requests == 50
-        assert settings.rate_limit_window_seconds == pytest.approx(30.0)
-
 
 class TestConfigure:
     """Tests for configure function."""
@@ -361,25 +328,13 @@ class TestObskitInitGetattr:
             _ = obskit.this_does_not_exist_anywhere
 
 
-class TestObskitSettingsSecretMasking:
-    """Tests for model_dump() secret masking and __str__ (lines 673-682)."""
+class TestObskitSettingsStr:
+    """Tests for __str__ method."""
 
-    def test_model_dump_redacts_metrics_auth_token(self):
-        """model_dump() replaces metrics_auth_token with [REDACTED] (lines 673-677)."""
-        settings = ObskitSettings(metrics_auth_token="super-secret-token")
-        data = settings.model_dump()
-        assert data["metrics_auth_token"] == "[REDACTED]"
-
-    def test_model_dump_leaves_empty_token_unchanged(self):
-        """model_dump() does not redact falsy (empty string) token values."""
-        settings = ObskitSettings(metrics_auth_token="")
-        data = settings.model_dump()
-        assert data["metrics_auth_token"] == ""
-
-    def test_str_redacts_secrets(self):
-        """__str__() produces a string with secrets redacted (lines 681-682)."""
-        settings = ObskitSettings(metrics_auth_token="my-token")
+    def test_str_shows_key_fields(self):
+        """__str__() shows key fields."""
+        settings = ObskitSettings(service_name="my-service", environment="production")
         result = str(settings)
-        assert "my-token" not in result
-        assert "[REDACTED]" in result
+        assert "my-service" in result
+        assert "production" in result
         assert result.startswith("ObskitSettings(")

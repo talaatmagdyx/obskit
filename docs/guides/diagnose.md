@@ -23,7 +23,7 @@ obskit environment diagnostics
 ────────────────────────────────────────────────────────────────────────────────
 Component                  Version    Status         Notes
 ────────────────────────────────────────────────────────────────────────────────
-obskit                     3.0.0      ✓ installed
+obskit                     1.0.0      ✓ installed
 
 prometheus-client          0.20.0     ✓ available
   └─ trace-exemplars                  ✓ available
@@ -36,16 +36,13 @@ exporter-otlp-grpc         1.27.0     ✓ available
 
 structlog                  24.1.0     ✓ available
   └─ trace-correlation               ✓ available
-  └─ loguru                           ✗ not installed  (optional)
 
 fastapi                    0.110.0    ✓ available
 starlette                  0.36.3     ✓ available
-
-redis                                 ✗ not installed  (optional)
 ────────────────────────────────────────────────────────────────────────────────
 Python                     3.12.2
 Platform                   macOS-15.0-arm64
-obskit                     3.0.0
+obskit                     1.0.0
 ────────────────────────────────────────────────────────────────────────────────
 ```
 
@@ -187,7 +184,7 @@ Example curl output for `/diagnose/json`:
 [
   {
     "package": "obskit",
-    "version": "3.0.0",
+    "version": "1.0.0",
     "installed": true,
     "integrations": [
       {"name": "opentelemetry-api", "version": "1.27.0", "available": true, "optional": false, "note": null},

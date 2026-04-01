@@ -40,8 +40,8 @@ a clickable link to the corresponding Tempo trace.
 
 | Package | Minimum version | Role |
 |---------|-----------------|------|
-| `obskit` | 3.0.0 | Provides `get_logger()` and the structlog processor |
-| `obskit[otlp]` | 3.0.0 | Provides the OTel SDK configuration |
+| `obskit` | 1.0.0 | Provides `get_logger()` and the structlog processor |
+| `obskit[otlp]` | 1.0.0 | Provides the OTel SDK configuration |
 | `opentelemetry-sdk` | 1.20.0 | OTel span context storage |
 | `structlog` | 23.0.0 | Structured logging backend |
 
@@ -166,14 +166,16 @@ request's `trace_id` without any extra code.
 
 ```python
 from fastapi import FastAPI
+from obskit import configure_observability, instrument_fastapi
 from obskit.logging import get_logger
-from obskit.middleware.fastapi import ObservabilityMiddleware
-from obskit.tracing import setup_tracing
 
-setup_tracing(service_name="order-service", exporter_endpoint="http://localhost:4317")
+configure_observability(
+    service_name="order-service",
+    otlp_endpoint="http://localhost:4317",
+)
 
 app = FastAPI()
-app.add_middleware(ObservabilityMiddleware, service_name="order-service")
+instrument_fastapi(app)
 
 log = get_logger("order_service")
 

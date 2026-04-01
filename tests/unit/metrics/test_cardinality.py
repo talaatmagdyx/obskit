@@ -144,6 +144,45 @@ class TestLRUCache:
 
         assert len(errors) == 0
 
+    # ------------------------------------------------------------------
+    # check_and_add coverage
+    # ------------------------------------------------------------------
+
+    def test_check_and_add_no_ttl_existing_key(self):
+        """check_and_add returns True and moves key to end when TTL is None and key exists (lines 166-167)."""
+        cache = LRUCache(max_size=5)
+        cache.put("k", "v")
+        result = cache.check_and_add("k", "v", max_size=5)
+        assert result is True
+        assert len(cache) == 1
+
+    def test_check_and_add_ttl_expired_key_readded(self):
+        """check_and_add deletes expired entry and re-adds it (line 160)."""
+        import time as _time
+
+        cache = LRUCache(max_size=5, ttl_seconds=0.01)
+        cache.put("k", "v")
+        _time.sleep(0.02)  # let TTL expire
+        result = cache.check_and_add("k", "new_v", max_size=5)
+        assert result is True  # re-added after TTL expiry
+        assert cache.contains("k")
+
+    def test_check_and_add_evicts_lru_when_own_max_size_exceeded(self):
+        """check_and_add evicts LRU entry when cache's own max_size would be exceeded (line 175)."""
+        # Create cache with max_size=2 but call check_and_add with max_size=10
+        # so the capacity guard at line 170 is bypassed while line 174 fires.
+        cache = LRUCache(max_size=2)
+        cache.put("a", 1)
+        cache.put("b", 2)
+        # Cache is full (own max_size=2); pass max_size=10 so line 170 doesn't
+        # return False — forces the eviction path at line 175.
+        result = cache.check_and_add("c", 3, max_size=10)
+        assert result is True
+        assert len(cache) == 2  # "a" was evicted, "b" and "c" remain
+        assert not cache.contains("a")
+        assert cache.contains("b")
+        assert cache.contains("c")
+
 
 class TestCardinalityConfig:
     """Tests for CardinalityConfig."""
