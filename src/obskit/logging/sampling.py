@@ -155,7 +155,9 @@ class SampledLogger:
                     key_parts.append(f"{k}={v}")
 
         key_string = "|".join(key_parts)
-        return hashlib.sha256(key_string.encode(), usedforsecurity=False).hexdigest()[:16]  # NOSONAR
+        return hashlib.sha256(key_string.encode(), usedforsecurity=False).hexdigest()[
+            :16
+        ]  # NOSONAR
 
     def _should_log(
         self,

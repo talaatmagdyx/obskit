@@ -554,7 +554,9 @@ class REDMetrics:
             )
             # Hash the full name so two different long operations never collapse into
             # the same series (plain prefix truncation would merge them silently).
-            _suffix = _hashlib.sha256(operation.encode(), usedforsecurity=False).hexdigest()[:8]  # NOSONAR
+            _suffix = _hashlib.sha256(operation.encode(), usedforsecurity=False).hexdigest()[
+                :8
+            ]  # NOSONAR
             operation = operation[:119] + "_" + _suffix  # 119 + 1 + 8 = 128 chars
 
         # Always record errors to ensure error visibility
