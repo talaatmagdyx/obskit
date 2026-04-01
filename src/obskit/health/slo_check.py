@@ -33,7 +33,7 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import TYPE_CHECKING, Any
 
-from obskit.health import HealthChecker, get_health_checker
+from obskit.health.checker import HealthChecker, get_health_checker
 from obskit.logging import get_logger
 
 if TYPE_CHECKING:
