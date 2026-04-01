@@ -114,7 +114,7 @@ def make_redaction_processor(
         if obj_id in seen:
             return "<circular>"
         seen = seen | {obj_id}
-        result = {}
+        result: dict[Any, Any] = {}
         for key, val in obj.items():
             # Guard against non-string keys (e.g. integer keys) that would
             # raise TypeError in _sensitive_re.search().  Non-string keys
@@ -127,9 +127,7 @@ def make_redaction_processor(
                 # Recurse into list items that are dicts so sensitive keys
                 # inside e.g. {"users": [{"password": "s3cr3t"}]} are redacted.
                 result[key] = [
-                    _redact_value(item, depth + 1, seen)
-                    if isinstance(item, dict)
-                    else item
+                    _redact_value(item, depth + 1, seen) if isinstance(item, dict) else item
                     for item in val
                 ]
             else:
