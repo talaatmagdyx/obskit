@@ -447,7 +447,7 @@ class TestObskitMiddleware:
             # Pass a "lifespan" scope — not http/websocket
             await mw({"type": "lifespan", "path": "/"}, None, None)
 
-        asyncio.get_event_loop().run_until_complete(run())
+        asyncio.run(run())
         assert "lifespan" in inner_app_called
 
     @patch("obskit.middleware.core.get_red_metrics")
@@ -621,7 +621,7 @@ class TestObskitMiddleware:
                 fake_send,
             )
 
-        asyncio.get_event_loop().run_until_complete(run())
+        asyncio.run(run())
         # All 3 messages should have been forwarded
         assert len(sent_messages) == 3
         assert sent_messages[1]["type"] == "custom.message.type"
@@ -685,7 +685,7 @@ class TestObskitMiddleware:
             except ConnectionResetError:
                 pass  # expected — middleware re-raises after recording
 
-        asyncio.get_event_loop().run_until_complete(run())
+        asyncio.run(run())
         # metrics_recorded was True via the except block (ConnectionResetError is an Exception)
         # so the finally block condition is False → observe_request called exactly once
         mock_red.observe_request.assert_called_once()
@@ -727,7 +727,7 @@ class TestObskitMiddleware:
                 fake_send,
             )
 
-        asyncio.get_event_loop().run_until_complete(run())
+        asyncio.run(run())
         # finally block should have fired since no body chunk set metrics_recorded
         mock_red.observe_request.assert_called_once()
         call_kwargs = mock_red.observe_request.call_args.kwargs
@@ -770,7 +770,7 @@ class TestObskitMiddleware:
             )
 
         with _patch("obskit.middleware.core._core_logger") as mock_logger:
-            asyncio.get_event_loop().run_until_complete(run())
+            asyncio.run(run())
         # track_logging=True so finally block called logger.info("request_completed", ...)
         mock_logger.info.assert_called()
 

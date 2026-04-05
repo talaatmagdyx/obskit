@@ -52,6 +52,18 @@ class TestConfigureTracing:
         configure_tracing(service_name="test2")
         # Should not raise
 
+    def test_configure_picks_up_sampling_config(self):
+        """configure_tracing reads head_rate + always_sample_errors from configure_trace_sampling."""
+        import obskit.tracing.sampling as _sm
+
+        old = _sm._SAMPLING_CONFIG
+        try:
+            _sm._SAMPLING_CONFIG = {"head_rate": 0.5, "always_sample_errors": True}
+            result = configure_tracing(service_name="sampling-test")
+            assert result is True
+        finally:
+            _sm._SAMPLING_CONFIG = old
+
 
 class TestGetTracer:
     """Tests for get_tracer function."""

@@ -52,7 +52,7 @@ class TestInstrumentRepo:
 
             import asyncio
 
-            asyncio.get_event_loop().run_until_complete(NotesRepo().insert_note())
+            asyncio.run(NotesRepo().insert_note())
 
         assert any("NotesRepo.insert_note" in s for s in captured_spans)
 
@@ -79,7 +79,7 @@ class TestInstrumentRepo:
 
             import asyncio
 
-            asyncio.get_event_loop().run_until_complete(NotesRepo().get_notes())
+            asyncio.run(NotesRepo().get_notes())
 
         assert any("notes_db.get_notes" in s for s in captured_spans)
 
@@ -136,7 +136,7 @@ class TestInstrumentRepo:
         import asyncio
 
         # Should call directly without span wrapping
-        result = asyncio.get_event_loop().run_until_complete(MyRepo()._private_helper())
+        result = asyncio.run(MyRepo()._private_helper())
         assert result == "private"
 
     def test_staticmethod_not_wrapped(self):
@@ -191,7 +191,7 @@ class TestInstrumentRepo:
 
             import asyncio
 
-            asyncio.get_event_loop().run_until_complete(DefaultRepo().query())
+            asyncio.run(DefaultRepo().query())
 
     @pytest.mark.asyncio
     async def test_multiple_methods_all_wrapped(self):
