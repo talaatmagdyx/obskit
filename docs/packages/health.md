@@ -504,3 +504,108 @@ async def health():
     status_code = 200 if result.healthy else 503
     return JSONResponse(result.to_dict(), status_code=status_code)
 ```
+
+---
+
+## WorkerHealthServer — liveness probe for worker processes
+
+*New in v2.0.0.* A minimal HTTP server for non-HTTP workers (RabbitMQ consumers, cron jobs, async pipeline workers) that do not have FastAPI or Flask. Kubernetes liveness probes can reach it even when the main worker loop is blocked or stuck in a reconnect loop.
+
+```python
+from obskit.health import WorkerHealthServer
+
+health = WorkerHealthServer(
+    port=8002,
+    checks={
+        "consumer": lambda: consumer.is_alive(),
+        "retry_worker": lambda: retry_worker.is_running,
+    },
+    max_silence_seconds=120,
+)
+await health.start()
+```
+
+### Parameters
+
+| Parameter | Default | Description |
+|-----------|---------|-------------|
+| `port` | required | TCP port to listen on (e.g. `8002`). |
+| `checks` | required | `dict[str, Callable[[], bool]]` — check name → zero-argument callable. Exceptions are caught and treated as `fail`. Sync callables only. |
+| `max_silence_seconds` | `None` | If set, returns 503 when `record_activity()` has not been called within this many seconds. |
+
+### HTTP endpoints
+
+| Path | Description |
+|------|-------------|
+| `GET /health` | Evaluate all checks. Returns `200` or `503`. |
+| `GET /live` | Alias for `/health` — Kubernetes liveness probe. |
+| `GET /ready` | Alias for `/health` — Kubernetes readiness probe. |
+| Any other path | `404`. |
+
+### Response format
+
+```json
+{
+  "status": "ok",
+  "checks": {
+    "consumer": {"status": "ok"},
+    "retry_worker": {"status": "ok"},
+    "activity": {
+      "status": "ok",
+      "silence_seconds": 3.2,
+      "threshold_seconds": 120
+    }
+  }
+}
+```
+
+Returns `503` with `"status": "fail"` when any check fails or silence exceeds `max_silence_seconds`.
+
+### `record_activity()`
+
+Call after every message processed in the worker loop to reset the silence timer:
+
+```python
+async def consume():
+    async for message in channel:
+        await handle(message)
+        health.record_activity()   # ← reset 120-second silence timer
+```
+
+### Kubernetes probe configuration
+
+```yaml
+livenessProbe:
+  httpGet:
+    path: /live
+    port: 8002
+  initialDelaySeconds: 10
+  periodSeconds: 15
+  failureThreshold: 3
+
+readinessProbe:
+  httpGet:
+    path: /ready
+    port: 8002
+  initialDelaySeconds: 5
+  periodSeconds: 10
+```
+
+### Stopping the server
+
+```python
+# On graceful shutdown:
+health.stop()
+```
+
+### Starting from synchronous code
+
+```python
+health = WorkerHealthServer(port=8002, checks={"ok": lambda: True})
+health.start_sync()   # non-async equivalent of await health.start()
+```
+
+### API Reference
+
+::: obskit.health.server.WorkerHealthServer
+

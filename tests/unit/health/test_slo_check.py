@@ -468,3 +468,86 @@ class TestGetSloTrackerAccessor:
 
         result = get_slo_tracker()
         assert isinstance(result, SLOTracker)
+
+
+class TestAddSloReadinessCheckIdempotency:
+    """add_slo_readiness_check() must not accumulate registrations per call."""
+
+    def setup_method(self):
+        """Clear the registry before each test."""
+        from obskit.health import slo_check as _mod
+        _mod._REGISTERED_SLO_CHECKS.clear()
+
+    def teardown_method(self):
+        from obskit.health import slo_check as _mod
+        _mod._REGISTERED_SLO_CHECKS.clear()
+
+    def test_first_call_registers_and_returns_check(self):
+        """First call creates + registers the check."""
+        from unittest.mock import MagicMock, patch
+        mock_checker = MagicMock()
+        mock_checker.add_readiness_check.return_value = lambda fn: fn
+
+        check = add_slo_readiness_check(
+            "idempotent_slo", critical_threshold=0.1, health_checker=mock_checker
+        )
+        assert isinstance(check, SLOReadinessCheck)
+        mock_checker.add_readiness_check.assert_called_once_with("slo_idempotent_slo")
+
+    def test_second_call_returns_same_instance(self):
+        """Calling twice with the same slo_name returns the first instance."""
+        from unittest.mock import MagicMock
+        mock_checker = MagicMock()
+        mock_checker.add_readiness_check.return_value = lambda fn: fn
+
+        first = add_slo_readiness_check(
+            "dup_slo", critical_threshold=0.1, health_checker=mock_checker
+        )
+        second = add_slo_readiness_check(
+            "dup_slo", critical_threshold=0.1, health_checker=mock_checker
+        )
+        assert first is second
+        # Registered only once despite two calls
+        mock_checker.add_readiness_check.assert_called_once()
+
+    def test_different_slo_names_both_registered(self):
+        """Different slo_names each get their own registration."""
+        from unittest.mock import MagicMock
+        mock_checker = MagicMock()
+        mock_checker.add_readiness_check.return_value = lambda fn: fn
+
+        a = add_slo_readiness_check("slo_a", health_checker=mock_checker)
+        b = add_slo_readiness_check("slo_b", health_checker=mock_checker)
+        assert a is not b
+        assert mock_checker.add_readiness_check.call_count == 2
+
+
+class TestGetSloReadinessCheck:
+    """get_slo_readiness_check() returns a lightweight, per-request-safe check."""
+
+    def test_returns_slo_readiness_check(self):
+        from obskit.health.slo_check import get_slo_readiness_check
+        check = get_slo_readiness_check("my_slo")
+        assert isinstance(check, SLOReadinessCheck)
+
+    def test_passes_thresholds(self):
+        from obskit.health.slo_check import get_slo_readiness_check
+        check = get_slo_readiness_check("latency", critical_threshold=0.05, warning_threshold=0.2)
+        assert check.critical_threshold == pytest.approx(0.05)
+        assert check.warning_threshold == pytest.approx(0.2)
+
+    def test_does_not_register_with_health_checker(self):
+        """get_slo_readiness_check must NOT call add_readiness_check."""
+        from unittest.mock import patch, MagicMock
+        from obskit.health.slo_check import get_slo_readiness_check
+        mock_checker = MagicMock()
+        with patch("obskit.health.slo_check.get_health_checker", return_value=mock_checker):
+            get_slo_readiness_check("no_register")
+        mock_checker.add_readiness_check.assert_not_called()
+
+    def test_multiple_calls_return_independent_instances(self):
+        """Each call creates a fresh SLOReadinessCheck (no shared state)."""
+        from obskit.health.slo_check import get_slo_readiness_check
+        a = get_slo_readiness_check("slo_x")
+        b = get_slo_readiness_check("slo_x")
+        assert a is not b

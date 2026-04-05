@@ -221,6 +221,12 @@ class SLOReadinessCheck:
             )
 
 
+# Registry of checks already registered with the global health checker.
+# Guards add_slo_readiness_check() against repeated registration when called
+# on every request (e.g. inside a /_ready handler).
+_REGISTERED_SLO_CHECKS: dict[str, SLOReadinessCheck] = {}
+
+
 def add_slo_readiness_check(
     slo_name: str,
     critical_threshold: float = 0.1,
@@ -228,7 +234,14 @@ def add_slo_readiness_check(
     health_checker: HealthChecker | None = None,
 ) -> SLOReadinessCheck:
     """
-    Add an SLO-based readiness check to the health checker.
+    Register an SLO-based readiness check with the global health checker.
+
+    **Idempotent** — calling this function multiple times with the same
+    *slo_name* (e.g. on every ``/_ready`` request) registers the handler only
+    once and returns the existing :class:`SLOReadinessCheck` on subsequent
+    calls.  It is therefore safe to call per-request, but the recommended
+    pattern is to call it once at startup (in the app lifespan) and use
+    :func:`get_slo_readiness_check` for per-request budget checks.
 
     Parameters
     ----------
@@ -244,13 +257,22 @@ def add_slo_readiness_check(
     Returns
     -------
     SLOReadinessCheck
-        The created check instance.
+        The check instance (existing one if already registered).
 
-    Example
-    -------
+    Example — startup registration (recommended)
+    --------------------------------------------
+    >>> # In your app lifespan:
     >>> add_slo_readiness_check("availability", critical_threshold=0.1)
-    >>> # Now /health/ready will fail if error budget < 10%
+    >>> add_slo_readiness_check("latency_p95", critical_threshold=0.1)
+
+    Example — per-request (also safe due to idempotency)
+    -----------------------------------------------------
+    >>> check = add_slo_readiness_check("availability", critical_threshold=0.1)
+    >>> result = check.check()
     """
+    if slo_name in _REGISTERED_SLO_CHECKS:
+        return _REGISTERED_SLO_CHECKS[slo_name]
+
     checker = health_checker or get_health_checker()
     slo_check = SLOReadinessCheck(
         slo_name=slo_name,
@@ -276,6 +298,8 @@ def add_slo_readiness_check(
     # Register with health checker
     checker.add_readiness_check(f"slo_{slo_name}")(check_slo)
 
+    _REGISTERED_SLO_CHECKS[slo_name] = slo_check
+
     logger.info(
         "slo_readiness_check_added",
         slo_name=slo_name,
@@ -284,6 +308,49 @@ def add_slo_readiness_check(
     )
 
     return slo_check
+
+
+def get_slo_readiness_check(
+    slo_name: str,
+    critical_threshold: float = 0.1,
+    warning_threshold: float = 0.25,
+) -> SLOReadinessCheck:
+    """
+    Return a lightweight SLO readiness check — safe to call per-request.
+
+    Unlike :func:`add_slo_readiness_check`, this function does **not** register
+    anything with the global health checker.  It creates a plain
+    :class:`SLOReadinessCheck` that you can call ``.check()`` on directly.
+
+    Use this inside per-request handlers (e.g. ``/_ready``) once the SLO has
+    already been registered at startup with :func:`add_slo_readiness_check`.
+
+    Parameters
+    ----------
+    slo_name : str
+        Name of the SLO to check.
+    critical_threshold : float
+        Error budget threshold below which the check is unhealthy (default: 0.1).
+    warning_threshold : float
+        Error budget threshold below which the check is in warning (default: 0.25).
+
+    Returns
+    -------
+    SLOReadinessCheck
+        A check object whose ``.check()`` method can be called immediately.
+
+    Example
+    -------
+    >>> # In a /_ready handler (called on every request):
+    >>> check = get_slo_readiness_check("api_availability", critical_threshold=0.1)
+    >>> if not check.check().healthy:
+    ...     return JSONResponse({"ready": False}, status_code=503)
+    """
+    return SLOReadinessCheck(
+        slo_name=slo_name,
+        critical_threshold=critical_threshold,
+        warning_threshold=warning_threshold,
+    )
 
 
 def get_slo_health_status(
@@ -373,5 +440,6 @@ __all__ = [
     "SLOCheckResult",
     "SLOReadinessCheck",
     "add_slo_readiness_check",
+    "get_slo_readiness_check",
     "get_slo_health_status",
 ]

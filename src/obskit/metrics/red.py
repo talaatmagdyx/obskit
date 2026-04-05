@@ -471,6 +471,7 @@ class REDMetrics:
         duration_seconds: float,
         status: Literal["success", "failure", "error"] = "success",
         error_type: str | None = None,
+        exemplars: bool = False,
     ) -> None:
         """
         Record a request observation.
@@ -498,6 +499,13 @@ class REDMetrics:
             Type of error if status="failure" or "error".
             Typically the exception class name.
             Example: "ValidationError", "TimeoutError"
+
+        exemplars : bool, optional
+            When True, attach the active OpenTelemetry trace ID as a Prometheus
+            exemplar on the histogram observation. Requires ``prometheus-client``
+            with exemplar support and an active OTel span. Falls back to a plain
+            ``observe()`` call when no span is active or OTel is not installed.
+            Default: False.
 
         Example
         -------
@@ -576,7 +584,12 @@ class REDMetrics:
 
         # Record duration in histogram if enabled
         if self.duration_histogram is not None:  # pragma: no branch
-            self.duration_histogram.labels(operation=operation).observe(duration_seconds)
+            labeled = self.duration_histogram.labels(operation=operation)
+            if exemplars:
+                from obskit.metrics.exemplar import observe_with_exemplar  # noqa: PLC0415
+                observe_with_exemplar(labeled, duration_seconds)
+            else:
+                labeled.observe(duration_seconds)
 
         # Record duration in summary if enabled
         if self.duration_summary is not None:  # pragma: no branch

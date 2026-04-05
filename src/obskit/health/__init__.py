@@ -201,6 +201,7 @@ from obskit.health.checks import (
     create_memory_check,
 )
 from obskit.health.router import build_health_router
+from obskit.health.server import WorkerHealthServer
 from obskit.health.slo_check import (
     SLOReadinessCheck,
     add_slo_readiness_check,
@@ -270,4 +271,8 @@ __all__ = [
     "DEPENDENCY_LATENCY",
     "DEPENDENCY_CHECK_TOTAL",
     "OVERALL_HEALTH",
+    # ==========================================================================
+    # Worker Health Server
+    # ==========================================================================
+    "WorkerHealthServer",
 ]

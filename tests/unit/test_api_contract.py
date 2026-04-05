@@ -53,6 +53,44 @@ EXPECTED_ALL = sorted(
         "is_multiprocess_mode",
         "make_multiprocess_app",
         "setup_multiprocess_registry",
+        # v1.4.0 additions
+        "patch_threading",
+        "reset_threading_patch",
+        "scoped_context",
+        "instrument_redis",
+        "instrument_retry_worker",
+        "get_redis_slo_tracker",
+        "reset_redis_slo_tracker",
+        # v1.5.0 additions
+        "instrument_httpx",
+        "with_event_context",
+        "instrument_repo",
+        "configure_app_observability",
+        # v1.6.0 additions
+        "observe_with_exemplar",
+        "get_trace_exemplar",
+        "DLQTracker",
+        "DLQReason",
+        "get_dlq_tracker",
+        "add_slo_readiness_check",
+        "AdaptiveSampledLogger",
+        "inject_trace_context_to_headers",
+        # v1.7.0 additions
+        "get_slo_readiness_check",
+        "baggage_context",
+        "async_baggage_context",
+        # v1.8.0 additions
+        "extract_trace_context_from_headers",
+        "use_span_context",
+        "instrument_pybreaker",
+        "instrument_rate_limiter",
+        # v1.9.0 additions
+        "instrument_tenacity",
+        "instrument_redis_client",
+        "instrument_event_handler",
+        # v2.0.0 additions
+        "configure_trace_sampling",
+        "WorkerHealthServer",
     ]
 )
 

@@ -82,6 +82,56 @@ setup_tracing(
 
 ---
 
+## configure_trace_sampling — production volume control
+
+*New in v2.0.0.* Decouple the sampling decision from the tracing setup. Call once at startup, before or after `configure_observability()`:
+
+```python
+from obskit import configure_trace_sampling
+
+configure_trace_sampling(head_rate=0.1, always_sample_errors=True)
+configure_observability(service_name="worker", otlp_endpoint="http://tempo:4317")
+```
+
+### Parameters
+
+| Parameter | Default | Description |
+|-----------|---------|-------------|
+| `head_rate` | required | Fraction of traces to sample, in `[0.0, 1.0]`. Uses `ParentBased(TraceIdRatioBased)` — decision propagates via W3C `traceparent`. |
+| `always_sample_errors` | `True` | When `True`, spans that end with `StatusCode.ERROR` are always exported even if the trace was not in the sample. |
+
+### Trace volume math
+
+At 350 req/s with 5–6 spans per request:
+
+| `head_rate` | Spans/sec exported |
+|-------------|-------------------|
+| `1.0` (default) | ~2,000 |
+| `0.1` | ~200 + error spans |
+| `0.05` | ~100 + error spans |
+
+### How `always_sample_errors` works
+
+Non-sampled traces use `RECORD_ONLY` (data stays in memory) instead of `DROP`. A background `ErrorPromotionSpanProcessor` exports any span whose status is set to `StatusCode.ERROR` before it ends.
+
+**Limitation:** only the error span itself is force-exported — parent spans from the same trace that were already discarded are not recovered. The error span retains its `trace_id` and `parent_span_id`, so you can correlate it with sampled portions of the trace. For full-trace error preservation, configure [tail-based sampling](https://opentelemetry.io/docs/collector/configuration/#tail-based-sampling) in the OpenTelemetry Collector.
+
+### Called before vs after `configure_observability`
+
+Both orders work:
+
+```python
+# Before — stores config, configure_observability() picks it up
+configure_trace_sampling(head_rate=0.1)
+configure_observability(service_name="api", otlp_endpoint="http://tempo:4317")
+
+# After — patches the active TracerProvider in place
+configure_observability(service_name="api", otlp_endpoint="http://tempo:4317")
+configure_trace_sampling(head_rate=0.1)
+```
+
+---
+
 ## configure_tracing (low-level)
 
 When you need fine-grained control without auto-instrumentation:
@@ -225,6 +275,42 @@ try:
 finally:
     clear_baggage(token)
 ```
+
+### `baggage_context` / `async_baggage_context` context managers
+
+*New in v1.7.0.* Scoped context managers that set baggage entries and clean up automatically:
+
+```python
+from obskit import baggage_context, async_baggage_context
+
+# Synchronous
+with baggage_context(tenant_id="acme-corp", region="eu-west-1"):
+    call_downstream()       # baggage forwarded; cleared on exit
+
+# Asynchronous
+async with async_baggage_context(tenant_id="acme-corp"):
+    await call_downstream()
+```
+
+---
+
+## `use_span_context` — activate an extracted context
+
+*New in v1.8.0.* Re-parent spans under a previously extracted OTel context, for example from a RabbitMQ message header:
+
+```python
+from obskit import use_span_context, extract_trace_context_from_headers
+from obskit.tracing import async_trace_span
+
+ctx = extract_trace_context_from_headers(message.properties.headers or {})
+
+with use_span_context(ctx):
+    async with async_trace_span("orders.process"):
+        # This span is a child of the publisher's span
+        await handle(message.body)
+```
+
+When `ctx` is `None` (no `traceparent` header found), `use_span_context` is a no-op — a fresh root span is created instead.
 
 ---
 

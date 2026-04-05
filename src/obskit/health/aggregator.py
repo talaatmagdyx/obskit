@@ -494,6 +494,66 @@ async def check_http(url: str, expected_status: int = 200) -> dict[str, Any]:
         return {"healthy": False, "error": str(e)}
 
 
+async def check_psycopg3(dsn: str) -> dict[str, Any]:
+    """Check PostgreSQL connection using psycopg (v3).
+
+    Args:
+        dsn: PostgreSQL DSN, e.g. ``"postgresql://user:pw@host/db"``.
+
+    Example::
+
+        aggregator.add_dependency(
+            "postgres",
+            lambda: check_psycopg3("postgresql://user:pw@localhost/mydb"),
+            type=DependencyType.DATABASE,
+        )
+    """
+    try:
+        import psycopg  # type: ignore[import-untyped]
+
+        conn = await psycopg.AsyncConnection.connect(dsn, connect_timeout=5)
+        async with conn:
+            await conn.execute("SELECT 1")
+        return {"healthy": True, "details": {"connected": True}}
+    except Exception as e:
+        return {"healthy": False, "error": str(e)}
+
+
+def _check_pika_sync(url: str) -> dict[str, Any]:
+    """Synchronous inner helper for :func:`check_pika` (run in executor)."""
+    try:
+        import pika  # type: ignore[import-untyped]
+
+        params = pika.URLParameters(url)
+        params.socket_timeout = 5
+        conn = pika.BlockingConnection(params)
+        conn.close()
+        return {"healthy": True, "details": {"connected": True}}
+    except Exception as e:
+        return {"healthy": False, "error": str(e)}
+
+
+async def check_pika(url: str) -> dict[str, Any]:
+    """Check RabbitMQ connection using pika (synchronous AMQP client).
+
+    Pika's ``BlockingConnection`` is synchronous, so it runs in a thread-pool
+    executor to avoid blocking the event loop.
+
+    Args:
+        url: AMQP URL, e.g. ``"amqp://guest:guest@localhost/"``.
+
+    Example::
+
+        aggregator.add_dependency(
+            "rabbitmq",
+            lambda: check_pika("amqp://guest:guest@localhost/"),
+            type=DependencyType.QUEUE,
+        )
+    """
+    loop = asyncio.get_running_loop()
+    return await loop.run_in_executor(None, _check_pika_sync, url)
+
+
 __all__ = [
     "DependencyHealthAggregator",
     "DependencyHealth",
@@ -504,6 +564,8 @@ __all__ = [
     "check_redis",
     "check_rabbitmq",
     "check_http",
+    "check_psycopg3",
+    "check_pika",
     "DEPENDENCY_HEALTH",
     "DEPENDENCY_LATENCY",
     "DEPENDENCY_CHECK_TOTAL",

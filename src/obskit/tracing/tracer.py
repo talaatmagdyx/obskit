@@ -114,17 +114,23 @@ def configure_tracing(
         )
 
         # ── Sampler ───────────────────────────────────────────────────────
+        # configure_trace_sampling() may have stored a head_rate override.
         sampler: Any = None
-        if sample_rate < 1.0:
-            try:
-                from opentelemetry.sdk.trace.sampling import (
-                    ParentBased,
-                    TraceIdRatioBased,
-                )
+        try:
+            from obskit.tracing.sampling import build_sampler, get_sampling_config
 
-                sampler = ParentBased(TraceIdRatioBased(sample_rate))
-            except ImportError:  # pragma: no cover
-                sampler = None
+            sampling_cfg = get_sampling_config()
+            if sampling_cfg is not None:
+                effective_rate = sampling_cfg.get("head_rate", sample_rate)
+                always_errors = sampling_cfg.get("always_sample_errors", False)
+            else:
+                effective_rate = sample_rate
+                always_errors = False
+
+            if effective_rate < 1.0 or always_errors:
+                sampler = build_sampler(effective_rate, always_errors)
+        except ImportError:  # pragma: no cover
+            sampler = None
 
         # ── Provider ─────────────────────────────────────────────────────
         provider_kwargs: dict[str, Any] = {"resource": resource}
@@ -348,6 +354,52 @@ async def async_trace_span(
                 span.set_status(Status(StatusCode.ERROR, str(e)))
                 span.record_exception(e)
             raise
+
+
+# ---------------------------------------------------------------------------
+# Span context activation
+# ---------------------------------------------------------------------------
+
+
+@contextlib.contextmanager
+def use_span_context(ctx: Any | None) -> Generator[None, None, None]:
+    """Activate a previously-extracted OTel context for the duration of the block.
+
+    Typically used in message consumers to re-parent child spans under the
+    publisher's trace so the full HTTP → queue → consume path appears as a
+    single end-to-end trace in Jaeger / Tempo.
+
+    Parameters
+    ----------
+    ctx:
+        An OTel :class:`opentelemetry.context.Context` returned by
+        :func:`~obskit.integrations.queue.rabbitmq.extract_trace_context_from_headers`
+        (or any OTel propagator ``extract()`` call).
+        Passing ``None`` is a safe no-op.
+
+    Example
+    -------
+    ::
+
+        from obskit.integrations.queue.rabbitmq import extract_trace_context_from_headers
+        from obskit.tracing.tracer import use_span_context
+
+        def _on_message(ch, method, properties, body):
+            ctx = extract_trace_context_from_headers(properties.headers or {})
+            with use_span_context(ctx):
+                process_event(body)
+    """
+    if ctx is None:
+        yield
+        return
+    if not OPENTELEMETRY_AVAILABLE:  # pragma: no cover
+        yield  # pragma: no cover
+        return  # pragma: no cover
+    token = context_api.attach(ctx)
+    try:
+        yield
+    finally:
+        context_api.detach(token)
 
 
 # ---------------------------------------------------------------------------

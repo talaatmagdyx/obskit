@@ -72,6 +72,108 @@ _LAZY_IMPORTS: dict[str, tuple[str, str]] = {
     "is_multiprocess_mode": (_MOD_MULTIPROCESS, "is_multiprocess_mode"),
     "make_multiprocess_app": (_MOD_MULTIPROCESS, "make_multiprocess_app"),
     "setup_multiprocess_registry": (_MOD_MULTIPROCESS, "setup_multiprocess_registry"),
+    # ── Log context binding ──────────────────────────────────────────────
+    "bind_context": ("obskit.logging.context", "bind_context"),
+    "unbind_context": ("obskit.logging.context", "unbind_context"),
+    "clear_context": ("obskit.logging.context", "clear_context"),
+    "get_context": ("obskit.logging.context", "get_context"),
+    # ── Circuit breaker instrumentation ─────────────────────────────────
+    "CircuitState": ("obskit.resilience.circuit_breaker", "CircuitState"),
+    "ObskitCircuitBreakerListener": (
+        "obskit.resilience.circuit_breaker",
+        "ObskitCircuitBreakerListener",
+    ),
+    "instrument_circuit_breaker": (
+        "obskit.resilience.circuit_breaker",
+        "instrument_circuit_breaker",
+    ),
+    # ── Fleet SLO (Redis-backed) ─────────────────────────────────────────
+    "AsyncRedisSLOTracker": ("obskit.slo.redis_tracker", "AsyncRedisSLOTracker"),
+    "get_redis_slo_tracker": (_MOD_CONFIG, "get_redis_slo_tracker"),
+    "reset_redis_slo_tracker": (_MOD_CONFIG, "reset_redis_slo_tracker"),
+    # ── Gunicorn integration ─────────────────────────────────────────────
+    "ObskitGunicornConfig": ("obskit.integrations.gunicorn", "ObskitGunicornConfig"),
+    # ── Thread context propagation ───────────────────────────────────────
+    "patch_threading": ("obskit.threading", "patch_threading"),
+    "reset_threading_patch": ("obskit.threading", "reset_threading_patch"),
+    # ── Scoped log context ───────────────────────────────────────────────
+    "scoped_context": ("obskit.logging.context", "scoped_context"),
+    # ── Redis cache instrumentation ──────────────────────────────────────
+    "instrument_redis": ("obskit.integrations.cache", "instrument_redis"),
+    # ── Retry worker instrumentation ─────────────────────────────────────
+    "instrument_retry_worker": (
+        "obskit.integrations.queue.retry_worker",
+        "instrument_retry_worker",
+    ),
+    # ── HTTP client instrumentation ──────────────────────────────────────
+    "instrument_httpx": ("obskit.integrations.http", "instrument_httpx"),
+    # ── Event handler context decorator ─────────────────────────────────
+    "with_event_context": ("obskit.logging.event_context", "with_event_context"),
+    # ── Repository instrumentation decorator ─────────────────────────────
+    "instrument_repo": ("obskit.decorators.repo", "instrument_repo"),
+    # ── Multi-app observability setup ────────────────────────────────────
+    "configure_app_observability": (
+        "obskit.middleware.instrument",
+        "configure_app_observability",
+    ),
+    # ── Trace exemplars ──────────────────────────────────────────────────
+    "observe_with_exemplar": ("obskit.metrics.exemplar", "observe_with_exemplar"),
+    "get_trace_exemplar": ("obskit.metrics.exemplar", "get_trace_exemplar"),
+    # ── Dead Letter Queue tracking ───────────────────────────────────────
+    "DLQTracker": ("obskit.integrations.queue.dlq", "DLQTracker"),
+    "DLQReason": ("obskit.integrations.queue.dlq", "DLQReason"),
+    "get_dlq_tracker": ("obskit.integrations.queue.dlq", "get_dlq_tracker"),
+    # ── SLO readiness check ──────────────────────────────────────────────
+    "add_slo_readiness_check": ("obskit.health.slo_check", "add_slo_readiness_check"),
+    "get_slo_readiness_check": ("obskit.health.slo_check", "get_slo_readiness_check"),
+    # ── W3C baggage context managers ─────────────────────────────────────
+    "baggage_context": ("obskit.tracing.baggage", "baggage_context"),
+    "async_baggage_context": ("obskit.tracing.baggage", "async_baggage_context"),
+    # ── Adaptive sampled logger ──────────────────────────────────────────
+    "AdaptiveSampledLogger": ("obskit.logging.sampling", "AdaptiveSampledLogger"),
+    # ── RabbitMQ trace context ───────────────────────────────────────────
+    "inject_trace_context_to_headers": (
+        "obskit.integrations.queue.rabbitmq",
+        "inject_trace_context_to_headers",
+    ),
+    "extract_trace_context_from_headers": (
+        "obskit.integrations.queue.rabbitmq",
+        "extract_trace_context_from_headers",
+    ),
+    # ── Span context activation ──────────────────────────────────────────
+    "use_span_context": (_MOD_TRACER, "use_span_context"),
+    # ── pybreaker integration ────────────────────────────────────────────
+    "instrument_pybreaker": (
+        "obskit.integrations.resilience.pybreaker",
+        "instrument_pybreaker",
+    ),
+    # ── Rate limiter instrumentation ─────────────────────────────────────
+    "instrument_rate_limiter": (
+        "obskit.integrations.resilience.rate_limiter",
+        "instrument_rate_limiter",
+    ),
+    # ── Tenacity retry instrumentation ───────────────────────────────────
+    "instrument_tenacity": (
+        "obskit.integrations.resilience.tenacity",
+        "instrument_tenacity",
+    ),
+    # ── Redis client instrumentation ─────────────────────────────────────
+    "instrument_redis_client": (
+        "obskit.integrations.cache",
+        "instrument_redis_client",
+    ),
+    # ── Event handler tracing decorator ──────────────────────────────────
+    "instrument_event_handler": (
+        "obskit.decorators.event_handler",
+        "instrument_event_handler",
+    ),
+    # ── Trace sampling ────────────────────────────────────────────────────
+    "configure_trace_sampling": (
+        "obskit.tracing.sampling",
+        "configure_trace_sampling",
+    ),
+    # ── Worker health server ──────────────────────────────────────────────
+    "WorkerHealthServer": ("obskit.health.server", "WorkerHealthServer"),
 }
 
 
@@ -125,4 +227,53 @@ __all__ = [
     "is_multiprocess_mode",
     "make_multiprocess_app",
     "setup_multiprocess_registry",
+    # Thread context propagation
+    "patch_threading",
+    "reset_threading_patch",
+    # Scoped log context
+    "scoped_context",
+    # Redis cache instrumentation
+    "instrument_redis",
+    # Retry worker instrumentation
+    "instrument_retry_worker",
+    # Fleet SLO (Redis-backed)
+    "get_redis_slo_tracker",
+    "reset_redis_slo_tracker",
+    # HTTP client instrumentation
+    "instrument_httpx",
+    # Event handler context decorator
+    "with_event_context",
+    # Repository instrumentation decorator
+    "instrument_repo",
+    # Multi-app observability setup
+    "configure_app_observability",
+    # Trace exemplars
+    "observe_with_exemplar",
+    "get_trace_exemplar",
+    # Dead Letter Queue tracking
+    "DLQTracker",
+    "DLQReason",
+    "get_dlq_tracker",
+    # SLO readiness check
+    "add_slo_readiness_check",
+    "get_slo_readiness_check",
+    # Adaptive sampled logger
+    "AdaptiveSampledLogger",
+    # RabbitMQ trace context injection
+    "inject_trace_context_to_headers",
+    # W3C baggage context managers
+    "baggage_context",
+    "async_baggage_context",
+    # v1.8.0 additions
+    "extract_trace_context_from_headers",
+    "use_span_context",
+    "instrument_pybreaker",
+    "instrument_rate_limiter",
+    # v1.9.0 additions
+    "instrument_tenacity",
+    "instrument_redis_client",
+    "instrument_event_handler",
+    # v2.0.0 additions
+    "configure_trace_sampling",
+    "WorkerHealthServer",
 ]

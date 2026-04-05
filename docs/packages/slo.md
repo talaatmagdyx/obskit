@@ -284,6 +284,81 @@ checker.add_check("slo_availability", slo_availability_check)
 
 ---
 
+## AsyncRedisSLOTracker
+
+Fleet-wide SLO tracker that stores measurements in Redis sorted sets so all Gunicorn/uvicorn workers share a single, consistent SLO view.
+
+### Installation
+
+```bash
+pip install "obskit[slo]" redis
+```
+
+### Architecture
+
+Each SLO uses Redis sorted sets keyed by Unix timestamp:
+
+```
+obskit:slo:<service>:<name>:total    — every measurement
+obskit:slo:<service>:<name>:success  — successful measurements only
+obskit:slo:<service>:<name>:latencies  — LATENCY only: member = "<value>:<uuid>"
+```
+
+Window management uses `ZREMRANGEBYSCORE` on every write.  A TTL of `window_seconds + 60` ensures eventual cleanup when the application stops.
+
+### Quick start
+
+```python
+import redis.asyncio as aioredis
+from obskit.slo.redis_tracker import AsyncRedisSLOTracker
+from obskit.slo.types import SLOType
+
+redis_client = aioredis.from_url("redis://localhost:6379", decode_responses=True)
+tracker = AsyncRedisSLOTracker(redis_client, service="my-api")
+
+tracker.register_slo(
+    "api_availability",
+    SLOType.AVAILABILITY,
+    target_value=0.999,
+    window_seconds=3600,
+)
+
+# In each request handler
+await tracker.record_measurement("api_availability", value=1.0, success=True)
+
+# On /metrics or a background task
+status = await tracker.get_status("api_availability")
+print(status.to_dict())
+```
+
+### `AsyncRedisSLOTracker(redis, *, service, key_prefix)`
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `redis` | async Redis client | — | `redis.asyncio.Redis` or any compatible client |
+| `service` | `str` | `"default"` | Service name used in Redis key namespace |
+| `key_prefix` | `str` | `"obskit:slo"` | Redis key prefix |
+
+Both `decode_responses=True` and binary clients are supported.
+
+### `register_slo(name, slo_type, target_value, window_seconds, percentile)`
+
+Synchronous — stores the target locally with no Redis I/O.  Same signature as `SLOTracker.register_slo`.
+
+### `async record_measurement(name, value, success)`
+
+Issues 4–6 Redis commands per call (ZADD + ZREMRANGEBYSCORE + EXPIRE per set).  For high-throughput services consider recording to an in-process `SLOTracker` and flushing aggregates to Redis periodically.
+
+### `async get_status(name) → SLOStatus | None`
+
+Returns `None` if the SLO has not been registered.  Returns a `SLOStatus` with the same fields as `SLOTracker.get_status`.
+
+### `async get_all_status() → dict[str, SLOStatus]`
+
+Returns fleet-wide status for all registered SLOs.
+
+---
+
 ## Full example
 
 ```python

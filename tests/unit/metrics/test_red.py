@@ -209,3 +209,42 @@ class TestREDMetricsEdgeCases:
         m2 = get_red_metrics()
         assert m2 is m1
         reset_red_metrics()
+
+
+class TestObserveRequestExemplars:
+    """Tests for observe_request(exemplars=True)."""
+
+    def test_exemplars_false_uses_plain_observe(self):
+        """exemplars=False (default) calls histogram.observe() directly."""
+        from unittest.mock import MagicMock, patch
+        name = f"ex_{uuid.uuid4().hex[:8]}"
+        metrics = REDMetrics(name=name)
+        labeled = MagicMock()
+        with patch.object(metrics.duration_histogram, "labels", return_value=labeled):
+            metrics.observe_request("op", 0.05, exemplars=False)
+        labeled.observe.assert_called_once_with(0.05)
+
+    def test_exemplars_true_calls_observe_with_exemplar(self):
+        """exemplars=True delegates to observe_with_exemplar for trace linking."""
+        from unittest.mock import MagicMock, patch
+        name = f"ex_{uuid.uuid4().hex[:8]}"
+        metrics = REDMetrics(name=name)
+        labeled = MagicMock()
+        with patch.object(metrics.duration_histogram, "labels", return_value=labeled), \
+             patch("obskit.metrics.exemplar.observe_with_exemplar") as mock_owe:
+            metrics.observe_request("op", 0.05, exemplars=True)
+        mock_owe.assert_called_once_with(labeled, 0.05)
+
+    def test_exemplars_default_is_false(self):
+        """observe_request signature defaults exemplars=False."""
+        import inspect
+        from obskit.metrics.red import REDMetrics as _RED
+        sig = inspect.signature(_RED.observe_request)
+        assert sig.parameters["exemplars"].default is False
+
+    def test_exemplars_true_no_histogram_no_error(self):
+        """exemplars=True with use_histogram=False does not raise."""
+        name = f"ex_{uuid.uuid4().hex[:8]}"
+        metrics = REDMetrics(name=name, use_histogram=False)
+        # Should complete without error
+        metrics.observe_request("op", 0.05, exemplars=True)

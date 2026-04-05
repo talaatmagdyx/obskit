@@ -35,6 +35,24 @@ async def get_orders():
 
 `instrument_fastapi(app)` is equivalent to manually adding `ObskitMiddleware` and including the health, metrics, and diagnose routers. For fine-grained control over middleware parameters or router mounting, use the direct approach below.
 
+### Custom context extraction
+
+*New in v1.7.0.* Pass `context_extractor` to enrich every request's span and log with attributes pulled from the ASGI scope at request time:
+
+```python
+def extract_tenant(scope, receive):
+    # scope["headers"] is a list of (name_bytes, value_bytes) pairs
+    headers = dict(scope.get("headers", []))
+    return {
+        "tenant_id": headers.get(b"x-tenant-id", b"").decode(),
+        "region":    headers.get(b"x-region",    b"").decode(),
+    }
+
+instrument_fastapi(app, context_extractor=extract_tenant)
+```
+
+The dict returned by `context_extractor` is merged into the request log entry and added as span attributes automatically.
+
 ---
 
 ## Direct Setup with `ObskitMiddleware`
@@ -93,6 +111,7 @@ app.add_middleware(
 | `track_metrics` | `bool` | `True` | Collect RED metrics for every request |
 | `track_logging` | `bool` | `True` | Emit structured log entries per request |
 | `track_tracing` | `bool` | `True` | Create an OTel span per request |
+| `context_extractor` | `callable \| None` | `None` | Optional callable `(scope, receive) -> dict` that extracts extra log/trace attributes from the ASGI scope on each request |
 
 ---
 

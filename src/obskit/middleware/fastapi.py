@@ -32,9 +32,11 @@ Example - With Custom Configuration
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from typing import Any
 
 from obskit.core.context import async_correlation_context
+from obskit.logging.context import bind_context, unbind_context
 from obskit.middleware.core import MiddlewareCore
 from obskit.tracing.tracer import trace_context
 
@@ -79,6 +81,19 @@ class ObskitMiddleware:
         Enable request/response logging. Default: True.
     track_tracing : bool, optional
         Enable distributed tracing. Default: True.
+    context_extractor : Callable[[dict[str, str]], dict[str, Any]], optional
+        Optional callable that receives the decoded request headers and returns
+        a dict of extra key/value pairs to bind into the structured log
+        context for the duration of the request.  Use this to inject
+        tenant-specific fields (e.g. ``company_id``) without writing custom
+        middleware::
+
+            ObskitMiddleware(
+                app,
+                context_extractor=lambda h: {
+                    "company_id": h.get("x-company-id", ""),
+                },
+            )
     """
 
     def __init__(
@@ -88,11 +103,13 @@ class ObskitMiddleware:
         track_metrics: bool = True,
         track_logging: bool = True,
         track_tracing: bool = True,
+        context_extractor: Callable[[dict[str, str]], dict[str, Any]] | None = None,
     ) -> None:
         if not FASTAPI_AVAILABLE:  # pragma: no cover
             raise ImportError("FastAPI is not installed. Install with: pip install fastapi")
 
         self.app = app
+        self._context_extractor = context_extractor
         self._core = MiddlewareCore(
             exclude_paths=exclude_paths,
             track_metrics=track_metrics,
@@ -114,11 +131,23 @@ class ObskitMiddleware:
 
         # ── Extract headers ──────────────────────────────────────────────────
         raw_headers: list[tuple[bytes, bytes]] = scope.get("headers", [])
+        # Observability headers (4 well-known keys) — used for correlation ID,
+        # tracing, and baggage propagation.  Kept minimal for hot-path speed.
         headers: dict[str, str] = {
             k.decode("latin-1", errors="replace"): v.decode("latin-1", errors="replace")
             for k, v in raw_headers
             if k.lower() in _OBSERVABILITY_HEADERS
         }
+        # Full header dict — decoded lazily only when a context_extractor is
+        # configured so that per-request cost is zero for the common case.
+        all_headers: dict[str, str] = (
+            {
+                k.decode("latin-1", errors="replace"): v.decode("latin-1", errors="replace")
+                for k, v in raw_headers
+            }
+            if self._context_extractor is not None
+            else headers
+        )
 
         # ── Correlation ID ───────────────────────────────────────────────────
         raw_cid = MiddlewareCore.extract_correlation_id(headers)
@@ -179,6 +208,14 @@ class ObskitMiddleware:
 
         # ── Run inside observability context ─────────────────────────────────
         async with async_correlation_context(raw_cid):
+            # Bind caller-supplied extra context (e.g. tenant ID) into the
+            # structlog context vars for the duration of this request.
+            _extra_ctx: dict[str, Any] = {}
+            if self._context_extractor is not None:
+                _extra_ctx = self._context_extractor(all_headers) or {}
+                if _extra_ctx:
+                    bind_context(**_extra_ctx)
+
             try:
                 if self._core.track_tracing and ctx.trace_ctx is not None:
                     with trace_context(headers):
@@ -192,6 +229,8 @@ class ObskitMiddleware:
                 raise
 
             finally:
+                if _extra_ctx:
+                    unbind_context(*_extra_ctx.keys())
                 if not ctx.metrics_recorded:
                     if status_code > 0:
                         # Catch early client disconnects (streaming responses

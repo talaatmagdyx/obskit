@@ -12,6 +12,8 @@ from obskit.health.aggregator import (
     DependencyType,
     HealthStatus,
     check_http,
+    check_pika,
+    check_psycopg3,
 )
 
 
@@ -411,3 +413,70 @@ class TestCheckHttp:
 
         assert result["healthy"] is False
         assert "Connection refused" in result["error"]
+
+
+class TestCheckPsycopg3:
+    """Tests for check_psycopg3 helper."""
+
+    @pytest.mark.asyncio
+    async def test_success(self):
+        """Successful psycopg3 connection returns healthy=True."""
+        mock_conn = AsyncMock()
+        mock_conn.__aenter__ = AsyncMock(return_value=mock_conn)
+        mock_conn.__aexit__ = AsyncMock(return_value=False)
+        mock_conn.execute = AsyncMock()
+
+        mock_psycopg = MagicMock()
+        mock_psycopg.AsyncConnection.connect = AsyncMock(return_value=mock_conn)
+
+        with patch.dict("sys.modules", {"psycopg": mock_psycopg}):
+            result = await check_psycopg3("postgresql://user:pw@localhost/db")
+
+        assert result["healthy"] is True
+        assert result["details"]["connected"] is True
+
+    @pytest.mark.asyncio
+    async def test_connection_error(self):
+        """Connection failure returns healthy=False with error."""
+        mock_psycopg = MagicMock()
+        mock_psycopg.AsyncConnection.connect = AsyncMock(
+            side_effect=Exception("could not connect")
+        )
+
+        with patch.dict("sys.modules", {"psycopg": mock_psycopg}):
+            result = await check_psycopg3("postgresql://user:pw@localhost/db")
+
+        assert result["healthy"] is False
+        assert "could not connect" in result["error"]
+
+
+class TestCheckPika:
+    """Tests for check_pika helper."""
+
+    @pytest.mark.asyncio
+    async def test_success(self):
+        """Successful pika connection returns healthy=True."""
+        mock_pika = MagicMock()
+        mock_conn = MagicMock()
+        mock_pika.URLParameters.return_value = MagicMock()
+        mock_pika.BlockingConnection.return_value = mock_conn
+
+        with patch.dict("sys.modules", {"pika": mock_pika}):
+            result = await check_pika("amqp://guest:guest@localhost/")
+
+        assert result["healthy"] is True
+        assert result["details"]["connected"] is True
+        mock_conn.close.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_connection_error(self):
+        """Connection failure returns healthy=False with error."""
+        mock_pika = MagicMock()
+        mock_pika.URLParameters.return_value = MagicMock()
+        mock_pika.BlockingConnection.side_effect = Exception("connection refused")
+
+        with patch.dict("sys.modules", {"pika": mock_pika}):
+            result = await check_pika("amqp://guest:guest@localhost/")
+
+        assert result["healthy"] is False
+        assert "connection refused" in result["error"]

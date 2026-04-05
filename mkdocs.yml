@@ -91,6 +91,13 @@ nav:
     - SLO Tracking: user-guide/slo.md
     - PII Redaction: user-guide/pii.md
     - Multi-Tenancy: user-guide/multi-tenancy.md
+    - Startup Validation: user-guide/startup-validation.md
+    - Event Handler Context: user-guide/event-context.md
+    - App Observability Setup: user-guide/configure-app-observability.md
+    - DLQ Tracking: user-guide/dlq.md
+    - SLO Readiness Check: user-guide/slo-readiness.md
+    - Adaptive Log Sampling: user-guide/adaptive-sampling.md
+    - RabbitMQ Tracing: user-guide/rabbitmq-tracing.md
 
   - Packages:
     - obskit-core: packages/core.md
@@ -106,7 +113,13 @@ nav:
     - Integrations:
       - Database: packages/db.md
       - Queue: packages/queue.md
+      - Redis Cache: packages/integrations-cache.md
+      - HTTP Client: packages/integrations-http.md
       - gRPC: packages/middleware-grpc.md
+      - Gunicorn: packages/integrations-gunicorn.md
+    - Decorators:
+      - Repository & Event Handlers: packages/decorators-repo.md
+    - Resilience: packages/resilience.md
 
   - Guides:
     - Trace-Log Correlation: guides/trace-log-correlation.md

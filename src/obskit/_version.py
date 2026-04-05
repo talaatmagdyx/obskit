@@ -19,12 +19,12 @@ As of v1.0.0, all public APIs are considered stable. We commit to:
 Usage
 -----
 >>> from obskit import __version__, __version_info__
->>> print(__version__)  # "1.1.0"
->>> print(__version_info__)  # (1, 1, 0)
+>>> print(__version__)  # "1.5.0"
+>>> print(__version_info__)  # (1, 5, 0)
 """
 
 # Version string
-__version__: str = "1.1.0"
+__version__: str = "1.7.0"
 
 # Version tuple for programmatic comparison
-__version_info__: tuple[int, int, int] = (1, 1, 0)
+__version_info__: tuple[int, int, int] = (1, 7, 0)

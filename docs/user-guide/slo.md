@@ -401,3 +401,96 @@ latency_tracker = SLOTracker(
 | `checkout_latency_p95` | 95% | 30d | Responses < 300ms / total responses |
 | `search_latency_p99` | 99% | 30d | Responses < 1000ms / total responses |
 | `payment_success_rate` | 99.5% | 30d | Successful payment transactions / total attempts |
+
+---
+
+## Fleet-wide SLO tracking with Redis
+
+The in-process `SLOTracker` stores measurements in memory — each Gunicorn or uvicorn worker has its own view.  For production deployments with multiple workers you may want a consistent, cross-process SLO number.  Use `AsyncRedisSLOTracker` for that.
+
+### When to use each tracker
+
+| Tracker | Storage | Use case |
+|---|---|---|
+| `SLOTracker` | In-process `deque` | Single-process apps, dev/test, async workers where one process = one SLO view |
+| `AsyncRedisSLOTracker` | Redis sorted sets | Multi-worker Gunicorn/uvicorn, where all workers must share one SLO number |
+
+### Setup
+
+```python
+import redis.asyncio as aioredis
+from obskit.slo.redis_tracker import AsyncRedisSLOTracker
+from obskit.slo.types import SLOType
+
+redis_client = aioredis.from_url(
+    "redis://redis.infra:6379",
+    decode_responses=True,
+)
+
+tracker = AsyncRedisSLOTracker(redis_client, service="checkout")
+
+tracker.register_slo(
+    "api_availability",
+    SLOType.AVAILABILITY,
+    target_value=0.999,
+    window_seconds=3600,
+)
+tracker.register_slo(
+    "api_p99_latency",
+    SLOType.LATENCY,
+    target_value=300.0,   # ms
+    window_seconds=3600,
+    percentile=99,
+)
+```
+
+### FastAPI middleware integration
+
+```python
+from fastapi import FastAPI, Request
+from obskit.slo.redis_tracker import AsyncRedisSLOTracker
+
+app = FastAPI()
+
+@app.middleware("http")
+async def slo_middleware(request: Request, call_next):
+    import time
+    start = time.perf_counter()
+    success = True
+    try:
+        response = await call_next(request)
+        success = response.status_code < 500
+        return response
+    except Exception:
+        success = False
+        raise
+    finally:
+        duration_ms = (time.perf_counter() - start) * 1000
+        await tracker.record_measurement("api_availability", 1.0, success=success)
+        await tracker.record_measurement("api_p99_latency", duration_ms, success=True)
+```
+
+### Checking status
+
+```python
+status = await tracker.get_status("api_availability")
+if status:
+    print(f"Fleet availability: {status.current_value:.4%}")
+    print(f"Compliance: {status.compliance}")
+    print(f"Error budget remaining: {status.error_budget_remaining:.1%}")
+
+# All SLOs at once
+all_status = await tracker.get_all_status()
+for name, s in all_status.items():
+    print(f"{name}: {'✓' if s.compliance else '✗'} {s.current_value:.4%}")
+```
+
+### Redis key structure
+
+```
+obskit:slo:checkout:api_availability:total     — every request (ZADD score=Unix ts)
+obskit:slo:checkout:api_availability:success   — successful requests only
+obskit:slo:checkout:api_p99_latency:latencies  — "<latency_ms>:<uuid>" members
+```
+
+Keys are evicted automatically via `ZREMRANGEBYSCORE` on every write and have a TTL of `window_seconds + 60` seconds.

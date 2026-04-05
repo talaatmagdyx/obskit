@@ -854,3 +854,176 @@ class TestObskitMiddleware:
         asyncio.run(run())
         # status_code==0 and not websocket → neither branch fires → no metrics
         mock_red.observe_request.assert_not_called()
+
+
+class TestContextExtractor:
+    """Tests for ObskitMiddleware context_extractor hook."""
+
+    def test_context_extractor_binds_extra_fields(self):
+        """context_extractor result is bound into structlog contextvars during request."""
+        import asyncio
+
+        from structlog.contextvars import clear_contextvars, get_contextvars
+
+        captured: dict = {}
+
+        async def capturing_app(scope, receive, send):
+            captured.update(get_contextvars())
+            await send({"type": "http.response.start", "status": 200, "headers": []})
+            await send({"type": "http.response.body", "body": b"", "more_body": False})
+
+        mw = ObskitMiddleware(
+            capturing_app,
+            track_logging=False,
+            track_metrics=False,
+            track_tracing=False,
+            context_extractor=lambda h: {"company_id": h.get("x-company-id", "")},
+        )
+
+        messages = []
+
+        async def fake_send(msg):  # NOSONAR
+            messages.append(msg)
+
+        async def fake_receive():  # NOSONAR — must be async for ASGI protocol
+            return {"type": "http.request", "body": b""}
+
+        clear_contextvars()
+        asyncio.run(
+            mw(
+                {
+                    "type": "http",
+                    "path": "/api/data",
+                    "method": "GET",
+                    "headers": [(b"x-company-id", b"acme")],
+                    "query_string": b"",
+                },
+                fake_receive,
+                fake_send,
+            )
+        )
+
+        assert captured.get("company_id") == "acme"
+
+    def test_context_extractor_unbound_after_request(self):
+        """Extra context vars must be removed after the request completes."""
+        import asyncio
+
+        from structlog.contextvars import clear_contextvars, get_contextvars
+
+        async def noop_app(scope, receive, send):
+            await send({"type": "http.response.start", "status": 200, "headers": []})
+            await send({"type": "http.response.body", "body": b"", "more_body": False})
+
+        mw = ObskitMiddleware(
+            noop_app,
+            track_logging=False,
+            track_metrics=False,
+            track_tracing=False,
+            context_extractor=lambda h: {"company_id": "acme"},
+        )
+
+        async def fake_send(msg):  # NOSONAR
+            pass  # intentional no-op — ASGI send stub
+
+        async def fake_receive():  # NOSONAR — must be async for ASGI protocol
+            return {"type": "http.request", "body": b""}
+
+        clear_contextvars()
+        asyncio.run(
+            mw(
+                {
+                    "type": "http",
+                    "path": "/api/data",
+                    "method": "GET",
+                    "headers": [],
+                    "query_string": b"",
+                },
+                fake_receive,
+                fake_send,
+            )
+        )
+
+        # After request: company_id must have been unbound
+        ctx_after = get_contextvars()
+        assert "company_id" not in ctx_after
+
+    def test_no_context_extractor_works_normally(self):
+        """Middleware works fine when context_extractor is None (default)."""
+        import asyncio
+
+        async def noop_app(scope, receive, send):
+            await send({"type": "http.response.start", "status": 200, "headers": []})
+            await send({"type": "http.response.body", "body": b"", "more_body": False})
+
+        mw = ObskitMiddleware(
+            noop_app,
+            track_logging=False,
+            track_metrics=False,
+            track_tracing=False,
+        )
+
+        async def fake_send(msg):  # NOSONAR
+            pass  # intentional no-op — ASGI send stub
+
+        async def fake_receive():  # NOSONAR — must be async for ASGI protocol
+            return {"type": "http.request", "body": b""}
+
+        # Should not raise
+        asyncio.run(
+            mw(
+                {
+                    "type": "http",
+                    "path": "/api/data",
+                    "method": "GET",
+                    "headers": [],
+                    "query_string": b"",
+                },
+                fake_receive,
+                fake_send,
+            )
+        )
+
+    def test_empty_extractor_result_skips_bind(self):
+        """If context_extractor returns {} no bind/unbind calls are made."""
+        import asyncio
+
+        from obskit.logging.context import bind_context, unbind_context
+        from unittest.mock import patch as _patch
+
+        async def noop_app(scope, receive, send):
+            await send({"type": "http.response.start", "status": 200, "headers": []})
+            await send({"type": "http.response.body", "body": b"", "more_body": False})
+
+        mw = ObskitMiddleware(
+            noop_app,
+            track_logging=False,
+            track_metrics=False,
+            track_tracing=False,
+            context_extractor=lambda h: {},  # returns empty dict
+        )
+
+        async def fake_send(msg):  # NOSONAR
+            pass  # intentional no-op — ASGI send stub
+
+        async def fake_receive():  # NOSONAR — must be async for ASGI protocol
+            return {"type": "http.request", "body": b""}
+
+        with _patch("obskit.middleware.fastapi.bind_context") as mock_bind, \
+             _patch("obskit.middleware.fastapi.unbind_context") as mock_unbind:
+            asyncio.run(
+                mw(
+                    {
+                        "type": "http",
+                        "path": "/api/data",
+                        "method": "GET",
+                        "headers": [],
+                        "query_string": b"",
+                    },
+                    fake_receive,
+                    fake_send,
+                )
+            )
+
+        mock_bind.assert_not_called()
+        mock_unbind.assert_not_called()

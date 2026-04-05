@@ -94,7 +94,7 @@ from __future__ import annotations
 
 import threading
 import warnings
-from typing import TYPE_CHECKING, Literal
+from typing import TYPE_CHECKING, Any, Literal
 
 if TYPE_CHECKING:  # pragma: no cover
     from obskit.core.observability import Observability
@@ -435,6 +435,51 @@ class ObskitSettings(BaseSettings):
         ),
     )
 
+    # =========================================================================
+    # Fleet SLO (Redis-backed)
+    # =========================================================================
+
+    redis_url: str | None = Field(
+        default=None,
+        description=(
+            "Redis URL for fleet-wide SLO tracking via AsyncRedisSLOTracker. "
+            "When set, configure_observability() automatically creates an "
+            "AsyncRedisSLOTracker and registers it so all workers share one "
+            "SLO view.  Example: 'redis://redis:6379/0'. "
+            "Requires the 'redis' package (pip install redis)."
+        ),
+        examples=["redis://localhost:6379/0", "redis://redis:6379/0"],
+    )
+
+    # =========================================================================
+    # Log Redaction
+    # =========================================================================
+
+    redact_fields: list[str] = Field(
+        default_factory=list,
+        description=(
+            "Extra sensitive field-name substrings (case-insensitive) to redact "
+            "from structured log output.  Added on top of the built-in defaults "
+            "(password, token, secret, …).  Example: ['authorization', 'ssn', "
+            "'credit_card'].  Values are replaced with '[REDACTED]'."
+        ),
+        examples=[["authorization", "ssn", "credit_card"]],
+    )
+
+    # =========================================================================
+    # Thread Context Propagation
+    # =========================================================================
+
+    patch_threads: bool = Field(
+        default=False,
+        description=(
+            "When True, replace threading.Thread with obskit's context-propagating "
+            "subclass so that structlog context vars and OTel trace context are "
+            "automatically copied into every child thread.  Useful for services "
+            "that use run_in_executor() or spawn threads from async code."
+        ),
+    )
+
     def __str__(self) -> str:
         """String representation showing key fields."""
         return (
@@ -451,6 +496,29 @@ class ObskitSettings(BaseSettings):
 # Global settings instance - initialized lazily
 _settings: ObskitSettings | None = None
 _settings_lock = threading.Lock()
+
+# Global Redis-backed SLO tracker — set by configure_observability() when
+# redis_url is provided; None otherwise.
+_redis_slo_tracker: Any = None
+
+
+def get_redis_slo_tracker() -> Any:
+    """Return the global :class:`~obskit.slo.redis_tracker.AsyncRedisSLOTracker`.
+
+    Returns ``None`` when no Redis URL was supplied to
+    :func:`configure_observability`.
+
+    Returns
+    -------
+    AsyncRedisSLOTracker | None
+    """
+    return _redis_slo_tracker
+
+
+def reset_redis_slo_tracker() -> None:
+    """Clear the global Redis SLO tracker.  Intended for test teardown only."""
+    global _redis_slo_tracker
+    _redis_slo_tracker = None
 
 
 def get_settings() -> ObskitSettings:
@@ -551,10 +619,118 @@ def configure_observability(*, strict: bool = False, **kwargs: object) -> Observ
 
     settings = configure(strict=strict, **kwargs)
 
+    # Emit structured startup summary before reconfiguring structlog so the
+    # event is captured by structlog.testing.capture_logs() in tests and by
+    # any pre-existing structlog pipeline in production.
+    _emit_startup_summary(settings)
+
+    # Wire structured logging pipeline immediately so that callers never need
+    # to call configure_logging() separately.  Idempotent — safe to call again.
+    from obskit.logging.logger import (
+        configure_logging,  # noqa: PLC0415 — deferred to avoid circular import
+    )
+
+    configure_logging()
+
     config = ObservabilityConfig.from_settings(settings)
     obs = Observability(config)
     _set_observability(obs)
+
+    # ── Optional: fleet-wide Redis SLO tracker ──────────────────────────
+    if settings.redis_url:
+        _init_redis_slo_tracker(settings)
+
+    # ── Optional: propagate log + OTel context into child threads ────────
+    if settings.patch_threads:
+        from obskit.threading import patch_threading  # noqa: PLC0415
+
+        patch_threading()
+
     return obs
+
+
+def _init_redis_slo_tracker(settings: ObskitSettings) -> None:
+    """Create and register the global AsyncRedisSLOTracker from *settings.redis_url*.
+
+    Silently skips when the ``redis`` package is not installed.
+    """
+    global _redis_slo_tracker
+    try:
+        import redis.asyncio as _aioredis  # noqa: PLC0415
+
+        from obskit.slo.redis_tracker import (  # noqa: PLC0415
+            AsyncRedisSLOTracker,
+        )
+    except ImportError:
+        import logging as _std_logging  # noqa: PLC0415
+
+        _std_logging.getLogger("obskit.config").warning(
+            "redis_slo_init_skipped: 'redis' package not installed — "
+            "install it with: pip install redis"
+        )
+        return
+
+    client = _aioredis.from_url(settings.redis_url, decode_responses=True)
+    _redis_slo_tracker = AsyncRedisSLOTracker(
+        client,
+        service=settings.service_name,
+    )
+
+
+def _emit_startup_summary(settings: ObskitSettings) -> None:
+    """Emit structured startup logs after configuration is complete.
+
+    Called once per :func:`configure_observability` invocation.  Logs a
+    summary of the active configuration and warns about common
+    misconfiguration patterns so problems surface at startup rather than
+    at the first failed request.
+    """
+    import structlog as _structlog  # noqa: PLC0415 — deferred
+
+    # Use structlog directly (not obskit's get_logger) so the event passes
+    # through whatever processor chain is active at call time — including
+    # structlog.testing.capture_logs() in tests — without triggering the
+    # auto-configure-on-first-use path inside obskit's get_logger wrapper.
+    _log = _structlog.get_logger("obskit")
+
+    tracing_enabled: bool = bool(getattr(settings, "tracing_enabled", False))
+    otlp_endpoint: str | None = getattr(settings, "otlp_endpoint", None)
+    trace_sample_rate: float = float(getattr(settings, "trace_sample_rate", 1.0))
+    log_sample_rate: float = float(getattr(settings, "log_sample_rate", 1.0))
+
+    _log.info(
+        "obskit_configured",
+        service=settings.service_name,
+        environment=settings.environment,
+        version=settings.version,
+        log_level=settings.log_level,
+        log_format=getattr(settings, "log_format", "json"),
+        tracing_enabled=tracing_enabled,
+        otlp_endpoint=otlp_endpoint or "(disabled)",
+        trace_sample_rate=trace_sample_rate,
+        log_sample_rate=log_sample_rate,
+    )
+
+    # ── Warn about common misconfiguration ──────────────────────────────
+    if tracing_enabled and otlp_endpoint and "localhost" in otlp_endpoint:
+        _log.warning(
+            "otlp_endpoint_is_localhost",
+            endpoint=otlp_endpoint,
+            hint="Set OBSKIT_OTLP_ENDPOINT to your collector in production",
+        )
+
+    if tracing_enabled and not otlp_endpoint:
+        _log.warning(
+            "otlp_endpoint_not_configured",
+            hint="Tracing is enabled but no OTLP endpoint is set — spans will be dropped",
+        )
+
+    if log_sample_rate < 1.0:
+        _log.info(
+            "log_sampling_active",
+            rate=log_sample_rate,
+            hint="Only a fraction of non-error logs will be emitted",
+        )
 
 
 def reset_settings() -> None:

@@ -22,6 +22,7 @@ pip install "obskit[db]"           # all three DB drivers
 | **`instrument_sqlalchemy`** | Zero-code: attaches event listeners to a SQLAlchemy engine |
 | **`instrument_psycopg2`** | Auto-instruments psycopg2 connections |
 | **`instrument_psycopg3`** | Auto-instruments psycopg3 connections (sync + async) |
+| **`instrument_psycopg_pool`** | Prometheus metrics + latency histogram for psycopg_pool connection pools |
 | **`DatabaseTracker`** | Fine-grained per-operation tracking with tenant context |
 | **`track_query`** | Convenience function — no class needed |
 
@@ -143,6 +144,45 @@ instrument_psycopg3()
 ```
 
 Requires `pip install "obskit[psycopg3]"`.
+
+---
+
+## `instrument_psycopg_pool`
+
+*New in v1.7.0.* Adds Prometheus metrics and acquisition-latency histograms to a `psycopg_pool.ConnectionPool` or `AsyncConnectionPool`.
+
+```python
+from psycopg_pool import AsyncConnectionPool
+from obskit.integrations.db.psycopg_pool import instrument_psycopg_pool
+
+pool = AsyncConnectionPool(conninfo="host=localhost dbname=mydb")
+instr = instrument_psycopg_pool(pool, name="primary")
+```
+
+### Emitted metrics
+
+| Metric | Type | Description |
+|--------|------|-------------|
+| `db_pool_size{pool}` | Gauge | Total connections in the pool |
+| `db_pool_available{pool}` | Gauge | Idle connections available for checkout |
+| `db_pool_waiting_requests{pool}` | Gauge | Requests waiting for a free connection |
+| `db_connection_acquisition_seconds{pool}` | Histogram | Time from `getconn()` call to connection returned |
+
+### Collecting pool stats on demand
+
+```python
+# Call periodically (e.g. in a background task or Prometheus collector callback)
+instr.collect_stats()
+```
+
+`collect_stats()` reads `pool.get_stats()` and updates the size/available/waiting gauges. Acquisition time is recorded automatically on every `getconn()` call.
+
+### Parameters
+
+| Parameter | Default | Description |
+|-----------|---------|-------------|
+| `pool` | required | A `psycopg_pool.ConnectionPool` or `AsyncConnectionPool` instance |
+| `name` | `"default"` | Label value for the `pool` dimension in all metrics |
 
 ---
 

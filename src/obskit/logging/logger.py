@@ -53,7 +53,7 @@ import structlog
 from structlog.types import EventDict, WrappedLogger
 
 from obskit.core.context import get_correlation_id
-from obskit.logging.redaction import make_redaction_processor
+from obskit.logging.redaction import DEFAULT_SENSITIVE_FIELDS, make_redaction_processor
 from obskit.logging.trace_correlation import add_trace_context
 
 # =============================================================================
@@ -343,7 +343,13 @@ def configure_logging() -> None:
         add_trace_context,
         # Redact sensitive fields (passwords, tokens, secrets …) before
         # sampling so secrets are never written even when sampling passes.
-        make_redaction_processor(),
+        # Merge any user-supplied extra fields with the built-in defaults.
+        make_redaction_processor(
+            fields=(
+                DEFAULT_SENSITIVE_FIELDS
+                | {f.lower() for f in (getattr(settings, "redact_fields", None) or [])}
+            )
+        ),
         # Apply log sampling (must be after correlation ID for context)
         sample_log,
         # Handle exception info
