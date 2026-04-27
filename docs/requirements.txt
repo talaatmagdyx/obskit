@@ -2,7 +2,7 @@
 # ==============================================
 
 # Sphinx and theme
-sphinx>=7.0.0
+sphinx>=9.0.4
 furo>=2024.1.0
 
 # Sphinx extensions
