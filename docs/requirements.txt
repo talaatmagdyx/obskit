@@ -3,7 +3,7 @@
 
 # Sphinx and theme
 sphinx>=7.0.0
-furo>=2024.1.0
+furo>=2025.12.19
 
 # Sphinx extensions
 sphinx-autodoc-typehints>=2.0.0
